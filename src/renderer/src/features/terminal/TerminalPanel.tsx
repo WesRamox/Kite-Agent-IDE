@@ -19,8 +19,9 @@ export function TerminalPanel({ api, params }: IDockviewPanelProps<TerminalParam
     const el = containerRef.current
     if (!el) return
     const s = getOrCreateSession(api.id, {
-      cwd: params.cwd,
-      restore: params.restore,
+      source: params.agentTaskId
+        ? { kind: 'agent', taskId: params.agentTaskId }
+        : { kind: 'shell', cwd: params.cwd ?? '', restore: params.restore },
       onExit: (event) => handleTerminalExit(api.id, event),
       onOpenSearch: () => useTerminalUiStore.getState().openSearch(api.id),
     })

@@ -1,3 +1,4 @@
+import { AgentsPanel } from '../features/agents/AgentsPanel'
 import { ExplorerPanel } from '../features/explorer/ExplorerPanel'
 import { GitPanel } from '../features/git/GitPanel'
 import { GitHubPanel } from '../features/github/GitHubPanel'
@@ -23,11 +24,9 @@ export function Sidebar() {
       <div className={activeView === 'github' ? 'flex min-h-0 flex-1 flex-col' : 'hidden'}>
         <GitHubPanel />
       </div>
-      {activeView === 'agents' && (
-        <div className="flex flex-1 items-center justify-center px-6 text-center text-fg-muted">
-          Disponível em uma próxima fase.
-        </div>
-      )}
+      <div className={activeView === 'agents' ? 'flex min-h-0 flex-1 flex-col' : 'hidden'}>
+        <AgentsPanel />
+      </div>
     </aside>
   )
 }

@@ -154,3 +154,40 @@ Decisões fáceis de desfazer, não cobertas pelo `AGENTS.md`. Mais recente no f
 - **Correções encontradas nesta fase:** a cor dos painéis do dockview não seguia a paleta (o
   override estava num descendente do elemento do tema), e `rev-parse --verify -q` falhando em
   silêncio era lido como sucesso pelo simple-git, que só rejeita quando há stderr.
+
+## Fase 5
+
+- **Agentes rodam no main**, num PTY do PtyService (`spawnAt`, sem passar pelo guard: a
+  worktree foi criada pelo próprio app). O terminal no renderer só assiste: fechar a aba não para
+  o agente, e trocar de pasta não fecha as abas de agentes. Ao reconectar, o main reenvia o
+  histórico (até 500 mil caracteres) e cada evento de saída do PTY carrega `end` (total emitido),
+  para o renderer juntar histórico e saída ao vivo sem duplicar.
+- **Comando no shell do usuário**: `$SHELL -ilc "<comando> '<prompt>'"` (interativo + login,
+  para valer o PATH do `.bashrc`/`.zshrc`, ex.: nvm); `pwsh -NoLogo -Command` no Windows. O
+  prompt é escapado com aspas simples (POSIX: `'\''`; PowerShell: `''`), com teste contra o `sh`
+  real. O código de saída do shell é o do agente.
+- **Prompt inicial:** como argumento quando o CLI aceita (`claude`, `codex`, `gemini -i`); nos
+  demais, digitado no terminal na primeira pausa (o CLI está pronto), sem notificar essa pausa.
+  Os presets são editáveis e ficam em `userData/agents.json`.
+- **Status por heurística** em `main/lib/agent-status.ts` (puro, isolado para trocar por hooks
+  dos CLIs): `running` com saída de texto recente; `waiting` após 4 s sem texto. Sequências
+  ANSI de cursor, cores e título não contam, porque TUIs redesenham mesmo paradas.
+  `done`/`error` pelo código de saída. "Parar" encerra como `done`.
+- **Notificação nativa** em `waiting`, `done` e `error` (também em erro, além do que a spec
+  pede); clicar traz a janela e foca a tarefa.
+- **Tarefas persistem** entre sessões. As que estavam rodando quando o app fechou voltam como
+  "Interrompido" (status `error` + `interrupted`) e podem ser reiniciadas na mesma worktree. O
+  fechamento da janela espera o estado dos agentes ser gravado.
+- **Branch `agent/<slug>`** a partir da branch atual (sufixo `-2`, `-3`... se já existir);
+  worktree em `../<repo>-worktrees/agent-<slug>`. Remover a tarefa pode apagar a worktree
+  (`--force`); a branch é mantida.
+- **Revisar:** arquivos alterados desde o merge-base com a branch de origem (commitados, não
+  commitados e novos), com diff lado a lado. O renderer passa só o id da tarefa; os caminhos
+  ficam no main.
+- **A lista mostra as tarefas de todos os repositórios**, não só da pasta aberta; filtrar por
+  repositório é uma melhoria possível.
+- **Correção encontrada nesta fase:** gravações concorrentes no `JsonStore` usavam o mesmo
+  arquivo temporário. Agora são enfileiradas e com nome único.
+- **Testes e2e** com um agente falso (`e2e/fixtures/fake-agent.cjs`) num preset customizado; as
+  notificações são interceptadas no main. Os CLIs reais (claude, codex...) não foram testados
+  automaticamente.

@@ -16,6 +16,11 @@ import type {
   GitStatus,
   GitWorktree,
   CreatePullInput,
+  AgentAttach,
+  AgentPreset,
+  AgentReview,
+  AgentTask,
+  StartAgentInput,
   DeviceFlowPoll,
   DeviceFlowStart,
   GitHubAuthState,
@@ -101,6 +106,17 @@ export interface InvokeChannels {
     result: { path: string; branch: string }
   }
 
+  'agent:presets': { args: []; result: AgentPreset[] }
+  'agent:savePresets': { args: [presets: AgentPreset[]]; result: AgentPreset[] }
+  'agent:list': { args: []; result: AgentTask[] }
+  'agent:start': { args: [input: StartAgentInput]; result: AgentTask }
+  'agent:stop': { args: [id: string]; result: void }
+  'agent:restart': { args: [id: string]; result: AgentTask }
+  'agent:remove': { args: [id: string, removeWorktree: boolean]; result: void }
+  'agent:attach': { args: [id: string]; result: AgentAttach }
+  'agent:review': { args: [id: string]; result: AgentReview }
+  'agent:reviewDiff': { args: [id: string, path: string]; result: GitDiff }
+
   // Resposta ao evento `app:closeRequested`: o renderer terminou de salvar e o app pode fechar.
   'app:confirmClose': { args: []; result: void }
 }
@@ -111,6 +127,10 @@ export interface EventChannels {
   'pty:exit': PtyExitEvent
   'app:closeRequested': Record<string, never>
   'git:changed': GitChangedEvent
+  // Tarefa criada ou alterada (status, fim do processo...). Removida: `removed: true`.
+  'agent:status': AgentTask & { removed?: boolean }
+  // Clique na notificação de um agente.
+  'agent:focus': { id: string }
 }
 
 export type InvokeChannel = keyof InvokeChannels
@@ -133,6 +153,20 @@ export interface Api {
   clipboard: {
     readText: Fn<'clipboard:readText'>
     writeText: Fn<'clipboard:writeText'>
+  }
+  agent: {
+    presets: Fn<'agent:presets'>
+    savePresets: Fn<'agent:savePresets'>
+    list: Fn<'agent:list'>
+    start: Fn<'agent:start'>
+    stop: Fn<'agent:stop'>
+    restart: Fn<'agent:restart'>
+    remove: Fn<'agent:remove'>
+    attach: Fn<'agent:attach'>
+    review: Fn<'agent:review'>
+    reviewDiff: Fn<'agent:reviewDiff'>
+    onStatus: (listener: (task: AgentTask & { removed?: boolean }) => void) => Unsubscribe
+    onFocus: (listener: (event: { id: string }) => void) => Unsubscribe
   }
   github: {
     me: Fn<'github:me'>

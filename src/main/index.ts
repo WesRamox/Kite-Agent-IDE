@@ -1,10 +1,12 @@
 import { join } from 'node:path'
 import { subscribe } from '@parcel/watcher'
 import { Octokit } from '@octokit/rest'
-import { app, BrowserWindow, clipboard, dialog, safeStorage, shell } from 'electron'
+import { app, BrowserWindow, clipboard, dialog, Notification, safeStorage, shell } from 'electron'
 import { spawn as spawnPty } from 'node-pty'
 import { z } from 'zod'
 import type { EventChannel, EventChannels } from '@shared/ipc-contract'
+import type { AgentTask } from '@shared/types'
+import { registerAgentIpc } from './ipc/agent.ipc'
 import { registerAppIpc } from './ipc/app.ipc'
 import { registerDialogIpc } from './ipc/dialog.ipc'
 import { registerFsIpc } from './ipc/fs.ipc'
@@ -14,13 +16,15 @@ import { registerSystemIpc } from './ipc/system.ipc'
 import { registerTerminalIpc } from './ipc/terminal.ipc'
 import { registerWorkspaceIpc } from './ipc/workspace.ipc'
 import { JsonStore } from './lib/json-store'
+import { agentStateSchema } from './lib/agent-schemas'
 import { createGitRunner } from './lib/git-runner'
 import { logger } from './lib/logger'
 import { TokenStore } from './lib/token-store'
-import { defaultShell } from './lib/shell'
+import { defaultShell, type ShellSpec } from './lib/shell'
 import { listShells, which } from './lib/which'
 import { WorkspaceGuard } from './lib/workspace-guard'
 import { installMenu } from './menu'
+import { AgentService, type AgentState } from './services/agent.service'
 import { AppService } from './services/app.service'
 import { FsService } from './services/fs.service'
 import { GitWatchService } from './services/git-watch.service'
@@ -88,6 +92,34 @@ function createWindow(): BrowserWindow {
   }
 
   return win
+}
+
+const AGENT_MESSAGES: Record<string, (name: string, code: number | null) => [string, string]> = {
+  waiting: (name) => [
+    `${name} está aguardando você`,
+    'O agente parou e parece esperar uma resposta.',
+  ],
+  done: (name) => [`${name} terminou`, 'Use "Revisar" para ver as alterações.'],
+  error: (name, code) => [
+    `${name} falhou`,
+    code === null ? 'O agente foi interrompido.' : `Saiu com código ${code}.`,
+  ],
+}
+
+// Notificação nativa; clicar traz a janela e foca a tarefa.
+function notifyAgent(task: AgentTask): void {
+  const message = AGENT_MESSAGES[task.status]
+  if (!message || !Notification.isSupported()) return
+  const [title, body] = message(task.name, task.exitCode)
+  const notification = new Notification({ title, body })
+  notification.on('click', () => {
+    if (!mainWindow) return
+    if (mainWindow.isMinimized()) mainWindow.restore()
+    mainWindow.show()
+    mainWindow.focus()
+    emit('agent:focus', { id: task.id })
+  })
+  notification.show()
 }
 
 function createServices() {
@@ -170,21 +202,52 @@ function createServices() {
       return false
     },
   })
+  // A saída e o fim dos PTYs vão para o renderer e também para o AgentService (status).
+  let agents: AgentService | null = null
+  const shellSpec: ShellSpec = defaultShell({
+    platform: process.platform,
+    env: process.env,
+    which: (n) => which(n),
+  })
   const ptyService = new PtyService({
     guard,
     spawn: spawnPty,
-    shell: defaultShell({ platform: process.platform, env: process.env, which: (n) => which(n) }),
+    shell: shellSpec,
     allowedShells: async () => listShells(),
     baseEnv: process.env,
-    emitData: (event) => emit('pty:data', event),
-    emitExit: (event) => emit('pty:exit', event),
+    emitData: (event) => {
+      emit('pty:data', event)
+      agents?.onPtyData(event)
+    },
+    emitExit: (event) => {
+      emit('pty:exit', event)
+      agents?.onPtyExit(event)
+    },
     log: log.child('pty'),
   })
   const sessionService = new TerminalSessionService(
     guard,
     join(app.getPath('userData'), 'terminal-sessions'),
   )
+  agents = new AgentService({
+    git: gitService,
+    pty: ptyService,
+    shell: shellSpec,
+    platform: process.platform,
+    store: new JsonStore<AgentState>(
+      join(app.getPath('userData'), 'agents.json'),
+      agentStateSchema,
+      {
+        presets: [],
+        tasks: [],
+      },
+    ),
+    emit: (task) => emit('agent:status', task),
+    notify: notifyAgent,
+  })
+  const agentService = agents
   return {
+    agentService,
     appService,
     fsService,
     watchService,
@@ -228,11 +291,16 @@ void app.whenReady().then(() => {
   registerTerminalIpc(services.ptyService, services.sessionService, ipcLog)
   registerGitIpc(services.gitService, services.gitWatchService, ipcLog)
   registerGitHubIpc(services.githubAuth, services.githubService, ipcLog)
+  registerAgentIpc(services.agentService, ipcLog)
+  void services.agentService.init()
+  const agentTicker = setInterval(() => services.agentService.tick(), 500)
   registerSystemIpc(
     {
       readClipboard: () => clipboard.readText(),
       writeClipboard: (text) => clipboard.writeText(text),
-      confirmClose: () => {
+      confirmClose: async () => {
+        // Salva o estado dos agentes antes que o processo termine.
+        await services.agentService.shutdown()
         closeConfirmed = true
         if (quitting) app.quit()
         else mainWindow?.close()
@@ -254,6 +322,8 @@ void app.whenReady().then(() => {
     })
     win.on('closed', () => {
       mainWindow = null
+      clearInterval(agentTicker)
+      void services.agentService.shutdown()
       services.ptyService.killAll()
       void services.watchService.unwatchAll()
       void services.gitWatchService.unwatchAll()

@@ -105,7 +105,10 @@ describe('PtyService', () => {
     expect(emitData).not.toHaveBeenCalled()
     await new Promise((r) => setTimeout(r, 10))
     expect(emitData).toHaveBeenCalledTimes(1)
-    expect(emitData).toHaveBeenCalledWith({ id, data: 'abc' })
+    expect(emitData).toHaveBeenCalledWith({ id, data: 'abc', end: 3 })
+    fake.emit('de')
+    await new Promise((r) => setTimeout(r, 10))
+    expect(emitData).toHaveBeenLastCalledWith({ id, data: 'de', end: 5 })
   })
 
   it('repassa escrita e resize', async () => {
@@ -120,10 +123,23 @@ describe('PtyService', () => {
     const { id } = await create()
     fake.emit('tchau')
     fake.exit(3)
-    expect(emitData).toHaveBeenCalledWith({ id, data: 'tchau' })
+    expect(emitData).toHaveBeenCalledWith({ id, data: 'tchau', end: 5 })
     expect(emitExit).toHaveBeenCalledWith({ id, exitCode: 3 })
     expect(service.count()).toBe(0)
     expect(() => service.write(id, 'x')).toThrow()
+  })
+
+  it('spawnAt roda um comando arbitrário sem exigir pasta aberta', async () => {
+    const { id } = service.spawnAt({
+      cwd: path.join(dir, 'fora'),
+      file: '/bin/sh',
+      args: ['-c', 'true'],
+      cols: 80,
+      rows: 24,
+    })
+    expect(spawn.mock.calls[0]?.[0]).toBe('/bin/sh')
+    expect(spawn.mock.calls[0]?.[2]).toMatchObject({ cwd: path.join(dir, 'fora') })
+    expect(service.has(id)).toBe(true)
   })
 
   it('killAll encerra todos os processos', async () => {

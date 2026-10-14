@@ -30,4 +30,9 @@ describe('JsonStore', () => {
     const store = new JsonStore(file, schema, { recent: [] })
     await expect(store.read()).resolves.toEqual({ recent: [] })
   })
+  it('gravações concorrentes não colidem e a última vence', async () => {
+    const store = new JsonStore(path.join(dir, 'c.json'), schema, { recent: [] })
+    await Promise.all(Array.from({ length: 20 }, (_, i) => store.write({ recent: [String(i)] })))
+    await expect(store.read()).resolves.toEqual({ recent: ['19'] })
+  })
 })

@@ -40,6 +40,17 @@ interface Session {
   proc: PtyProcess
   buffer: string
   timer: ReturnType<typeof setTimeout> | null
+  // Caracteres já emitidos (offset do fim do último evento).
+  emitted: number
+}
+
+export interface SpawnSpec {
+  cwd: string
+  file: string
+  args: string[]
+  cols: number
+  rows: number
+  env?: Record<string, string>
 }
 
 export class PtyService {
@@ -59,15 +70,28 @@ export class PtyService {
       shell = { file: options.shell, args: [] }
     }
 
-    const proc = this.deps.spawn(shell.file, shell.args, {
-      name: 'xterm-256color',
+    return this.spawnAt({
+      cwd,
+      file: shell.file,
+      args: shell.args,
       cols: options.cols,
       rows: options.rows,
-      cwd,
-      env: terminalEnv(this.deps.baseEnv, options.env),
+      env: options.env,
+    })
+  }
+
+  // Inicia um processo num PTY sem validar o cwd contra as pastas abertas. Uso interno do main
+  // (agentes em worktrees criadas pelo próprio app); nunca exposto direto ao renderer.
+  spawnAt(spec: SpawnSpec): { id: string; pid: number } {
+    const proc = this.deps.spawn(spec.file, spec.args, {
+      name: 'xterm-256color',
+      cols: spec.cols,
+      rows: spec.rows,
+      cwd: spec.cwd,
+      env: terminalEnv(this.deps.baseEnv, spec.env),
     })
     const id = randomUUID()
-    const session: Session = { proc, buffer: '', timer: null }
+    const session: Session = { proc, buffer: '', timer: null, emitted: 0 }
     this.sessions.set(id, session)
 
     proc.onData((data) => this.buffer(id, session, data))
@@ -78,6 +102,10 @@ export class PtyService {
     })
     this.deps.log.info('pty criado', { pid: proc.pid })
     return { id, pid: proc.pid }
+  }
+
+  has(id: string): boolean {
+    return this.sessions.has(id)
   }
 
   write(id: string, data: string): void {
@@ -124,7 +152,8 @@ export class PtyService {
     if (session.buffer.length === 0) return
     const data = session.buffer
     session.buffer = ''
-    this.deps.emitData({ id, data })
+    session.emitted += data.length
+    this.deps.emitData({ id, data, end: session.emitted })
   }
 
   private safeKill(proc: PtyProcess): void {

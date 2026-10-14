@@ -2,6 +2,15 @@ import { DockviewReact, themeAbyss, type DockviewReadyEvent } from 'dockview-rea
 import 'dockview-react/dist/styles/dockview.css'
 import { useCallback } from 'react'
 import { Welcome } from '../app/Welcome'
+import {
+  AGENT_TAB_COMPONENT,
+  isReviewPanel,
+  REVIEW_COMPONENT,
+  REVIEW_TAB_COMPONENT,
+} from '../features/agents/agents.actions'
+import { AgentTab } from '../features/agents/AgentTab'
+import { ReviewPanel } from '../features/agents/ReviewPanel'
+import { ReviewTab } from '../features/agents/ReviewTab'
 import { EDITOR_COMPONENT } from '../features/editor/editor.actions'
 import { useEditorStore } from '../features/editor/editor.store'
 import { EditorPanel } from '../features/editor/EditorPanel'
@@ -25,7 +34,7 @@ import { noteActivePanel, TERMINAL_COMPONENT } from '../features/terminal/termin
 import { TerminalGroupActions } from '../features/terminal/TerminalGroupActions'
 import { TerminalPanel } from '../features/terminal/TerminalPanel'
 import { TerminalTab } from '../features/terminal/TerminalTab'
-import { disposeSession, isTerminalPanel } from '../features/terminal/terminals'
+import { disposeSession, isAgentPanel, isTerminalPanel } from '../features/terminal/terminals'
 import { setDockApi } from '../lib/dock'
 
 const components = {
@@ -35,12 +44,22 @@ const components = {
   [PR_COMPONENT]: PullPanel,
   [ISSUE_COMPONENT]: IssuePanel,
   [CREATE_PR_COMPONENT]: CreatePullPanel,
+  [REVIEW_COMPONENT]: ReviewPanel,
 }
 const tabComponents = {
   [EDITOR_COMPONENT]: EditorTab,
   [TERMINAL_COMPONENT]: TerminalTab,
   [DIFF_COMPONENT]: DiffTab,
   [GITHUB_TAB_COMPONENT]: GitHubTab,
+  [AGENT_TAB_COMPONENT]: AgentTab,
+  [REVIEW_TAB_COMPONENT]: ReviewTab,
+}
+
+// Painéis de editor são identificados pelo caminho do arquivo; os demais têm prefixo.
+function isEditorPanel(id: string): boolean {
+  return ![isTerminalPanel, isAgentPanel, isDiffPanel, isGitHubPanel, isReviewPanel].some((is) =>
+    is(id),
+  )
 }
 
 export function MainArea() {
@@ -49,17 +68,15 @@ export function MainArea() {
     api.onDidActivePanelChange(({ panel }) => {
       const id = panel?.id ?? null
       noteActivePanel(id)
-      useEditorStore
-        .getState()
-        .setActive(id && !isTerminalPanel(id) && !isDiffPanel(id) && !isGitHubPanel(id) ? id : null)
+      useEditorStore.getState().setActive(id && isEditorPanel(id) ? id : null)
     })
     // Painel removido por outro caminho: libera o modelo. Mover entre grupos também dispara
     // remoção, então confere depois que o movimento termina.
     api.onDidRemovePanel((panel) => {
       setTimeout(() => {
         if (api.getPanel(panel.id)) return
-        if (isTerminalPanel(panel.id)) disposeSession(panel.id)
-        else if (!isDiffPanel(panel.id) && !isGitHubPanel(panel.id)) disposeModel(panel.id)
+        if (isTerminalPanel(panel.id) || isAgentPanel(panel.id)) disposeSession(panel.id)
+        else if (isEditorPanel(panel.id)) disposeModel(panel.id)
       }, 0)
     })
   }, [])

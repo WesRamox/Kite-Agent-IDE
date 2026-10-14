@@ -4,17 +4,17 @@ import { SerializeAddon } from '@xterm/addon-serialize'
 import { WebLinksAddon } from '@xterm/addon-web-links'
 import { WebglAddon } from '@xterm/addon-webgl'
 import { Terminal } from '@xterm/xterm'
-import type { PtyExitEvent } from '@shared/types'
+import type { PtyDataEvent, PtyExitEvent } from '@shared/types'
 import { isMac, isWindows } from '../../lib/platform'
-import { routePty } from './pty-router'
+import { routePty, unseenPart } from './pty-router'
 import { TERMINAL_THEME } from './terminal-theme'
 
 export const SCROLLBACK_LINES = 5000
 const SAVED_LINES = 1000
 
 export interface SessionOptions {
-  cwd: string
-  restore?: string
+  // Terminal próprio (cria um shell em `cwd`) ou visualização do PTY de um agente.
+  source: { kind: 'shell'; cwd: string; restore?: string } | { kind: 'agent'; taskId: string }
   onExit: (event: PtyExitEvent) => void
   onOpenSearch: () => void
 }
@@ -31,6 +31,8 @@ export class TerminalSession {
   private opened = false
   private disposed = false
   private lastSize = { cols: 0, rows: 0 }
+  // Agentes: o PTY pertence ao main e continua vivo quando o terminal fecha.
+  private ownsPty = true
 
   constructor(private readonly options: SessionOptions) {
     this.term = new Terminal({
@@ -50,19 +52,25 @@ export class TerminalSession {
     this.term.attachCustomKeyEventHandler((e) => this.handleKey(e))
   }
 
-  // Abre o xterm no elemento e inicia o PTY (só na primeira vez).
+  // Abre o xterm no elemento e inicia (ou conecta) o PTY, só na primeira vez.
   async attach(el: HTMLElement): Promise<void> {
     if (this.opened) return
     this.opened = true
     this.term.open(el)
     this.loadRenderer()
     this.fit()
-    if (this.options.restore) {
-      this.term.write(this.options.restore)
+    const source = this.options.source
+    if (source.kind === 'agent') await this.attachAgent(source.taskId)
+    else await this.startShell(source.cwd, source.restore)
+  }
+
+  private async startShell(cwd: string, restore?: string): Promise<void> {
+    if (restore) {
+      this.term.write(restore)
       this.term.write('\r\n\x1b[2m── sessão restaurada ──\x1b[0m\r\n')
     }
     const res = await window.api.pty.create({
-      cwd: this.options.cwd,
+      cwd,
       cols: Math.max(this.term.cols, 2),
       rows: Math.max(this.term.rows, 1),
     })
@@ -76,15 +84,75 @@ export class TerminalSession {
       void window.api.pty.kill(res.data.id)
       return
     }
-    const id = res.data.id
-    this.ptyId = id
+    this.connect(res.data.id, [])
+  }
+
+  // Conecta a um agente que roda no main: escreve o histórico e segue a saída ao vivo, sem
+  // repetir trechos (cada evento traz o offset `end`).
+  private async attachAgent(taskId: string): Promise<void> {
+    const queued: PtyDataEvent[] = []
+    let shown = -1
+    let unroute: (() => void) | null = null
+    const first = await window.api.agent.attach(taskId)
+    if (!first.ok) {
+      this.term.write(`\r\n\x1b[31m${first.error.message}\x1b[0m\r\n`)
+      return
+    }
+    const ptyId = first.data.ptyId
+    if (ptyId) {
+      // Registra antes de pedir o histórico de novo, para não perder nada no meio.
+      unroute = routePty(ptyId, {
+        data: (event) => {
+          if (shown < 0) queued.push(event)
+          else {
+            const part = unseenPart(event, shown)
+            shown = Math.max(shown, event.end)
+            if (part) this.term.write(part)
+          }
+        },
+        exit: (event) => {
+          this.ptyId = null
+          this.options.onExit(event)
+        },
+      })
+    }
+    const snap = ptyId ? await window.api.agent.attach(taskId) : first
+    if (this.disposed) {
+      unroute?.()
+      return
+    }
+    if (!snap.ok) return
+    this.term.write(snap.data.history)
+    shown = snap.data.end
+    for (const event of queued) {
+      const part = unseenPart(event, shown)
+      shown = Math.max(shown, event.end)
+      if (part) this.term.write(part)
+    }
+    if (!ptyId || !snap.data.ptyId) {
+      this.term.write('\r\n\x1b[2m[agente encerrado]\x1b[0m\r\n')
+      unroute?.()
+      return
+    }
+    this.unroute = unroute
+    this.ownsPty = false
+    this.wireInput(ptyId)
+  }
+
+  private connect(id: string, early: PtyDataEvent[]): void {
     this.unroute = routePty(id, {
-      data: (data) => this.term.write(data),
+      data: (event) => this.term.write(event.data),
       exit: (event) => {
         this.ptyId = null
         this.options.onExit(event)
       },
     })
+    for (const event of early) this.term.write(event.data)
+    this.wireInput(id)
+  }
+
+  private wireInput(id: string): void {
+    this.ptyId = id
     this.term.onData((data) => void window.api.pty.write(id, data))
     this.term.onBinary((data) => void window.api.pty.write(id, data))
     this.term.onResize(({ cols, rows }) => this.syncSize(cols, rows))
@@ -135,7 +203,7 @@ export class TerminalSession {
     if (this.disposed) return
     this.disposed = true
     this.unroute?.()
-    if (this.ptyId) void window.api.pty.kill(this.ptyId)
+    if (this.ptyId && this.ownsPty) void window.api.pty.kill(this.ptyId)
     this.ptyId = null
     this.webgl?.dispose()
     this.term.dispose()

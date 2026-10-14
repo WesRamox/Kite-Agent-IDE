@@ -3,7 +3,7 @@
 IDE desktop para trabalhar com agentes de IA (Claude Code, Codex, Gemini CLI…), com arquivos,
 terminais, Git/worktrees e GitHub. Especificação completa em [`AGENTS.md`](AGENTS.md).
 
-**Status:** Fases 0 a 4 concluídas: fundação, explorador de arquivos, editor, terminais, Git local e GitHub.
+**Status:** MVP completo (fases 0 a 5): arquivos, editor, terminais, Git/worktrees, GitHub e agentes.
 
 O que já funciona:
 
@@ -24,6 +24,11 @@ O que já funciona:
 - O painel Git acompanha commits e checkouts feitos fora da IDE (terminal, agentes)
 - GitHub: login por Device Flow, PRs e issues do repositório (filtro por estado), detalhes do PR
   com checks, "Abrir em worktree" e "Criar PR da branch atual" (faz o push e abre o PR)
+- Agentes: "Nova tarefa" cria a branch `agent/<nome>` e uma worktree própria e roda o CLI
+  (Claude Code, Codex, Gemini CLI, OpenCode ou comando customizado) com o prompt inicial. O
+  painel mostra status (trabalhando / aguardando você / concluído / erro), branch, worktree e
+  tempo. Notificação nativa quando um agente para ou termina. "Revisar" mostra o diff da
+  worktree contra a branch de origem.
 - Histórico dos terminais salvo ao fechar o app (ou trocar de pasta) e restaurado ao reabrir
 - Ao fechar a janela: pergunta sobre arquivos não salvos e encerra todos os processos
 - Atalhos: `Ctrl/Cmd+S` salvar, `Ctrl/Cmd+P` quick open, `Ctrl/Cmd+W` fechar aba,
@@ -86,6 +91,23 @@ O login usa o OAuth **Device Flow**, então o app não precisa de client secret.
 O token (escopo `repo`) é guardado criptografado com o cofre do sistema (`safeStorage`). Se o
 sistema não tiver um cofre (ex.: Linux sem gnome-keyring/kwallet), o token fica só em memória e
 o login vale até fechar o app. Ele nunca é gravado em texto puro.
+
+## Agentes
+
+Os presets ficam na aba Agents (ícone de ajustes) e podem ser editados: comando e como o prompt
+inicial é passado (como argumento, com flag opcional, ou digitado no terminal quando o agente
+fica pronto). O comando roda no seu shell como shell interativo de login (`$SHELL -ilc`), então o
+PATH do seu `.bashrc`/`.zshrc` vale (ex.: CLIs instalados via nvm).
+
+| Preset      | Comando padrão | Prompt          |
+| ----------- | -------------- | --------------- |
+| Claude Code | `claude`       | argumento       |
+| Codex       | `codex`        | argumento       |
+| Gemini CLI  | `gemini`       | `-i "<prompt>"` |
+| OpenCode    | `opencode`     | digitado        |
+| Customizado | (defina)       | digitado        |
+
+Os CLIs precisam estar instalados e autenticados por conta própria.
 
 ## Estrutura
 

@@ -2,8 +2,13 @@ import { mkdir, readFile, rename, writeFile } from 'node:fs/promises'
 import path from 'node:path'
 import type { z } from 'zod'
 
-// Persistência simples em JSON, validada com zod. Escrita atômica (tmp + rename).
+let tmpCounter = 0
+
+// Persistência simples em JSON, validada com zod. Escrita atômica (tmp + rename), uma de cada
+// vez: gravações concorrentes são enfileiradas e a última vence.
 export class JsonStore<T> {
+  private queue: Promise<void> = Promise.resolve()
+
   constructor(
     private readonly file: string,
     private readonly schema: z.ZodType<T>,
@@ -19,10 +24,16 @@ export class JsonStore<T> {
     }
   }
 
-  async write(value: T): Promise<void> {
-    await mkdir(path.dirname(this.file), { recursive: true })
-    const tmp = `${this.file}.tmp`
-    await writeFile(tmp, JSON.stringify(value, null, 2), 'utf8')
-    await rename(tmp, this.file)
+  write(value: T): Promise<void> {
+    const json = JSON.stringify(value, null, 2)
+    const run = async () => {
+      await mkdir(path.dirname(this.file), { recursive: true })
+      const tmp = `${this.file}.${process.pid}.${++tmpCounter}.tmp`
+      await writeFile(tmp, json, 'utf8')
+      await rename(tmp, this.file)
+    }
+    const next = this.queue.then(run, run)
+    this.queue = next.catch(() => {})
+    return next
   }
 }

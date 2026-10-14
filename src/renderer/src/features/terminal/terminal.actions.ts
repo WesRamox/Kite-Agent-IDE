@@ -3,14 +3,22 @@ import { getDockApi } from '../../lib/dock'
 import { attempt } from '../../lib/ipc'
 import { toast } from '../../stores/toast.store'
 import { useWorkspaceStore } from '../../stores/workspace.store'
-import { disposeSession, getSession, isTerminalPanel, TERMINAL_PREFIX } from './terminals'
+import {
+  disposeSession,
+  getSession,
+  isAgentPanel,
+  isTerminalPanel,
+  TERMINAL_PREFIX,
+} from './terminals'
 
 export const TERMINAL_COMPONENT = 'terminal'
 const INITIAL_HEIGHT = 280
 
 export interface TerminalParams {
-  cwd: string
+  cwd?: string
   restore?: string
+  // Painel que mostra o terminal de um agente (o PTY pertence ao main).
+  agentTaskId?: string
 }
 
 let counter = 0
@@ -98,6 +106,10 @@ export function closeTerminal(id: string): void {
 
 // Shell encerrado: fecha a aba se saiu normalmente, senão mostra o código e mantém.
 export function handleTerminalExit(id: string, { exitCode }: PtyExitEvent): void {
+  if (isAgentPanel(id)) {
+    getSession(id)?.write(`\r\n\x1b[2m[agente encerrado com código ${exitCode}]\x1b[0m\r\n`)
+    return
+  }
   if (exitCode === 0) {
     closeTerminal(id)
     return

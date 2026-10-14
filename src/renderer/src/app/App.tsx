@@ -4,6 +4,7 @@ import { MainArea } from '../components/MainArea'
 import { Sidebar } from '../components/Sidebar'
 import { StatusBar } from '../components/StatusBar'
 import { Toasts } from '../components/Toasts'
+import { useAgentsSync } from '../features/agents/agents.actions'
 import { useGitSync } from '../features/git/git-sync'
 import { QuickOpen } from '../features/quick-open/QuickOpen'
 import { useLayoutStore } from '../stores/layout.store'
@@ -18,6 +19,7 @@ export function App() {
   useFsEvents()
   useCloseFlow()
   useGitSync()
+  useAgentsSync()
   useEffect(() => {
     void useWorkspaceStore.getState().loadRecent()
   }, [])

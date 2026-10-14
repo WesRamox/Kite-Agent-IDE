@@ -198,6 +198,32 @@ describe('GitService', () => {
     expect(status.isRepo && status.files.map((f) => f.path)).toEqual([p('src', 'b.ts')])
   })
 
+  it('changesSince lista commitados, não commitados e novos desde o merge-base', async () => {
+    const { path: wt } = await svc.addWorktree(repo, 'agent/x', true)
+    await writeFile(path.join(wt, 'a.txt'), 'commitado\n')
+    git(wt, 'commit', '-q', '-am', 'agente')
+    await writeFile(path.join(wt, 'src', 'b.ts'), 'sujo\n')
+    await writeFile(path.join(wt, 'novo.md'), 'n\n')
+    // A main andar depois não entra na revisão.
+    await writeFile(p('a.txt'), 'main andou\n')
+    git(repo, 'commit', '-q', '-am', 'main')
+
+    const review = await svc.changesSince(wt, 'main')
+    expect(review.files).toEqual([
+      { path: 'a.txt', status: 'modified' },
+      { path: 'novo.md', status: 'untracked' },
+      { path: 'src/b.ts', status: 'modified' },
+    ])
+    await expect(svc.diffSince(wt, review.mergeBase, 'a.txt')).resolves.toEqual({
+      original: 'um\n',
+      modified: 'commitado\n',
+      binary: false,
+    })
+    await expect(svc.diffSince(wt, review.mergeBase, '../fora')).rejects.toMatchObject({
+      code: 'FORBIDDEN_PATH',
+    })
+  })
+
   it('gitDirs de uma worktree inclui o diretório comum', async () => {
     const { path: wt } = await svc.addWorktree(repo, 'feat/z', true)
     await guard.addRoot(wt)

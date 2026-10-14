@@ -70,6 +70,9 @@ export interface PtyCreateOptions {
 export interface PtyDataEvent {
   id: string
   data: string
+  // Total de caracteres emitidos por este PTY até o fim deste trecho (para reconectar a um
+  // terminal sem duplicar saída).
+  end: number
 }
 
 export interface PtyExitEvent {
@@ -243,4 +246,58 @@ export interface CreatePullInput {
   body: string
   base: string
   draft: boolean
+}
+
+export type AgentStatus = 'running' | 'waiting' | 'done' | 'error'
+
+export type AgentPromptMode = 'arg' | 'type'
+
+export interface AgentPreset {
+  id: string
+  name: string
+  // Comando executado no shell do usuário dentro da worktree.
+  command: string
+  // 'arg': o prompt vai como argumento (depois de `promptFlag`, se houver).
+  // 'type': o prompt é digitado no terminal quando o agente fica pronto.
+  promptMode: AgentPromptMode
+  promptFlag: string
+}
+
+export interface AgentTask {
+  id: string
+  name: string
+  presetId: string
+  presetName: string
+  branch: string
+  baseBranch: string
+  worktreePath: string
+  // Worktree principal do repositório onde a tarefa foi criada.
+  repoPath: string
+  status: AgentStatus
+  // O processo ainda existe (pode estar running ou waiting).
+  alive: boolean
+  // O app foi fechado com o agente rodando.
+  interrupted: boolean
+  startedAt: number
+  endedAt: number | null
+  exitCode: number | null
+}
+
+export interface StartAgentInput {
+  root: string
+  name: string
+  presetId: string
+  prompt: string
+}
+
+export interface AgentAttach {
+  ptyId: string | null
+  history: string
+  end: number
+}
+
+export interface AgentReview {
+  base: string
+  mergeBase: string
+  files: { path: string; status: GitChangeKind }[]
 }

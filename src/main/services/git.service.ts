@@ -1,6 +1,6 @@
 import { readFile, realpath, stat } from 'node:fs/promises'
 import path from 'node:path'
-import type { GitBranch, GitDiff, GitStatus, GitWorktree } from '@shared/types'
+import type { GitBranch, GitChangeKind, GitDiff, GitStatus, GitWorktree } from '@shared/types'
 import { AppException } from '../lib/errors'
 import { MAX_EDITABLE_BYTES } from '../lib/file-content'
 import { parseBranches, parseStatusV2, parseWorktrees, worktreeDirName } from '../lib/git-parse'
@@ -229,6 +229,69 @@ export class GitService {
       ['fetch', 'origin', `+refs/pull/${pull}/head:refs/heads/${localBranch}`],
       env,
     )
+  }
+
+  // --- Revisão de worktrees de agentes ---
+  // Estes métodos recebem caminhos de worktrees criadas pelo próprio app (o AgentService os
+  // guarda); não passam pelo guard e não são expostos diretamente ao renderer.
+
+  // Arquivos alterados na worktree desde o merge-base com `base`: commitados, não commitados e
+  // novos (não rastreados).
+  async changesSince(
+    worktree: string,
+    base: string,
+  ): Promise<{ mergeBase: string; files: { path: string; status: GitChangeKind }[] }> {
+    const mergeBase = (await this.git(worktree, ['merge-base', base, 'HEAD'])).trim()
+    if (!mergeBase) throw new AppException('GIT_ERROR', `Sem ancestral comum com ${base}`)
+    const diff = await this.git(worktree, [
+      'diff',
+      '--name-status',
+      '-z',
+      '--no-renames',
+      mergeBase,
+    ])
+    const untracked = await this.git(worktree, ['ls-files', '--others', '--exclude-standard', '-z'])
+    const files = new Map<string, GitChangeKind>()
+    const parts = diff.split('\0').filter(Boolean)
+    for (let i = 0; i + 1 < parts.length; i += 2) {
+      const code = parts[i] ?? ''
+      files.set(parts[i + 1] ?? '', code === 'A' ? 'added' : code === 'D' ? 'deleted' : 'modified')
+    }
+    for (const rel of untracked.split('\0').filter(Boolean)) files.set(rel, 'untracked')
+    return {
+      mergeBase,
+      files: [...files]
+        .map(([p, status]) => ({ path: p, status }))
+        .sort((a, b) => a.path.localeCompare(b.path)),
+    }
+  }
+
+  // Remove a worktree de uma tarefa de agente (mesmo com alterações), a partir do repositório
+  // principal.
+  async removeWorktreeAt(repoPath: string, worktree: string): Promise<void> {
+    await this.git(repoPath, ['worktree', 'remove', '--force', worktree])
+  }
+
+  // Conteúdo no merge-base × arquivo atual na worktree.
+  async diffSince(worktree: string, mergeBase: string, rel: string): Promise<GitDiff> {
+    const normalized = path.posix.normalize(rel)
+    if (path.isAbsolute(rel) || normalized.startsWith('..') || rel.includes('\0')) {
+      throw new AppException('FORBIDDEN_PATH', 'Caminho inválido')
+    }
+    const repo: Repo = { root: worktree, toplevel: worktree }
+    const original = await this.showOrEmpty(repo, `${mergeBase}:${normalized}`)
+    const full = path.join(worktree, ...normalized.split('/'))
+    let modified = ''
+    try {
+      const info = await stat(full)
+      if (info.size > MAX_EDITABLE_BYTES)
+        throw new AppException('FILE_TOO_LARGE', 'Arquivo maior que 5 MB')
+      modified = await readFile(full, 'utf8')
+    } catch (err) {
+      if (err instanceof AppException) throw err
+    }
+    const binary = original.includes('\0') || modified.includes('\0')
+    return binary ? { original: '', modified: '', binary } : { original, modified, binary }
   }
 
   // Diretórios internos do git a observar (HEAD, index, refs). Numa worktree, o gitdir fica

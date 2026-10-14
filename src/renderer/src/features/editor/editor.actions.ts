@@ -4,7 +4,7 @@ import { basename, isInside, rebase } from '../../lib/paths'
 import { toast } from '../../stores/toast.store'
 import { closeDiff, isDiffPanel } from '../git/git.actions'
 import { closeTerminal } from '../terminal/terminal.actions'
-import { isTerminalPanel } from '../terminal/terminals'
+import { isAgentPanel, isTerminalPanel } from '../terminal/terminals'
 import { useEditorStore } from './editor.store'
 import {
   acknowledgeDisk,
@@ -101,7 +101,7 @@ export async function closeFile(path: string): Promise<boolean> {
 export async function closeActive(): Promise<void> {
   const panel = getDockApi()?.activePanel
   if (!panel) return
-  if (isTerminalPanel(panel.id)) closeTerminal(panel.id)
+  if (isTerminalPanel(panel.id) || isAgentPanel(panel.id)) closeTerminal(panel.id)
   else if (isDiffPanel(panel.id)) closeDiff(panel.id)
   else if (hasModel(panel.id)) await closeFile(panel.id)
   // Painéis sem estado próprio (GitHub etc.): só remove.

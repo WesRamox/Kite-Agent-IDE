@@ -5,7 +5,7 @@ import { registerHandler } from './register'
 export interface SystemDeps {
   readClipboard: () => string | Promise<string>
   writeClipboard: (text: string) => void
-  confirmClose: () => void
+  confirmClose: () => void | Promise<void>
 }
 
 export function registerSystemIpc(deps: SystemDeps, log: Logger): void {

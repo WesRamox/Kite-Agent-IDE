@@ -1,4 +1,5 @@
-import { FolderGit2, GitBranch, SquareTerminal } from 'lucide-react'
+import { Bot, FolderGit2, GitBranch, SquareTerminal } from 'lucide-react'
+import { useAgentsStore } from '../features/agents/agents.store'
 import { useEditorStore } from '../features/editor/editor.store'
 import { useGitStore } from '../features/git/git.store'
 import { focusOrCreateTerminal } from '../features/terminal/terminal.actions'
@@ -11,6 +12,10 @@ export function StatusBar() {
   const info = useAppInfo()
   const root = useWorkspaceStore((s) => s.root)
   const status = useGitStore((s) => s.status)
+  const running = useAgentsStore((s) => s.tasks.filter((t) => t.alive).length)
+  const waiting = useAgentsStore(
+    (s) => s.tasks.filter((t) => t.alive && t.status === 'waiting').length,
+  )
   const showGit = () => {
     const layout = useLayoutStore.getState()
     if (layout.activeView !== 'git' || !layout.sidebarVisible) layout.selectView('git')
@@ -40,7 +45,19 @@ export function StatusBar() {
       ) : (
         <span>sem repositório</span>
       )}
-      <span>0 agentes</span>
+      <button
+        type="button"
+        title="Agentes"
+        onClick={() => {
+          const layout = useLayoutStore.getState()
+          if (layout.activeView !== 'agents' || !layout.sidebarVisible) layout.selectView('agents')
+        }}
+        className="flex items-center gap-1 hover:text-fg"
+      >
+        <Bot size={12} />
+        {running} {running === 1 ? 'agente' : 'agentes'}
+        {waiting > 0 && <span className="text-amber-300">({waiting} aguardando)</span>}
+      </button>
       {root && (
         <button
           type="button"
