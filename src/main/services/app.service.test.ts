@@ -4,7 +4,7 @@ import { AppService } from './app.service'
 describe('AppService', () => {
   it('retorna as informações injetadas', () => {
     const deps = {
-      name: 'AiController',
+      name: 'Kite',
       version: '0.1.0',
       platform: 'linux',
       versions: { electron: '44', chrome: '140', node: '24' },

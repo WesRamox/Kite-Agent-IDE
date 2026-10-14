@@ -1,4 +1,5 @@
 import { FolderOpen, X } from 'lucide-react'
+import { KiteLogo } from '../components/KiteLogo'
 import { basename } from '../lib/paths'
 import { isMac } from '../lib/platform'
 import { useWorkspaceStore } from '../stores/workspace.store'
@@ -29,8 +30,13 @@ export function Welcome() {
   return (
     <div className="flex h-full items-center justify-center">
       <div className="w-96">
-        <h1 className="text-xl text-fg">AiController</h1>
-        <p className="mt-1 text-fg-muted">IDE para trabalhar com agentes de IA.</p>
+        <div className="flex items-center gap-3">
+          <KiteLogo size={34} />
+          <div>
+            <h1 className="text-2xl font-semibold tracking-tight text-fg">Kite</h1>
+            <p className="text-fg-muted">IDE para trabalhar com agentes de IA.</p>
+          </div>
+        </div>
         <button
           type="button"
           onClick={() => void openFolder()}

@@ -2,9 +2,9 @@ import type { ChecksState } from '@shared/types'
 import { CircleCheck, CircleDashed, CircleX, Clock } from 'lucide-react'
 
 const ICONS: Record<ChecksState, [typeof CircleCheck, string, string]> = {
-  success: [CircleCheck, 'text-emerald-400', 'Checks passaram'],
-  failure: [CircleX, 'text-red-400', 'Checks falharam'],
-  pending: [Clock, 'text-amber-300', 'Checks em andamento'],
+  success: [CircleCheck, 'text-success', 'Checks passaram'],
+  failure: [CircleX, 'text-danger', 'Checks falharam'],
+  pending: [Clock, 'text-warning', 'Checks em andamento'],
   none: [CircleDashed, 'text-fg-muted', 'Sem checks'],
 }
 

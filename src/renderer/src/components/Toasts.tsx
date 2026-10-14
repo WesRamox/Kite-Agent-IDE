@@ -3,8 +3,8 @@ import { useToastStore, type ToastKind } from '../stores/toast.store'
 
 const KIND_CLASS: Record<ToastKind, string> = {
   info: 'border-accent/60',
-  warning: 'border-amber-400/70',
-  error: 'border-red-400/70',
+  warning: 'border-warning/70',
+  error: 'border-danger/70',
 }
 
 export function Toasts() {

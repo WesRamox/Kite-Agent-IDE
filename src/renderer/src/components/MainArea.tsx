@@ -84,7 +84,7 @@ export function MainArea() {
   return (
     <main className="min-w-0 flex-1">
       <DockviewReact
-        className="aic-dock"
+        className="kite-dock"
         theme={themeAbyss}
         components={components}
         tabComponents={tabComponents}

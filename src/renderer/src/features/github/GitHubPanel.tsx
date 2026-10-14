@@ -173,7 +173,7 @@ function Connected() {
 function ListState({ empty }: { empty: string }) {
   const error = useGitHubStore((s) => s.listError)
   return (
-    <p className={`px-4 py-4 text-center ${error ? 'text-red-300' : 'text-fg-muted'}`}>
+    <p className={`px-4 py-4 text-center ${error ? 'text-danger' : 'text-fg-muted'}`}>
       {error ?? empty}
     </p>
   )
@@ -191,12 +191,12 @@ function PullList() {
         const Icon = p.draft ? GitPullRequestDraft : GitPullRequest
         const color =
           p.state === 'merged'
-            ? 'text-violet-400'
+            ? 'text-merged'
             : p.state === 'closed'
-              ? 'text-red-400'
+              ? 'text-danger'
               : p.draft
                 ? 'text-fg-muted'
-                : 'text-emerald-400'
+                : 'text-success'
         return (
           <li key={p.number}>
             <button
@@ -236,7 +236,7 @@ function IssueList() {
             className="flex w-full gap-2 px-3 py-1.5 text-left hover:bg-surface-2"
           >
             <span
-              className={`mt-1.5 size-2 shrink-0 rounded-full ${i.state === 'open' ? 'bg-emerald-400' : 'bg-violet-400'}`}
+              className={`mt-1.5 size-2 shrink-0 rounded-full ${i.state === 'open' ? 'bg-success' : 'bg-merged'}`}
             />
             <span className="min-w-0 flex-1">
               <span className="block truncate text-fg">{i.title}</span>

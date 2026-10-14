@@ -1,23 +1,35 @@
 import { join } from 'node:path'
 import { subscribe } from '@parcel/watcher'
 import { Octokit } from '@octokit/rest'
-import { app, BrowserWindow, clipboard, dialog, Notification, safeStorage, shell } from 'electron'
+import {
+  app,
+  BrowserWindow,
+  clipboard,
+  dialog,
+  nativeTheme,
+  Notification,
+  safeStorage,
+  shell,
+} from 'electron'
 import { spawn as spawnPty } from 'node-pty'
 import { z } from 'zod'
 import type { EventChannel, EventChannels } from '@shared/ipc-contract'
-import type { AgentTask } from '@shared/types'
+import { DEFAULT_THEME, themeInfo, type ThemeId } from '@shared/themes'
+import type { AgentTask, AppSettings } from '@shared/types'
 import { registerAgentIpc } from './ipc/agent.ipc'
 import { registerAppIpc } from './ipc/app.ipc'
 import { registerDialogIpc } from './ipc/dialog.ipc'
 import { registerFsIpc } from './ipc/fs.ipc'
 import { registerGitIpc } from './ipc/git.ipc'
 import { registerGitHubIpc } from './ipc/github.ipc'
+import { registerSettingsIpc, themeSchema } from './ipc/settings.ipc'
 import { registerSystemIpc } from './ipc/system.ipc'
 import { registerTerminalIpc } from './ipc/terminal.ipc'
 import { registerWorkspaceIpc } from './ipc/workspace.ipc'
 import { JsonStore } from './lib/json-store'
 import { agentStateSchema } from './lib/agent-schemas'
 import { createGitRunner } from './lib/git-runner'
+import { migrateLegacyProfile } from './lib/legacy-profile'
 import { logger } from './lib/logger'
 import { TokenStore } from './lib/token-store'
 import { defaultShell, type ShellSpec } from './lib/shell'
@@ -32,6 +44,7 @@ import { GitService } from './services/git.service'
 import { GitHubAuthService } from './services/github-auth.service'
 import { fetchGitHubUser, GitHubService } from './services/github.service'
 import { PtyService } from './services/pty.service'
+import { SettingsService } from './services/settings.service'
 import { TerminalSessionService } from './services/terminal-session.service'
 import { WatchService } from './services/watch.service'
 import { WorkspaceService, type WorkspaceState } from './services/workspace.service'
@@ -39,6 +52,7 @@ import { WorkspaceService, type WorkspaceState } from './services/workspace.serv
 const log = logger
 let mainWindow: BrowserWindow | null = null
 let closeConfirmed = false
+let currentTheme: ThemeId = DEFAULT_THEME
 let quitting = false
 
 function emit<E extends EventChannel>(channel: E, payload: EventChannels[E]): void {
@@ -52,8 +66,10 @@ function createWindow(): BrowserWindow {
     minWidth: 800,
     minHeight: 500,
     show: false,
-    backgroundColor: '#0f1115',
-    title: 'AiController',
+    backgroundColor: themeInfo(currentTheme).background,
+    title: 'Kite',
+    // Em dev/build local; no pacote final o ícone vem do instalador.
+    icon: join(__dirname, '../../resources/icon.png'),
     webPreferences: {
       preload: join(__dirname, '../preload/index.js'),
       contextIsolation: true,
@@ -124,6 +140,14 @@ function notifyAgent(task: AgentTask): void {
 
 function createServices() {
   const guard = new WorkspaceGuard()
+  const settingsService = new SettingsService({
+    store: new JsonStore<AppSettings>(
+      join(app.getPath('userData'), 'settings.json'),
+      z.object({ theme: themeSchema }),
+      { theme: DEFAULT_THEME },
+    ),
+    applyTheme: applyNativeTheme,
+  })
   const appService = new AppService({
     name: app.getName(),
     version: app.getVersion(),
@@ -155,7 +179,7 @@ function createServices() {
     new Octokit({
       auth: token,
       baseUrl: githubApiUrl,
-      userAgent: `AiController/${app.getVersion()}`,
+      userAgent: `Kite/${app.getVersion()}`,
     })
   const githubAuth = new GitHubAuthService({
     clientId: process.env['GITHUB_CLIENT_ID'] || undefined,
@@ -247,6 +271,7 @@ function createServices() {
   })
   const agentService = agents
   return {
+    settingsService,
     agentService,
     appService,
     fsService,
@@ -261,13 +286,27 @@ function createServices() {
   }
 }
 
-// Permite isolar o perfil (recentes etc.), usado pelos testes e2e.
-const userDataOverride = process.env['AIC_USER_DATA_DIR']
+// O nome do app (productName) é Kite. Permite isolar o perfil, usado pelos testes e2e.
+app.setName('Kite')
+const userDataOverride = process.env['KITE_USER_DATA_DIR']
 if (userDataOverride) app.setPath('userData', userDataOverride)
+else {
+  const copied = migrateLegacyProfile(app.getPath('appData'), app.getPath('userData'))
+  if (copied.length > 0) log.info('perfil do AiController migrado', { files: copied })
+}
 
-void app.whenReady().then(() => {
+// Tema fora do renderer: fundo das janelas e diálogos/menus nativos claros ou escuros.
+function applyNativeTheme(theme: ThemeId): void {
+  currentTheme = theme
+  const info = themeInfo(theme)
+  nativeTheme.themeSource = info.kind
+  for (const win of BrowserWindow.getAllWindows()) win.setBackgroundColor(info.background)
+}
+
+void app.whenReady().then(async () => {
   installMenu()
   const services = createServices()
+  await services.settingsService.init()
   const ipcLog = log.child('ipc')
   registerAppIpc(services.appService, ipcLog)
   registerWorkspaceIpc(services.workspaceService, ipcLog)
@@ -292,6 +331,7 @@ void app.whenReady().then(() => {
   registerGitIpc(services.gitService, services.gitWatchService, ipcLog)
   registerGitHubIpc(services.githubAuth, services.githubService, ipcLog)
   registerAgentIpc(services.agentService, ipcLog)
+  registerSettingsIpc(services.settingsService, ipcLog)
   void services.agentService.init()
   const agentTicker = setInterval(() => services.agentService.tick(), 500)
   registerSystemIpc(

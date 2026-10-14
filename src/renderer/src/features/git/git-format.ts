@@ -23,14 +23,14 @@ export const KIND_LABEL: Record<GitChangeKind, string> = {
 }
 
 export const KIND_COLOR: Record<GitChangeKind, string> = {
-  modified: 'text-amber-300',
-  added: 'text-emerald-300',
-  deleted: 'text-red-400',
-  renamed: 'text-sky-300',
-  copied: 'text-sky-300',
-  typechange: 'text-amber-300',
-  untracked: 'text-emerald-300',
-  conflicted: 'text-red-400',
+  modified: 'text-warning',
+  added: 'text-success',
+  deleted: 'text-danger',
+  renamed: 'text-info',
+  copied: 'text-info',
+  typechange: 'text-warning',
+  untracked: 'text-success',
+  conflicted: 'text-danger',
 }
 
 // O tipo mais relevante para exibir na árvore (o que está no disco tem prioridade).

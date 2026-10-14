@@ -35,7 +35,7 @@ export function StatusBar() {
           >
             <GitBranch size={12} />
             {status.branch ?? `(${status.head ?? 'sem commits'})`}
-            {status.files.length > 0 && <span className="text-amber-300">*</span>}
+            {status.files.length > 0 && <span className="text-warning">*</span>}
           </button>
           <span title={status.worktreePath} className="flex items-center gap-1">
             <FolderGit2 size={12} />
@@ -56,7 +56,7 @@ export function StatusBar() {
       >
         <Bot size={12} />
         {running} {running === 1 ? 'agente' : 'agentes'}
-        {waiting > 0 && <span className="text-amber-300">({waiting} aguardando)</span>}
+        {waiting > 0 && <span className="text-warning">({waiting} aguardando)</span>}
       </button>
       {root && (
         <button

@@ -23,7 +23,7 @@ export function IssuePanel({ params }: IDockviewPanelProps<{ number: number }>) 
     }
   }, [root, params.number])
 
-  if (error) return <p className="p-6 text-red-300">{error}</p>
+  if (error) return <p className="p-6 text-danger">{error}</p>
   if (!issue) return <p className="p-6 text-fg-muted">Carregando issue #{params.number}…</p>
 
   return (

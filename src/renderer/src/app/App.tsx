@@ -8,6 +8,7 @@ import { useAgentsSync } from '../features/agents/agents.actions'
 import { useGitSync } from '../features/git/git-sync'
 import { QuickOpen } from '../features/quick-open/QuickOpen'
 import { useLayoutStore } from '../stores/layout.store'
+import { useThemeStore } from '../stores/theme.store'
 import { useWorkspaceStore } from '../stores/workspace.store'
 import { useCloseFlow } from './use-close-flow'
 import { useFsEvents } from './use-fs-events'
@@ -22,6 +23,7 @@ export function App() {
   useAgentsSync()
   useEffect(() => {
     void useWorkspaceStore.getState().loadRecent()
+    void useThemeStore.getState().syncFromMain()
   }, [])
 
   return (

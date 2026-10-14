@@ -3,7 +3,7 @@
 //   falhar -> termina com código 3
 const fs = require('node:fs')
 
-const name = process.env.AIC_AGENT_TASK ?? 'sem-nome'
+const name = process.env.KITE_AGENT_TASK ?? 'sem-nome'
 const prompt = process.argv.slice(2).join(' ')
 const slug = name.toLowerCase().replace(/[^a-z0-9]+/g, '-')
 

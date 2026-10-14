@@ -5,13 +5,14 @@ import { RefreshCw } from 'lucide-react'
 import { useCallback, useEffect, useState } from 'react'
 import { basename } from '../../lib/paths'
 import { detectLanguage } from '../editor/language'
-import { monaco } from '../editor/monaco-setup'
+import { monaco, useMonacoTheme } from '../editor/monaco-setup'
 import { FileIcon } from '../explorer/FileIcon'
 import { KIND_COLOR, KIND_LETTER } from '../git/git-format'
 import { useAgentsStore } from './agents.store'
 
 // Revisão de uma tarefa: o que mudou na worktree do agente desde a branch de origem.
 export function ReviewPanel({ api, params }: IDockviewPanelProps<{ taskId: string }>) {
+  const monacoTheme = useMonacoTheme()
   const task = useAgentsStore((s) => s.tasks.find((t) => t.id === params.taskId))
   const [review, setReview] = useState<AgentReview | null>(null)
   const [error, setError] = useState<string | null>(null)
@@ -85,7 +86,7 @@ export function ReviewPanel({ api, params }: IDockviewPanelProps<{ taskId: strin
           <RefreshCw size={12} /> Atualizar
         </button>
       </div>
-      {error && <p className="p-4 text-red-300">{error}</p>}
+      {error && <p className="p-4 text-danger">{error}</p>}
       {!error && review && review.files.length === 0 && (
         <p className="p-4 text-fg-muted">O agente ainda não alterou nenhum arquivo.</p>
       )}
@@ -124,7 +125,7 @@ export function ReviewPanel({ api, params }: IDockviewPanelProps<{ taskId: strin
                 original={diff.original}
                 modified={diff.modified}
                 language={detectLanguage(basename(selected), monaco.languages.getLanguages())}
-                theme="aic-dark"
+                theme={monacoTheme}
                 originalModelPath={`inmemory://review/${encodeURIComponent(api.id)}/original`}
                 modifiedModelPath={`inmemory://review/${encodeURIComponent(api.id)}/modified`}
                 options={{

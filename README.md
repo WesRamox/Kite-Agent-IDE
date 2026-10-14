@@ -1,4 +1,4 @@
-# AiController
+# Kite
 
 IDE desktop para trabalhar com agentes de IA (Claude Code, Codex, Gemini CLI…), com arquivos,
 terminais, Git/worktrees e GitHub. Especificação completa em [`AGENTS.md`](AGENTS.md).
@@ -31,6 +31,9 @@ O que já funciona:
   worktree contra a branch de origem.
 - Histórico dos terminais salvo ao fechar o app (ou trocar de pasta) e restaurado ao reabrir
 - Ao fechar a janela: pergunta sobre arquivos não salvos e encerra todos os processos
+- Temas: Kite (padrão, escuro neutro no estilo do Orca), Meia-noite, Meio-termo, Claro e
+  Papel, no ícone de paleta da barra lateral. A escolha vale para editor, terminais e diálogos
+  nativos e é lembrada entre sessões
 - Atalhos: `Ctrl/Cmd+S` salvar, `Ctrl/Cmd+P` quick open, `Ctrl/Cmd+W` fechar aba,
   ``Ctrl/Cmd+` `` abrir/focar terminal, ``Ctrl/Cmd+Shift+` `` novo terminal. No Linux/Windows,
   com o foco no terminal, `Ctrl+S` e `Ctrl+W` vão para o shell.
@@ -67,6 +70,7 @@ Variáveis de ambiente:
 - `GITHUB_CLIENT_ID`: Client ID do OAuth App usado no login com GitHub (veja abaixo).
 - `GITHUB_API_URL`, `GITHUB_OAUTH_URL`, `GITHUB_HOST`: para GitHub Enterprise (padrões:
   `https://api.github.com`, `https://github.com`, `github.com`).
+- `KITE_USER_DATA_DIR`: troca a pasta de perfil (usado nos testes).
 - `LOG_LEVEL`: `debug` | `info` (padrão) | `warn` | `error`. Em `debug`, o console do renderer
   também aparece no terminal.
 
@@ -125,5 +129,5 @@ Para adicionar um canal IPC: declare em `src/shared/ipc-contract.ts` (em `Invoke
 `Api`), registre o handler com schema zod em `src/main/ipc/<dominio>.ipc.ts` e exponha a função
 em `src/preload/index.ts`.
 
-Variáveis de ambiente úteis para testes: `AIC_USER_DATA_DIR` troca a pasta de perfil (pastas
-recentes etc.).
+O app se chamava AiController. Na primeira execução como Kite, os dados do perfil antigo
+(`~/.config/ai-controller` no Linux) são copiados para o novo (`~/.config/Kite`).

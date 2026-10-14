@@ -9,7 +9,7 @@ export function ReviewTab({ api }: IDockviewPanelHeaderProps) {
   }
   return (
     <div className="group flex h-full items-center gap-1.5 px-3">
-      <GitCompare size={14} className="shrink-0 text-amber-300" />
+      <GitCompare size={14} className="shrink-0 text-warning" />
       <span className="max-w-64 truncate">{api.title}</span>
       <button
         type="button"

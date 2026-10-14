@@ -1,4 +1,5 @@
 // Tipos de domínio compartilhados entre main, preload e renderer.
+import type { ThemeId } from './themes'
 
 export type ErrorCode =
   | 'INVALID_ARGS'
@@ -23,6 +24,10 @@ export interface AppError {
 }
 
 export type Result<T> = { ok: true; data: T } | { ok: false; error: AppError }
+
+export interface AppSettings {
+  theme: ThemeId
+}
 
 export interface AppInfo {
   name: string

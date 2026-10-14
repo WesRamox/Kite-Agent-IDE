@@ -39,7 +39,7 @@ export function TerminalSearch({ session, onClose }: Props) {
           else return
           e.preventDefault()
         }}
-        className={`w-48 bg-transparent text-fg outline-none ${notFound ? 'text-red-300' : ''}`}
+        className={`w-48 bg-transparent text-fg outline-none ${notFound ? 'text-danger' : ''}`}
       />
       <button
         type="button"

@@ -107,7 +107,7 @@ export function WorktreeSection() {
                   aria-label={`Remover worktree ${basename(w.path)}`}
                   title="Remover worktree"
                   onClick={() => void removeWorktree(w.path)}
-                  className="rounded p-0.5 text-fg-muted hover:bg-surface-3 hover:text-red-300"
+                  className="rounded p-0.5 text-fg-muted hover:bg-surface-3 hover:text-danger"
                 >
                   <Trash2 size={14} />
                 </button>

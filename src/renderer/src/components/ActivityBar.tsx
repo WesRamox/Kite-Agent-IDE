@@ -1,4 +1,5 @@
 import { VIEWS } from '../lib/views'
+import { ThemePicker } from './ThemePicker'
 import { useLayoutStore } from '../stores/layout.store'
 
 export function ActivityBar() {
@@ -26,6 +27,9 @@ export function ActivityBar() {
           </button>
         )
       })}
+      <div className="mt-auto">
+        <ThemePicker />
+      </div>
     </nav>
   )
 }

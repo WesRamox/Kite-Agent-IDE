@@ -38,7 +38,7 @@ export interface LaunchOptions {
 }
 
 export async function makeWorkspace(files: Record<string, string | Buffer>): Promise<string> {
-  const dir = await realpath(await mkdtemp(path.join(tmpdir(), 'aic-e2e-')))
+  const dir = await realpath(await mkdtemp(path.join(tmpdir(), 'kite-e2e-')))
   for (const [rel, content] of Object.entries(files)) {
     const full = path.join(dir, rel)
     await mkdir(path.dirname(full), { recursive: true })
@@ -48,7 +48,7 @@ export async function makeWorkspace(files: Record<string, string | Buffer>): Pro
 }
 
 export async function launch(workspace: string, opts: LaunchOptions = {}): Promise<Launched> {
-  const userData = opts.userData ?? (await mkdtemp(path.join(tmpdir(), 'aic-profile-')))
+  const userData = opts.userData ?? (await mkdtemp(path.join(tmpdir(), 'kite-profile-')))
   const app = await electron.launch({
     // password-store=basic: não toca no chaveiro do sistema durante os testes.
     args: [path.join(__dirname, '..'), '--password-store=basic'],
@@ -57,7 +57,7 @@ export async function launch(workspace: string, opts: LaunchOptions = {}): Promi
       ...GIT_TEST_ENV,
       GITHUB_CLIENT_ID: '',
       ...opts.env,
-      AIC_USER_DATA_DIR: userData,
+      KITE_USER_DATA_DIR: userData,
       ELECTRON_RENDERER_URL: '',
     },
   })

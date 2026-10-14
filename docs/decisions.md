@@ -191,3 +191,29 @@ Decisões fáceis de desfazer, não cobertas pelo `AGENTS.md`. Mais recente no f
 - **Testes e2e** com um agente falso (`e2e/fixtures/fake-agent.cjs`) num preset customizado; as
   notificações são interceptadas no main. Os CLIs reais (claude, codex...) não foram testados
   automaticamente.
+
+## Temas e nome (Kite)
+
+- **Nome do app: Kite** (`productName`). O perfil passa de `<appData>/ai-controller` para
+  `<appData>/Kite`. Na primeira execução, os arquivos do app (recentes, agentes, sessões de
+  terminal, configurações, token) são copiados do perfil antigo; os caches do Chromium não. O
+  token do GitHub pode não decifrar depois da troca de nome; nesse caso basta entrar de novo.
+  Variáveis internas `AIC_*` viraram `KITE_*`. A pasta do repositório não foi renomeada.
+- **Ícone** em `resources/icon.svg` (e o PNG gerado a partir dele), usado na janela em dev. O
+  ícone do instalador fica para quando houver empacotamento.
+- **Temas por variáveis CSS:** cada tema redefine os tokens do Tailwind (`--color-surface-*`,
+  `fg`, `accent` e os semânticos `success`, `warning`, `danger`, `info`, `merged`) em
+  `[data-theme="<id>"]`. Cores fixas da UI (amber, emerald, red...) viraram tokens semânticos,
+  senão ficariam ilegíveis nos temas claros. Ícones de arquivo usam a variante `light:`.
+- **Kite (padrão)** usa a paleta da maquete da IDE em onorca.dev: fundos neutros `#111112`,
+  `#171719`, `#242428`, bordas a 9% de branco, texto `#f5f5f5`/`#a3a3a3`, destaque `#3b82f6`.
+  "Meia-noite" é a paleta original do app; "Meio-termo" é um escuro acinzentado de menor
+  contraste; "Claro" e "Papel" (claro quente) são os claros.
+- **Monaco e xterm leem as cores do CSS**, sem paletas duplicadas em TS. Um elemento oculto com
+  `data-theme` revela a paleta de qualquer tema; há um tema do Monaco por tema do app, porque o
+  Monaco ignora `setTheme` com o mesmo nome. As cores passam por normalização para
+  `#rrggbb(aa)`: o CSS do build é minificado (`#ffffff` vira `#fff`) e o Monaco recusa outros
+  formatos. Isso foi encontrado ao testar o build de produção.
+- **Persistência:** a escolha fica no main (`userData/settings.json`), que também ajusta o fundo
+  da janela e `nativeTheme` (diálogos e menus nativos claros ou escuros). O renderer guarda uma
+  cópia em `localStorage` para aplicar o tema antes do primeiro paint.

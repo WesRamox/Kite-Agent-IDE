@@ -33,6 +33,10 @@ const api: Api = {
     confirmClose: invoke('app:confirmClose'),
     onCloseRequested: (listener) => subscribe('app:closeRequested')(() => listener()),
   },
+  settings: {
+    get: invoke('settings:get'),
+    setTheme: invoke('settings:setTheme'),
+  },
   clipboard: {
     readText: invoke('clipboard:readText'),
     writeText: invoke('clipboard:writeText'),

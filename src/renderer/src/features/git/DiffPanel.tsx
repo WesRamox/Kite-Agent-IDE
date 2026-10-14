@@ -6,7 +6,7 @@ import { useEffect, useState } from 'react'
 import { basename } from '../../lib/paths'
 import { openFile } from '../editor/editor.actions'
 import { detectLanguage } from '../editor/language'
-import { monaco } from '../editor/monaco-setup'
+import { monaco, useMonacoTheme } from '../editor/monaco-setup'
 import type { DiffParams } from './git.actions'
 import { useGitStore } from './git.store'
 
@@ -14,6 +14,7 @@ type State =
   { kind: 'loading' } | { kind: 'error'; message: string } | { kind: 'ready'; diff: GitDiff }
 
 export function DiffPanel({ api, params }: IDockviewPanelProps<DiffParams>) {
+  const monacoTheme = useMonacoTheme()
   const { path, staged } = params
   const root = useGitStore((s) => s.root)
   // Recarrega quando o status do git muda (novo stage, arquivo salvo, commit...).
@@ -52,7 +53,7 @@ export function DiffPanel({ api, params }: IDockviewPanelProps<DiffParams>) {
       </div>
       <div className="min-h-0 flex-1">
         {state.kind === 'loading' && <p className="p-4 text-fg-muted">Carregando diff…</p>}
-        {state.kind === 'error' && <p className="p-4 text-red-300">{state.message}</p>}
+        {state.kind === 'error' && <p className="p-4 text-danger">{state.message}</p>}
         {state.kind === 'ready' && state.diff.binary && (
           <p className="p-4 text-fg-muted">Arquivo binário: diff não disponível.</p>
         )}
@@ -62,7 +63,7 @@ export function DiffPanel({ api, params }: IDockviewPanelProps<DiffParams>) {
             original={state.diff.original}
             modified={state.diff.modified}
             language={language}
-            theme="aic-dark"
+            theme={monacoTheme}
             originalModelPath={`inmemory://diff/${encodeURIComponent(api.id)}/original`}
             modifiedModelPath={`inmemory://diff/${encodeURIComponent(api.id)}/modified`}
             options={{

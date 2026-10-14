@@ -50,7 +50,7 @@ test.beforeEach(async () => {
   git(ws, 'init', '-q', '-b', 'main')
   git(ws, 'add', '.')
   git(ws, 'commit', '-q', '-m', 'inicial')
-  userData = await mkdtemp(path.join(tmpdir(), 'aic-profile-'))
+  userData = await mkdtemp(path.join(tmpdir(), 'kite-profile-'))
   await seedPresets(userData)
   ctx = await launch(ws, { userData })
   await recordNotifications(ctx.app)

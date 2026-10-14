@@ -37,7 +37,7 @@ const INTERNAL_VARS = [
   'ELECTRON_RENDERER_URL',
   'ELECTRON_RUN_AS_NODE',
   'ELECTRON_NO_ATTACH_CONSOLE',
-  'AIC_USER_DATA_DIR',
+  'KITE_USER_DATA_DIR',
   'LOG_LEVEL',
 ]
 
@@ -53,7 +53,7 @@ export function terminalEnv(
     ...env,
     TERM: 'xterm-256color',
     COLORTERM: 'truecolor',
-    TERM_PROGRAM: 'AiController',
+    TERM_PROGRAM: 'Kite',
     ...extra,
   }
 }

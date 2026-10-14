@@ -269,7 +269,7 @@ export class AgentService {
       args: proc.args,
       cols: COLS,
       rows: ROWS,
-      env: { AIC_AGENT_TASK: task.name },
+      env: { KITE_AGENT_TASK: task.name },
     })
     this.runtimes.set(task.id, {
       ptyId: id,

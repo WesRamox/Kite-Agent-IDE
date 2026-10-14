@@ -1,4 +1,6 @@
+import { useThemeStore } from '../../stores/theme.store'
 import { TerminalSession, type SessionOptions } from './terminal-session'
+import { terminalTheme } from './terminal-theme'
 
 // Sessões vivas por id de painel. Ficam fora do React: o painel pode remontar sem perder o
 // terminal.
@@ -40,3 +42,10 @@ export function disposeSession(id: string): void {
   sessions.get(id)?.dispose()
   sessions.delete(id)
 }
+
+// Troca de tema: atualiza os terminais abertos.
+useThemeStore.subscribe((state, prev) => {
+  if (state.theme === prev.theme) return
+  const theme = terminalTheme(state.theme)
+  for (const session of sessions.values()) session.setTheme(theme)
+})

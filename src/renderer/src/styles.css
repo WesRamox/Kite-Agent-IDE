@@ -1,6 +1,36 @@
 @import 'tailwindcss';
 
+/* Variante para ajustes pontuais em temas claros: `light:text-yellow-600`. */
+@custom-variant light (&:where([data-theme-kind='light'], [data-theme-kind='light'] *));
+
+/* Tokens do tema. Os valores padrão são do tema Kite; os demais temas redefinem as variáveis
+   em [data-theme="..."] mais abaixo. */
 @theme {
+  --color-surface-0: #111112;
+  --color-surface-1: #171719;
+  --color-surface-2: #1d1d20;
+  --color-surface-3: #242428;
+  --color-border: #ffffff17;
+  --color-fg: #f5f5f5;
+  --color-fg-muted: #a3a3a3;
+  --color-accent: #3b82f6;
+  --color-success: #22c55e;
+  --color-warning: #eab308;
+  --color-danger: #f87171;
+  --color-info: #60a5fa;
+  --color-merged: #a78bfa;
+  --font-sans: 'Inter', system-ui, -apple-system, 'Segoe UI', sans-serif;
+  --font-mono: 'JetBrains Mono', ui-monospace, 'SF Mono', Menlo, Consolas, monospace;
+}
+
+/* Kite: escuro neutro, no estilo do Orca (onorca.dev). */
+:root,
+[data-theme='kite'] {
+  color-scheme: dark;
+}
+
+[data-theme='midnight'] {
+  color-scheme: dark;
   --color-surface-0: #0f1115;
   --color-surface-1: #151821;
   --color-surface-2: #1c202b;
@@ -9,8 +39,64 @@
   --color-fg: #d7dae0;
   --color-fg-muted: #8b93a7;
   --color-accent: #6d8cff;
-  --font-sans: 'Inter', system-ui, -apple-system, 'Segoe UI', sans-serif;
-  --font-mono: 'JetBrains Mono', ui-monospace, 'SF Mono', Menlo, Consolas, monospace;
+  --color-success: #6ee7b7;
+  --color-warning: #fcd34d;
+  --color-danger: #fca5a5;
+  --color-info: #7dd3fc;
+  --color-merged: #c4b5fd;
+}
+
+/* Meio-termo: escuro acinzentado, menos contraste (estilo "dimmed"). */
+[data-theme='dimmed'] {
+  color-scheme: dark;
+  --color-surface-0: #22272e;
+  --color-surface-1: #1c2128;
+  --color-surface-2: #2d333b;
+  --color-surface-3: #373e47;
+  --color-border: #444c56;
+  --color-fg: #adbac7;
+  --color-fg-muted: #768390;
+  --color-accent: #539bf5;
+  --color-success: #57ab5a;
+  --color-warning: #c69026;
+  --color-danger: #e5534b;
+  --color-info: #539bf5;
+  --color-merged: #986ee2;
+}
+
+[data-theme='light'] {
+  color-scheme: light;
+  --color-surface-0: #ffffff;
+  --color-surface-1: #f6f7f8;
+  --color-surface-2: #eceef1;
+  --color-surface-3: #e1e4e8;
+  --color-border: #d8dce1;
+  --color-fg: #1f2328;
+  --color-fg-muted: #656d76;
+  --color-accent: #2563eb;
+  --color-success: #1a7f37;
+  --color-warning: #9a6700;
+  --color-danger: #cf222e;
+  --color-info: #0969da;
+  --color-merged: #8250df;
+}
+
+/* Papel: claro quente, menos brilho que o branco puro. */
+[data-theme='paper'] {
+  color-scheme: light;
+  --color-surface-0: #f8f4ec;
+  --color-surface-1: #f1ebe0;
+  --color-surface-2: #e9e1d3;
+  --color-surface-3: #e0d5c2;
+  --color-border: #d6cab5;
+  --color-fg: #3b3226;
+  --color-fg-muted: #7a6c58;
+  --color-accent: #b0632c;
+  --color-success: #4f7a28;
+  --color-warning: #9a6a00;
+  --color-danger: #b3362a;
+  --color-info: #2f6f8f;
+  --color-merged: #7a4d9a;
 }
 
 html,
@@ -29,15 +115,22 @@ body {
   overflow: hidden;
 }
 
-/* Dockview com a paleta do app (base: tema Abyss). As variáveis derivadas são resolvidas no
+/* Dockview com a paleta do tema (base: Abyss). As variáveis derivadas são resolvidas no
    elemento do tema, então o override precisa estar nele (não num descendente). */
 .dv-shell.dockview-theme-abyss {
+  color-scheme: inherit;
   --dv-color-abyss-dark: var(--color-surface-0);
   --dv-color-abyss: var(--color-surface-1);
   --dv-color-abyss-light: var(--color-surface-1);
   --dv-color-abyss-lighter: var(--color-border);
   --dv-color-abyss-accent: var(--color-accent);
+  --dv-color-abyss-primary-text: var(--color-fg);
   --dv-color-abyss-secondary-text: var(--color-fg-muted);
+  --dv-activegroup-visiblepanel-tab-color: var(--color-fg);
+  --dv-activegroup-hiddenpanel-tab-color: var(--color-fg-muted);
+  --dv-inactivegroup-visiblepanel-tab-color: var(--color-fg-muted);
+  --dv-inactivegroup-hiddenpanel-tab-color: var(--color-fg-muted);
+  --dv-icon-hover-background-color: var(--color-surface-3);
   --dv-paneview-active-outline-color: var(--color-accent);
   --dv-tabs-and-actions-container-height: 34px;
   --dv-tabs-and-actions-container-font-size: 12px;

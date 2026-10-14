@@ -24,7 +24,7 @@ function Action(props: {
       title={props.label}
       aria-label={props.label}
       onClick={props.onClick}
-      className={`rounded p-1 text-fg-muted hover:bg-surface-3 ${props.danger ? 'hover:text-red-300' : 'hover:text-fg'}`}
+      className={`rounded p-1 text-fg-muted hover:bg-surface-3 ${props.danger ? 'hover:text-danger' : 'hover:text-fg'}`}
     >
       {props.children}
     </button>
@@ -54,9 +54,9 @@ export function TaskCard({ task }: { task: AgentTask }) {
         <span
           className={
             state === 'waiting'
-              ? 'text-amber-300'
+              ? 'text-warning'
               : state === 'error'
-                ? 'text-red-300'
+                ? 'text-danger'
                 : 'text-fg-muted'
           }
         >

@@ -52,7 +52,7 @@ export function ContextMenu({ x, y, items, onClose }: Props) {
             item.onSelect()
           }}
           className={`block w-full px-3 py-1 text-left hover:bg-accent/25 ${
-            item.danger ? 'text-red-300' : 'text-fg'
+            item.danger ? 'text-danger' : 'text-fg'
           }`}
         >
           {item.label}

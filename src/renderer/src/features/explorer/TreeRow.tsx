@@ -19,7 +19,7 @@ export function TreeRow({ node, style, dragHandle }: NodeRendererProps<TreeNodeD
   const change = useGitStore((s) => s.byPath.get(data.id))
   const dirHasChanges = useGitStore((s) => s.changedDirs.has(data.id))
   const kind = change ? displayKind(change) : null
-  const gitColor = kind ? KIND_COLOR[kind] : dirHasChanges ? 'text-amber-200/80' : ''
+  const gitColor = kind ? KIND_COLOR[kind] : dirHasChanges ? 'text-warning/80' : ''
 
   const isDir = data.kind === 'directory'
   const editing = data.isNew || renaming
@@ -66,7 +66,7 @@ export function TreeRow({ node, style, dragHandle }: NodeRendererProps<TreeNodeD
               {KIND_LETTER[kind]}
             </span>
           )}
-          {!kind && dirHasChanges && <span className="size-1.5 rounded-full bg-amber-200/70" />}
+          {!kind && dirHasChanges && <span className="size-1.5 rounded-full bg-warning/70" />}
         </span>
       )}
     </div>

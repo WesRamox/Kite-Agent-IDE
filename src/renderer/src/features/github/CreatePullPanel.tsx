@@ -55,7 +55,7 @@ export function CreatePullPanel() {
           . A branch será enviada (push) para o <code>origin</code>.
         </p>
         {uncommitted && (
-          <p className="rounded-md border border-amber-400/50 px-3 py-2 text-amber-200">
+          <p className="rounded-md border border-warning/50 px-3 py-2 text-warning">
             Há {status.files.length} alteração(ões) não commitadas; elas não entram no PR.
           </p>
         )}
@@ -90,7 +90,7 @@ export function CreatePullPanel() {
             ))}
           </datalist>
           {sameAsBase && (
-            <span className="text-[11px] text-red-300">A base precisa ser outra branch.</span>
+            <span className="text-[11px] text-danger">A base precisa ser outra branch.</span>
           )}
         </label>
         <label className="flex items-center gap-2">

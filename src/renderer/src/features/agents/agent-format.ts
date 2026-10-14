@@ -15,10 +15,10 @@ export const STATE_LABEL: Record<AgentDisplayState, string> = {
 }
 
 export const STATE_DOT: Record<AgentDisplayState, string> = {
-  running: 'bg-sky-400 animate-pulse',
-  waiting: 'bg-amber-300',
-  done: 'bg-emerald-400',
-  error: 'bg-red-400',
+  running: 'bg-info animate-pulse',
+  waiting: 'bg-warning',
+  done: 'bg-success',
+  error: 'bg-danger',
   interrupted: 'bg-fg-muted',
 }
 

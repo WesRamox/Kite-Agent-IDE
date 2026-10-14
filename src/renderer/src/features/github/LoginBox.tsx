@@ -59,7 +59,7 @@ export function LoginBox() {
       >
         <GitHubMark size={14} /> Entrar com GitHub
       </button>
-      {state.kind === 'error' && <p className="text-[11px] text-red-300">{state.message}</p>}
+      {state.kind === 'error' && <p className="text-[11px] text-danger">{state.message}</p>}
       {!secure && (
         <p className="text-[11px] text-fg-muted">
           O sistema não tem um cofre de senhas disponível: o login vale só até fechar o app.

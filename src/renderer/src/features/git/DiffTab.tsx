@@ -13,7 +13,7 @@ export function DiffTab({ api }: IDockviewPanelHeaderProps) {
       }}
       className="group flex h-full items-center gap-1.5 px-3"
     >
-      <GitCompare size={14} className="shrink-0 text-amber-300" />
+      <GitCompare size={14} className="shrink-0 text-warning" />
       <span>{api.title}</span>
       <button
         type="button"

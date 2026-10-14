@@ -40,7 +40,7 @@ export function PullPanel({ params }: IDockviewPanelProps<{ number: number }>) {
     }
   }, [root, params.number])
 
-  if (error) return <p className="p-6 text-red-300">{error}</p>
+  if (error) return <p className="p-6 text-danger">{error}</p>
   if (!pr) return <p className="p-6 text-fg-muted">Carregando PR #{params.number}…</p>
 
   return (
@@ -58,8 +58,8 @@ export function PullPanel({ params }: IDockviewPanelProps<{ number: number }>) {
           {pr.fromFork && <span className="text-[11px]">(fork)</span>}
         </p>
         <p className="mt-1 text-[11px] text-fg-muted">
-          {pr.changedFiles} arquivo(s) · <span className="text-emerald-400">+{pr.additions}</span>{' '}
-          <span className="text-red-400">−{pr.deletions}</span>
+          {pr.changedFiles} arquivo(s) · <span className="text-success">+{pr.additions}</span>{' '}
+          <span className="text-danger">−{pr.deletions}</span>
         </p>
 
         <div className="mt-4 flex flex-wrap gap-2">

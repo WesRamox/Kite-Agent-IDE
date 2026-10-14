@@ -3,8 +3,10 @@
 // Eventos main → renderer: nome `dominio:evento`, via webContents.send.
 // Os canais de cada domínio entram aqui na fase em que o domínio é implementado.
 
+import type { ThemeId } from './themes'
 import type {
   AppInfo,
+  AppSettings,
   ConfirmOptions,
   DirEntry,
   FileContent,
@@ -39,6 +41,9 @@ import type {
 
 export interface InvokeChannels {
   'app:getInfo': { args: []; result: AppInfo }
+
+  'settings:get': { args: []; result: AppSettings }
+  'settings:setTheme': { args: [theme: ThemeId]; result: AppSettings }
 
   'dialog:confirm': { args: [options: ConfirmOptions]; result: number }
 
@@ -149,6 +154,10 @@ export interface Api {
     getInfo: Fn<'app:getInfo'>
     confirmClose: Fn<'app:confirmClose'>
     onCloseRequested: (listener: () => void) => Unsubscribe
+  }
+  settings: {
+    get: Fn<'settings:get'>
+    setTheme: Fn<'settings:setTheme'>
   }
   clipboard: {
     readText: Fn<'clipboard:readText'>

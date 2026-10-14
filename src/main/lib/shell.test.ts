@@ -38,14 +38,14 @@ describe('terminalEnv', () => {
       {
         PATH: '/bin',
         ELECTRON_RENDERER_URL: 'http://localhost:5173',
-        AIC_USER_DATA_DIR: '/x',
+        KITE_USER_DATA_DIR: '/x',
         EMPTY: undefined,
       },
       { FOO: 'bar' },
     )
     expect(env).toMatchObject({ PATH: '/bin', TERM: 'xterm-256color', FOO: 'bar' })
     expect(env).not.toHaveProperty('ELECTRON_RENDERER_URL')
-    expect(env).not.toHaveProperty('AIC_USER_DATA_DIR')
+    expect(env).not.toHaveProperty('KITE_USER_DATA_DIR')
     expect(env).not.toHaveProperty('EMPTY')
   })
 })

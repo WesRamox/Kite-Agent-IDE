@@ -1,7 +1,8 @@
 {
-  "name": "ai-controller",
+  "name": "kite",
+  "productName": "Kite",
   "version": "0.1.0",
-  "description": "IDE desktop para trabalhar com agentes de IA",
+  "description": "Kite: IDE desktop para trabalhar com agentes de IA",
   "private": true,
   "main": "./out/main/index.js",
   "packageManager": "pnpm@12.11.2",

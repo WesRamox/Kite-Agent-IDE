@@ -7,7 +7,7 @@ export async function makeTree(spec: Record<string, string>): Promise<{
   dir: string
   cleanup: () => Promise<void>
 }> {
-  const dir = await realpath(await mkdtemp(path.join(tmpdir(), 'aic-')))
+  const dir = await realpath(await mkdtemp(path.join(tmpdir(), 'kite-')))
   for (const [rel, content] of Object.entries(spec)) {
     const full = path.join(dir, rel)
     if (rel.endsWith('/')) {

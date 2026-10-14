@@ -7,7 +7,8 @@ import { Terminal } from '@xterm/xterm'
 import type { PtyDataEvent, PtyExitEvent } from '@shared/types'
 import { isMac, isWindows } from '../../lib/platform'
 import { routePty, unseenPart } from './pty-router'
-import { TERMINAL_THEME } from './terminal-theme'
+import { useThemeStore } from '../../stores/theme.store'
+import { terminalTheme } from './terminal-theme'
 
 export const SCROLLBACK_LINES = 5000
 const SAVED_LINES = 1000
@@ -36,7 +37,7 @@ export class TerminalSession {
 
   constructor(private readonly options: SessionOptions) {
     this.term = new Terminal({
-      theme: TERMINAL_THEME,
+      theme: terminalTheme(useThemeStore.getState().theme),
       fontFamily: "'JetBrains Mono', ui-monospace, 'SF Mono', Menlo, Consolas, monospace",
       fontSize: 13,
       scrollback: SCROLLBACK_LINES,
@@ -168,6 +169,10 @@ export class TerminalSession {
     } catch {
       // contêiner sem dimensões ainda
     }
+  }
+
+  setTheme(theme: ReturnType<typeof terminalTheme>): void {
+    this.term.options.theme = theme
   }
 
   focus(): void {

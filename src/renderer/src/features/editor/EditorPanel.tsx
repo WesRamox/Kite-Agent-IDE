@@ -3,7 +3,7 @@ import type { IDockviewPanelProps } from 'dockview-react'
 import { useEffect, useRef } from 'react'
 import { useEditorStore } from './editor.store'
 import { uriFor } from './models'
-import type { monaco } from './monaco-setup'
+import { type monaco, useMonacoTheme } from './monaco-setup'
 
 const OPTIONS: monaco.editor.IStandaloneEditorConstructionOptions = {
   automaticLayout: true,
@@ -18,6 +18,7 @@ const OPTIONS: monaco.editor.IStandaloneEditorConstructionOptions = {
 }
 
 export function EditorPanel({ params, api }: IDockviewPanelProps<{ path: string }>) {
+  const monacoTheme = useMonacoTheme()
   const editorRef = useRef<monaco.editor.IStandaloneCodeEditor | null>(null)
   const { path } = params
 
@@ -40,7 +41,7 @@ export function EditorPanel({ params, api }: IDockviewPanelProps<{ path: string 
         className="min-w-0 overflow-hidden"
         // O modelo já foi criado em models.ts; o path faz o componente reutilizá-lo.
         path={uriFor(path).toString()}
-        theme="aic-dark"
+        theme={monacoTheme}
         keepCurrentModel
         options={OPTIONS}
         onMount={(editor) => {
