@@ -1,6 +1,7 @@
 import { join } from 'node:path'
 import { subscribe } from '@parcel/watcher'
-import { app, BrowserWindow, clipboard, dialog, shell } from 'electron'
+import { Octokit } from '@octokit/rest'
+import { app, BrowserWindow, clipboard, dialog, safeStorage, shell } from 'electron'
 import { spawn as spawnPty } from 'node-pty'
 import { z } from 'zod'
 import type { EventChannel, EventChannels } from '@shared/ipc-contract'
@@ -8,12 +9,14 @@ import { registerAppIpc } from './ipc/app.ipc'
 import { registerDialogIpc } from './ipc/dialog.ipc'
 import { registerFsIpc } from './ipc/fs.ipc'
 import { registerGitIpc } from './ipc/git.ipc'
+import { registerGitHubIpc } from './ipc/github.ipc'
 import { registerSystemIpc } from './ipc/system.ipc'
 import { registerTerminalIpc } from './ipc/terminal.ipc'
 import { registerWorkspaceIpc } from './ipc/workspace.ipc'
 import { JsonStore } from './lib/json-store'
 import { createGitRunner } from './lib/git-runner'
 import { logger } from './lib/logger'
+import { TokenStore } from './lib/token-store'
 import { defaultShell } from './lib/shell'
 import { listShells, which } from './lib/which'
 import { WorkspaceGuard } from './lib/workspace-guard'
@@ -22,6 +25,8 @@ import { AppService } from './services/app.service'
 import { FsService } from './services/fs.service'
 import { GitWatchService } from './services/git-watch.service'
 import { GitService } from './services/git.service'
+import { GitHubAuthService } from './services/github-auth.service'
+import { fetchGitHubUser, GitHubService } from './services/github.service'
 import { PtyService } from './services/pty.service'
 import { TerminalSessionService } from './services/terminal-session.service'
 import { WatchService } from './services/watch.service'
@@ -112,6 +117,33 @@ function createServices() {
     emit: (event) => emit('git:changed', event),
     log: log.child('git-watch'),
   })
+  // URLs configuráveis: GitHub Enterprise e servidor falso nos testes e2e.
+  const githubApiUrl = process.env['GITHUB_API_URL'] ?? 'https://api.github.com'
+  const octokit = (token: string) =>
+    new Octokit({
+      auth: token,
+      baseUrl: githubApiUrl,
+      userAgent: `AiController/${app.getVersion()}`,
+    })
+  const githubAuth = new GitHubAuthService({
+    clientId: process.env['GITHUB_CLIENT_ID'] || undefined,
+    oauthUrl: process.env['GITHUB_OAUTH_URL'] ?? 'https://github.com',
+    fetch: (input, init) => fetch(input, init),
+    tokens: new TokenStore(join(app.getPath('userData'), 'github-token.bin'), {
+      isEncryptionAvailable: () => safeStorage.isEncryptionAvailable(),
+      encryptString: (s) => safeStorage.encryptString(s),
+      decryptString: (b) => safeStorage.decryptString(b),
+      backend: () =>
+        process.platform === 'linux' ? safeStorage.getSelectedStorageBackend() : null,
+    }),
+    fetchUser: (token) => fetchGitHubUser(octokit(token)),
+  })
+  const githubService = new GitHubService({
+    getToken: () => githubAuth.getToken(),
+    octokit,
+    git: gitService,
+    host: process.env['GITHUB_HOST'] ?? 'github.com',
+  })
   const workspaceService = new WorkspaceService({
     guard,
     store: new JsonStore<WorkspaceState>(
@@ -161,6 +193,8 @@ function createServices() {
     sessionService,
     gitService,
     gitWatchService,
+    githubAuth,
+    githubService,
   }
 }
 
@@ -193,6 +227,7 @@ void app.whenReady().then(() => {
 
   registerTerminalIpc(services.ptyService, services.sessionService, ipcLog)
   registerGitIpc(services.gitService, services.gitWatchService, ipcLog)
+  registerGitHubIpc(services.githubAuth, services.githubService, ipcLog)
   registerSystemIpc(
     {
       readClipboard: () => clipboard.readText(),

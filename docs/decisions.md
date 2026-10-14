@@ -121,3 +121,36 @@ Decisões fáceis de desfazer, não cobertas pelo `AGENTS.md`. Mais recente no f
 - **Correções encontradas nesta fase:** o watcher começava depois da primeira leitura da
   árvore (arquivos criados nesse intervalo não apareciam), e trocar de aba na sidebar ou
   recolhê-la desmontava a árvore e perdia as pastas expandidas.
+
+## Fase 4
+
+- **Device Flow sem client secret.** Só o `GITHUB_CLIENT_ID` é necessário. O `device_code`
+  fica no main; o renderer recebe só o código para o usuário, a URL e um id opaco do fluxo.
+  Escopo `repo` (repositórios privados e criação de PRs).
+- **Token:** `safeStorage` em `userData/github-token.bin` (modo 0600). No Linux, se o backend
+  for `basic_text` (sem gnome-keyring/kwallet), o Electron só ofusca. Nesse caso o token fica só
+  em memória e a UI avisa; nunca vai para o disco em texto puro. Token revogado (401) faz logout.
+- **`@octokit/rest` 22 é ESM-only** e o main é CJS. O Node 24 do Electron 44 carrega ESM via
+  `require`, sem configuração extra.
+- **Repositório pelo `remote.origin.url` configurado**, não pelo `git remote get-url`: este
+  aplica reescritas `insteadOf`, e o que interessa é o host GitHub declarado.
+- **Fetch e push autenticados** com o token num header `http.<host>.extraheader` passado ao git
+  por `GIT_CONFIG_COUNT/KEY/VALUE`, nunca na linha de comando (visível no `ps`) nem em log. Só
+  para remotes https; remotes ssh usam as chaves do usuário.
+- **"Abrir em worktree"** busca `refs/pull/N/head` (funciona também para PRs de forks) numa
+  branch local com o nome da branch do PR. Se esse nome já existir localmente, usa `pr-N`. Se já
+  houver worktree para o PR, reaproveita. A branch local não fica com upstream (enviar commits
+  de volta a um PR fica para depois).
+- **"Criar PR"** sempre a partir da branch atual: `git push -u origin <branch>` e depois a API.
+  Alterações não commitadas geram um aviso. Não há suporte a criar PR a partir de fork.
+- **Descrições de PR/issue em texto puro** (sem renderizar Markdown), para não puxar mais uma
+  dependência; possível melhoria.
+- **URLs configuráveis** (`GITHUB_API_URL`, `GITHUB_OAUTH_URL`, `GITHUB_HOST`): habilitam
+  GitHub Enterprise e o servidor GitHub falso dos testes e2e.
+- **Testes e2e** contra um servidor GitHub falso local e um repositório bare como `origin` (via
+  `url.insteadOf`). Rodam com `--password-store=basic` para nunca tocar no chaveiro do sistema.
+  O fluxo real com github.com precisa ser validado manualmente (ver README).
+- **CSP:** `img-src` inclui `https://avatars.githubusercontent.com` (avatar do usuário).
+- **Correções encontradas nesta fase:** a cor dos painéis do dockview não seguia a paleta (o
+  override estava num descendente do elemento do tema), e `rev-parse --verify -q` falhando em
+  silêncio era lido como sucesso pelo simple-git, que só rejeita quando há stderr.

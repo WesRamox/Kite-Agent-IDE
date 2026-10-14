@@ -7,7 +7,12 @@ import { parseBranches, parseStatusV2, parseWorktrees, worktreeDirName } from '.
 import { isInside, type WorkspaceGuard } from '../lib/workspace-guard'
 
 // Executa `git <args>` em `cwd` e devolve o stdout. Falhas viram exceção com a mensagem do git.
-export type GitRunner = (cwd: string, args: string[]) => Promise<string>
+// `env` extra é usado para autenticação (nunca vai para a linha de comando).
+export type GitRunner = (
+  cwd: string,
+  args: string[],
+  env?: Record<string, string>,
+) => Promise<string>
 
 export interface GitServiceDeps {
   guard: WorkspaceGuard
@@ -179,6 +184,53 @@ export class GitService {
     return (await this.worktrees(root)).some((w) => w.path === target)
   }
 
+  async remoteUrl(root: string, remote = 'origin'): Promise<string | null> {
+    const repo = await this.repo(root)
+    try {
+      // URL configurada, sem reescritas de `url.*.insteadOf` (o host real do remote).
+      return (
+        (await this.git(repo.toplevel, ['config', '--get', `remote.${remote}.url`])).trim() || null
+      )
+    } catch {
+      return null
+    }
+  }
+
+  async branchExists(root: string, branch: string): Promise<boolean> {
+    const repo = await this.repo(root)
+    await this.validateBranchName(repo, branch)
+    return this.revExists(repo, `refs/heads/${branch}`)
+  }
+
+  // Envia a branch para o origin e passa a segui-la (upstream).
+  async push(root: string, branch: string, env?: Record<string, string>): Promise<void> {
+    const repo = await this.repo(root)
+    await this.validateBranchName(repo, branch)
+    await this.git(
+      repo.toplevel,
+      ['push', '-u', 'origin', `refs/heads/${branch}:refs/heads/${branch}`],
+      env,
+    )
+  }
+
+  // Baixa a cabeça de um PR (refs/pull/N/head funciona também para PRs de forks) numa branch
+  // local.
+  async fetchPullRef(
+    root: string,
+    pull: number,
+    localBranch: string,
+    env?: Record<string, string>,
+  ): Promise<void> {
+    const repo = await this.repo(root)
+    if (!Number.isInteger(pull) || pull <= 0) throw new AppException('INVALID_ARGS', 'PR inválido')
+    await this.validateBranchName(repo, localBranch)
+    await this.git(
+      repo.toplevel,
+      ['fetch', 'origin', `+refs/pull/${pull}/head:refs/heads/${localBranch}`],
+      env,
+    )
+  }
+
   // Diretórios internos do git a observar (HEAD, index, refs). Numa worktree, o gitdir fica
   // dentro do diretório comum do repositório principal.
   async gitDirs(root: string): Promise<string[]> {
@@ -229,9 +281,15 @@ export class GitService {
   }
 
   private async hasHead(repo: Repo): Promise<boolean> {
+    return this.revExists(repo, 'HEAD')
+  }
+
+  // `rev-parse --verify -q` falha em silêncio (sem stderr), e o simple-git só rejeita quando há
+  // stderr: por isso a checagem é pela saída, não pela exceção.
+  private async revExists(repo: Repo, rev: string): Promise<boolean> {
     try {
-      await this.git(repo.toplevel, ['rev-parse', '--verify', '-q', 'HEAD'])
-      return true
+      const out = await this.git(repo.toplevel, ['rev-parse', '--verify', '-q', `${rev}^{commit}`])
+      return out.trim() !== ''
     } catch {
       return false
     }
@@ -274,9 +332,9 @@ export class GitService {
     }
   }
 
-  private async git(cwd: string, args: string[]): Promise<string> {
+  private async git(cwd: string, args: string[], env?: Record<string, string>): Promise<string> {
     try {
-      return await this.deps.run(cwd, args)
+      return await this.deps.run(cwd, args, env)
     } catch (err) {
       if (err instanceof AppException) throw err
       throw new AppException('GIT_ERROR', cleanGitMessage(err))

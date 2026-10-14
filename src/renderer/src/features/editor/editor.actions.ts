@@ -104,6 +104,8 @@ export async function closeActive(): Promise<void> {
   if (isTerminalPanel(panel.id)) closeTerminal(panel.id)
   else if (isDiffPanel(panel.id)) closeDiff(panel.id)
   else if (hasModel(panel.id)) await closeFile(panel.id)
+  // Painéis sem estado próprio (GitHub etc.): só remove.
+  else getDockApi()?.removePanel(panel)
 }
 
 // Antes de trocar de workspace: salva ou descarta alterações pendentes.

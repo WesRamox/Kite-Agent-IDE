@@ -29,9 +29,10 @@ export function gitEnv(base: Record<string, string | undefined>): Record<string,
 export function createGitRunner(
   baseEnv: Record<string, string | undefined> = process.env,
 ): GitRunner {
-  const env = gitEnv(baseEnv)
-  return (cwd, args) =>
-    simpleGit({
+  const base = gitEnv(baseEnv)
+  return (cwd, args, extraEnv) => {
+    const env = { ...base, ...extraEnv }
+    return simpleGit({
       baseDir: cwd,
       trimmed: false,
       maxConcurrentProcesses: 6,
@@ -46,4 +47,5 @@ export function createGitRunner(
     })
       .env(env)
       .raw(args)
+  }
 }

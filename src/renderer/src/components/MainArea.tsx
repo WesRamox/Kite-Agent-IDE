@@ -10,6 +10,17 @@ import { disposeModel } from '../features/editor/models'
 import { DiffPanel } from '../features/git/DiffPanel'
 import { DiffTab } from '../features/git/DiffTab'
 import { DIFF_COMPONENT, isDiffPanel } from '../features/git/git.actions'
+import { CreatePullPanel } from '../features/github/CreatePullPanel'
+import {
+  CREATE_PR_COMPONENT,
+  GITHUB_TAB_COMPONENT,
+  isGitHubPanel,
+  ISSUE_COMPONENT,
+  PR_COMPONENT,
+} from '../features/github/github.actions'
+import { GitHubTab } from '../features/github/GitHubTab'
+import { IssuePanel } from '../features/github/IssuePanel'
+import { PullPanel } from '../features/github/PullPanel'
 import { noteActivePanel, TERMINAL_COMPONENT } from '../features/terminal/terminal.actions'
 import { TerminalGroupActions } from '../features/terminal/TerminalGroupActions'
 import { TerminalPanel } from '../features/terminal/TerminalPanel'
@@ -21,11 +32,15 @@ const components = {
   [EDITOR_COMPONENT]: EditorPanel,
   [TERMINAL_COMPONENT]: TerminalPanel,
   [DIFF_COMPONENT]: DiffPanel,
+  [PR_COMPONENT]: PullPanel,
+  [ISSUE_COMPONENT]: IssuePanel,
+  [CREATE_PR_COMPONENT]: CreatePullPanel,
 }
 const tabComponents = {
   [EDITOR_COMPONENT]: EditorTab,
   [TERMINAL_COMPONENT]: TerminalTab,
   [DIFF_COMPONENT]: DiffTab,
+  [GITHUB_TAB_COMPONENT]: GitHubTab,
 }
 
 export function MainArea() {
@@ -36,7 +51,7 @@ export function MainArea() {
       noteActivePanel(id)
       useEditorStore
         .getState()
-        .setActive(id && !isTerminalPanel(id) && !isDiffPanel(id) ? id : null)
+        .setActive(id && !isTerminalPanel(id) && !isDiffPanel(id) && !isGitHubPanel(id) ? id : null)
     })
     // Painel removido por outro caminho: libera o modelo. Mover entre grupos também dispara
     // remoção, então confere depois que o movimento termina.
@@ -44,7 +59,7 @@ export function MainArea() {
       setTimeout(() => {
         if (api.getPanel(panel.id)) return
         if (isTerminalPanel(panel.id)) disposeSession(panel.id)
-        else if (!isDiffPanel(panel.id)) disposeModel(panel.id)
+        else if (!isDiffPanel(panel.id) && !isGitHubPanel(panel.id)) disposeModel(panel.id)
       }, 0)
     })
   }, [])

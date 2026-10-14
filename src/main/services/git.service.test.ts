@@ -123,6 +123,11 @@ describe('GitService', () => {
     })
   })
 
+  it('branchExists distingue branches existentes', async () => {
+    await expect(svc.branchExists(repo, 'main')).resolves.toBe(true)
+    await expect(svc.branchExists(repo, 'nao-existe')).resolves.toBe(false)
+  })
+
   it('recusa caminhos fora da pasta aberta', async () => {
     await expect(svc.stage(repo, [path.join(base, 'solta', 'x.txt')])).rejects.toMatchObject({
       code: 'FORBIDDEN_PATH',

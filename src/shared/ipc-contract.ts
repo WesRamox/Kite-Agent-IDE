@@ -15,6 +15,16 @@ import type {
   GitDiff,
   GitStatus,
   GitWorktree,
+  CreatePullInput,
+  DeviceFlowPoll,
+  DeviceFlowStart,
+  GitHubAuthState,
+  GitHubItemState,
+  GitHubRepoRef,
+  IssueDetail,
+  IssueSummary,
+  PullDetail,
+  PullSummary,
   PtyCreateOptions,
   PtyDataEvent,
   PtyExitEvent,
@@ -72,6 +82,25 @@ export interface InvokeChannels {
   'git:watch': { args: [root: string]; result: void }
   'git:unwatch': { args: [root: string]; result: void }
 
+  'github:me': { args: []; result: GitHubAuthState }
+  'github:startDeviceFlow': { args: []; result: DeviceFlowStart }
+  'github:pollDeviceFlow': { args: [flowId: string]; result: DeviceFlowPoll }
+  'github:logout': { args: []; result: void }
+  'github:repo': { args: [root: string]; result: GitHubRepoRef | null }
+  'github:listPRs': { args: [root: string, state: GitHubItemState]; result: PullSummary[] }
+  'github:listIssues': { args: [root: string, state: GitHubItemState]; result: IssueSummary[] }
+  'github:getPR': { args: [root: string, number: number]; result: PullDetail }
+  'github:getIssue': { args: [root: string, number: number]; result: IssueDetail }
+  'github:createPR': {
+    args: [root: string, input: CreatePullInput]
+    result: { number: number; url: string }
+  }
+  // Busca a branch do PR e cria (ou reaproveita) uma worktree para ele.
+  'github:checkoutPR': {
+    args: [root: string, number: number]
+    result: { path: string; branch: string }
+  }
+
   // Resposta ao evento `app:closeRequested`: o renderer terminou de salvar e o app pode fechar.
   'app:confirmClose': { args: []; result: void }
 }
@@ -104,6 +133,19 @@ export interface Api {
   clipboard: {
     readText: Fn<'clipboard:readText'>
     writeText: Fn<'clipboard:writeText'>
+  }
+  github: {
+    me: Fn<'github:me'>
+    startDeviceFlow: Fn<'github:startDeviceFlow'>
+    pollDeviceFlow: Fn<'github:pollDeviceFlow'>
+    logout: Fn<'github:logout'>
+    repo: Fn<'github:repo'>
+    listPRs: Fn<'github:listPRs'>
+    listIssues: Fn<'github:listIssues'>
+    getPR: Fn<'github:getPR'>
+    getIssue: Fn<'github:getIssue'>
+    createPR: Fn<'github:createPR'>
+    checkoutPR: Fn<'github:checkoutPR'>
   }
   pty: {
     create: Fn<'pty:create'>

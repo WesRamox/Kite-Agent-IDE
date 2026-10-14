@@ -1,5 +1,6 @@
 import { ExplorerPanel } from '../features/explorer/ExplorerPanel'
 import { GitPanel } from '../features/git/GitPanel'
+import { GitHubPanel } from '../features/github/GitHubPanel'
 import { VIEWS } from '../lib/views'
 import { useLayoutStore } from '../stores/layout.store'
 
@@ -19,7 +20,10 @@ export function Sidebar() {
       <div className={activeView === 'git' ? 'flex min-h-0 flex-1 flex-col' : 'hidden'}>
         <GitPanel />
       </div>
-      {activeView !== 'explorer' && activeView !== 'git' && (
+      <div className={activeView === 'github' ? 'flex min-h-0 flex-1 flex-col' : 'hidden'}>
+        <GitHubPanel />
+      </div>
+      {activeView === 'agents' && (
         <div className="flex flex-1 items-center justify-center px-6 text-center text-fg-muted">
           Disponível em uma próxima fase.
         </div>

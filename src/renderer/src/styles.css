@@ -29,9 +29,9 @@ body {
   overflow: hidden;
 }
 
-/* Dockview com a paleta do app (base: tema Abyss). */
-.aic-dock .dockview-theme-abyss,
-.aic-dock.dockview-theme-abyss {
+/* Dockview com a paleta do app (base: tema Abyss). As variáveis derivadas são resolvidas no
+   elemento do tema, então o override precisa estar nele (não num descendente). */
+.dv-shell.dockview-theme-abyss {
   --dv-color-abyss-dark: var(--color-surface-0);
   --dv-color-abyss: var(--color-surface-1);
   --dv-color-abyss-light: var(--color-surface-1);

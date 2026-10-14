@@ -34,6 +34,7 @@ export interface LaunchOptions {
   keepWorkspace?: boolean
   // Reaproveita um perfil (para testar fechar e reabrir). Não é apagado no cleanup.
   userData?: string
+  env?: Record<string, string>
 }
 
 export async function makeWorkspace(files: Record<string, string | Buffer>): Promise<string> {
@@ -49,19 +50,30 @@ export async function makeWorkspace(files: Record<string, string | Buffer>): Pro
 export async function launch(workspace: string, opts: LaunchOptions = {}): Promise<Launched> {
   const userData = opts.userData ?? (await mkdtemp(path.join(tmpdir(), 'aic-profile-')))
   const app = await electron.launch({
-    args: [path.join(__dirname, '..')],
+    // password-store=basic: não toca no chaveiro do sistema durante os testes.
+    args: [path.join(__dirname, '..'), '--password-store=basic'],
     env: {
       ...process.env,
       ...GIT_TEST_ENV,
+      GITHUB_CLIENT_ID: '',
+      ...opts.env,
       AIC_USER_DATA_DIR: userData,
       ELECTRON_RENDERER_URL: '',
     },
   })
   // Diálogos nativos não são automatizáveis: substitui por respostas controladas.
   await app.evaluate(({ dialog, shell }, dir) => {
-    const g = globalThis as unknown as { __confirmAnswer: number; __trashed: string[] }
+    const g = globalThis as unknown as {
+      __confirmAnswer: number
+      __trashed: string[]
+      __opened: string[]
+    }
     g.__confirmAnswer = 0
     g.__trashed = []
+    g.__opened = []
+    shell.openExternal = async (url: string) => {
+      g.__opened.push(url)
+    }
     dialog.showOpenDialog = (async () => ({ canceled: false, filePaths: [dir] })) as never
     dialog.showMessageBox = (async () => ({
       response: g.__confirmAnswer,
@@ -101,4 +113,8 @@ export async function closeWindow(app: ElectronApplication): Promise<void> {
   const closed = new Promise<void>((resolve) => app.once('close', () => resolve()))
   await app.evaluate(({ BrowserWindow }) => BrowserWindow.getAllWindows()[0]?.close())
   await closed
+}
+
+export function openedUrls(app: ElectronApplication): Promise<string[]> {
+  return app.evaluate(() => (globalThis as unknown as { __opened: string[] }).__opened)
 }
