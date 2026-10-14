@@ -12,6 +12,8 @@ export function useElementSize<T extends HTMLElement>(): [
     const observer = new ResizeObserver(([entry]) => {
       if (!entry) return
       const { width, height } = entry.contentRect
+      // Elemento escondido (display: none) mede 0: mantém o último tamanho válido.
+      if (width === 0 && height === 0) return
       setSize({ width: Math.floor(width), height: Math.floor(height) })
     })
     observer.observe(el)

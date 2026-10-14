@@ -1,7 +1,26 @@
+import { execFileSync } from 'node:child_process'
 import { mkdtemp, mkdir, realpath, rm, writeFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import path from 'node:path'
 import { _electron as electron, type ElectronApplication, type Page } from '@playwright/test'
+
+// Git isolado da configuração do usuário (assinatura GPG, hooks globais etc.).
+export const GIT_TEST_ENV = {
+  GIT_AUTHOR_NAME: 'Teste E2E',
+  GIT_AUTHOR_EMAIL: 'e2e@example.com',
+  GIT_COMMITTER_NAME: 'Teste E2E',
+  GIT_COMMITTER_EMAIL: 'e2e@example.com',
+  GIT_CONFIG_GLOBAL: '/dev/null',
+  GIT_CONFIG_NOSYSTEM: '1',
+}
+
+export function git(cwd: string, ...args: string[]): string {
+  return execFileSync('git', args, {
+    cwd,
+    env: { ...process.env, ...GIT_TEST_ENV },
+    encoding: 'utf8',
+  })
+}
 
 export interface Launched {
   app: ElectronApplication
@@ -31,7 +50,12 @@ export async function launch(workspace: string, opts: LaunchOptions = {}): Promi
   const userData = opts.userData ?? (await mkdtemp(path.join(tmpdir(), 'aic-profile-')))
   const app = await electron.launch({
     args: [path.join(__dirname, '..')],
-    env: { ...process.env, AIC_USER_DATA_DIR: userData, ELECTRON_RENDERER_URL: '' },
+    env: {
+      ...process.env,
+      ...GIT_TEST_ENV,
+      AIC_USER_DATA_DIR: userData,
+      ELECTRON_RENDERER_URL: '',
+    },
   })
   // Diálogos nativos não são automatizáveis: substitui por respostas controladas.
   await app.evaluate(({ dialog, shell }, dir) => {

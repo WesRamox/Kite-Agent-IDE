@@ -8,5 +8,6 @@ export function registerWorkspaceIpc(service: WorkspaceService, log: Logger): vo
   registerHandler('fs:openFolderDialog', z.tuple([]), () => service.openFolderDialog(), log)
   registerHandler('workspace:openRecent', z.tuple([absPath]), (p) => service.openRecent(p), log)
   registerHandler('workspace:recent', z.tuple([]), () => service.recent(), log)
+  registerHandler('workspace:openWorktree', z.tuple([absPath]), (p) => service.openWorktree(p), log)
   registerHandler('workspace:removeRecent', z.tuple([absPath]), (p) => service.removeRecent(p), log)
 }

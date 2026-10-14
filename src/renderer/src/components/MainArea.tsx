@@ -7,6 +7,9 @@ import { useEditorStore } from '../features/editor/editor.store'
 import { EditorPanel } from '../features/editor/EditorPanel'
 import { EditorTab } from '../features/editor/EditorTab'
 import { disposeModel } from '../features/editor/models'
+import { DiffPanel } from '../features/git/DiffPanel'
+import { DiffTab } from '../features/git/DiffTab'
+import { DIFF_COMPONENT, isDiffPanel } from '../features/git/git.actions'
 import { noteActivePanel, TERMINAL_COMPONENT } from '../features/terminal/terminal.actions'
 import { TerminalGroupActions } from '../features/terminal/TerminalGroupActions'
 import { TerminalPanel } from '../features/terminal/TerminalPanel'
@@ -14,8 +17,16 @@ import { TerminalTab } from '../features/terminal/TerminalTab'
 import { disposeSession, isTerminalPanel } from '../features/terminal/terminals'
 import { setDockApi } from '../lib/dock'
 
-const components = { [EDITOR_COMPONENT]: EditorPanel, [TERMINAL_COMPONENT]: TerminalPanel }
-const tabComponents = { [EDITOR_COMPONENT]: EditorTab, [TERMINAL_COMPONENT]: TerminalTab }
+const components = {
+  [EDITOR_COMPONENT]: EditorPanel,
+  [TERMINAL_COMPONENT]: TerminalPanel,
+  [DIFF_COMPONENT]: DiffPanel,
+}
+const tabComponents = {
+  [EDITOR_COMPONENT]: EditorTab,
+  [TERMINAL_COMPONENT]: TerminalTab,
+  [DIFF_COMPONENT]: DiffTab,
+}
 
 export function MainArea() {
   const onReady = useCallback(({ api }: DockviewReadyEvent) => {
@@ -23,7 +34,9 @@ export function MainArea() {
     api.onDidActivePanelChange(({ panel }) => {
       const id = panel?.id ?? null
       noteActivePanel(id)
-      useEditorStore.getState().setActive(id && !isTerminalPanel(id) ? id : null)
+      useEditorStore
+        .getState()
+        .setActive(id && !isTerminalPanel(id) && !isDiffPanel(id) ? id : null)
     })
     // Painel removido por outro caminho: libera o modelo. Mover entre grupos também dispara
     // remoção, então confere depois que o movimento termina.
@@ -31,7 +44,7 @@ export function MainArea() {
       setTimeout(() => {
         if (api.getPanel(panel.id)) return
         if (isTerminalPanel(panel.id)) disposeSession(panel.id)
-        else disposeModel(panel.id)
+        else if (!isDiffPanel(panel.id)) disposeModel(panel.id)
       }, 0)
     })
   }, [])

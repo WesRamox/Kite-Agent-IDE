@@ -3,7 +3,7 @@
 IDE desktop para trabalhar com agentes de IA (Claude Code, Codex, Gemini CLI…), com arquivos,
 terminais, Git/worktrees e GitHub. Especificação completa em [`AGENTS.md`](AGENTS.md).
 
-**Status:** Fases 0, 1 e 2 concluídas: fundação, explorador de arquivos, editor e terminais.
+**Status:** Fases 0 a 3 concluídas: fundação, explorador de arquivos, editor, terminais e Git local.
 
 O que já funciona:
 
@@ -17,6 +17,11 @@ O que já funciona:
 - Terminais reais (PTY) com o shell padrão do SO, em abas e splits (botões no cabeçalho do
   grupo), WebGL, busca (`Ctrl/Cmd+F`), links clicáveis e copiar/colar (`Ctrl+Shift+C/V`;
   `Cmd+C/V` no macOS)
+- Git: status colorido na árvore (M/U/A/D), painel com stage/unstage por arquivo, commit
+  (`Ctrl/Cmd+Enter`), diff lado a lado no Monaco, criar e trocar de branch
+- Worktrees: listar, criar em `../<repo>-worktrees/<branch>`, abrir como workspace e remover;
+  branch e worktree atuais na status bar
+- O painel Git acompanha commits e checkouts feitos fora da IDE (terminal, agentes)
 - Histórico dos terminais salvo ao fechar o app (ou trocar de pasta) e restaurado ao reabrir
 - Ao fechar a janela: pergunta sobre arquivos não salvos e encerra todos os processos
 - Atalhos: `Ctrl/Cmd+S` salvar, `Ctrl/Cmd+P` quick open, `Ctrl/Cmd+W` fechar aba,
@@ -26,6 +31,7 @@ O que já funciona:
 ## Requisitos
 
 - Node.js 24+
+- Git 2.23+ no PATH
 - pnpm (via corepack: `corepack enable pnpm`)
 - Toolchain de compilação para o `node-pty`:
   - Linux: `build-essential` e `python3`

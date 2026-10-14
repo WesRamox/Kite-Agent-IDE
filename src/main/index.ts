@@ -7,10 +7,12 @@ import type { EventChannel, EventChannels } from '@shared/ipc-contract'
 import { registerAppIpc } from './ipc/app.ipc'
 import { registerDialogIpc } from './ipc/dialog.ipc'
 import { registerFsIpc } from './ipc/fs.ipc'
+import { registerGitIpc } from './ipc/git.ipc'
 import { registerSystemIpc } from './ipc/system.ipc'
 import { registerTerminalIpc } from './ipc/terminal.ipc'
 import { registerWorkspaceIpc } from './ipc/workspace.ipc'
 import { JsonStore } from './lib/json-store'
+import { createGitRunner } from './lib/git-runner'
 import { logger } from './lib/logger'
 import { defaultShell } from './lib/shell'
 import { listShells, which } from './lib/which'
@@ -18,6 +20,8 @@ import { WorkspaceGuard } from './lib/workspace-guard'
 import { installMenu } from './menu'
 import { AppService } from './services/app.service'
 import { FsService } from './services/fs.service'
+import { GitWatchService } from './services/git-watch.service'
+import { GitService } from './services/git.service'
 import { PtyService } from './services/pty.service'
 import { TerminalSessionService } from './services/terminal-session.service'
 import { WatchService } from './services/watch.service'
@@ -101,6 +105,13 @@ function createServices() {
     onGitignoreChanged: (file) => fsService.invalidateIgnore(file),
     log: log.child('watch'),
   })
+  const gitService = new GitService({ guard, run: createGitRunner() })
+  const gitWatchService = new GitWatchService({
+    gitDirs: (root) => gitService.gitDirs(root),
+    subscribe,
+    emit: (event) => emit('git:changed', event),
+    log: log.child('git-watch'),
+  })
   const workspaceService = new WorkspaceService({
     guard,
     store: new JsonStore<WorkspaceState>(
@@ -117,7 +128,15 @@ function createServices() {
         : await dialog.showOpenDialog(options)
       return res.canceled ? null : (res.filePaths[0] ?? null)
     },
-    onRootClosed: (root) => watchService.unwatch(root),
+    onRootClosed: async (root) => {
+      await Promise.all([watchService.unwatch(root), gitWatchService.unwatch(root)])
+    },
+    isKnownWorktree: async (dir) => {
+      for (const root of guard.getRoots()) {
+        if (await gitService.isWorktreeOf(root, dir).catch(() => false)) return true
+      }
+      return false
+    },
   })
   const ptyService = new PtyService({
     guard,
@@ -133,7 +152,16 @@ function createServices() {
     guard,
     join(app.getPath('userData'), 'terminal-sessions'),
   )
-  return { appService, fsService, watchService, workspaceService, ptyService, sessionService }
+  return {
+    appService,
+    fsService,
+    watchService,
+    workspaceService,
+    ptyService,
+    sessionService,
+    gitService,
+    gitWatchService,
+  }
 }
 
 // Permite isolar o perfil (recentes etc.), usado pelos testes e2e.
@@ -164,6 +192,7 @@ void app.whenReady().then(() => {
   }, ipcLog)
 
   registerTerminalIpc(services.ptyService, services.sessionService, ipcLog)
+  registerGitIpc(services.gitService, services.gitWatchService, ipcLog)
   registerSystemIpc(
     {
       readClipboard: () => clipboard.readText(),
@@ -192,6 +221,7 @@ void app.whenReady().then(() => {
       mainWindow = null
       services.ptyService.killAll()
       void services.watchService.unwatchAll()
+      void services.gitWatchService.unwatchAll()
     })
   }
   open()

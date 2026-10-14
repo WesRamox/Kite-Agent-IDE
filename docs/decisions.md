@@ -91,3 +91,33 @@ Decisões fáceis de desfazer, não cobertas pelo `AGENTS.md`. Mais recente no f
 - **Correções da Fase 1 encontradas aqui:** o Monaco não encolhia com a janela (contêiner flex
   com `min-width: auto`), o texto vazava por baixo do minimap (canvas com opacidade < 1) e um
   Enter no quick open antes de a lista carregar era ignorado.
+
+## Fase 3
+
+- **`simple-git` só como executor** (`raw`). Os comandos usam saídas estáveis para máquinas
+  (`status --porcelain=v2 -z`, `for-each-ref --format`, `worktree list --porcelain`),
+  interpretadas por parsers próprios e testados (`main/lib/git-parse.ts`).
+- **Ambiente do git.** `GIT_OPTIONAL_LOCKS=0`: sem isso, o `git status` regrava `.git/index` e
+  o watcher do `.git` entraria em ciclo. `GIT_TERMINAL_PROMPT=0` e sem editores/pagers
+  (`EDITOR`, `GIT_EDITOR`, `PAGER`...), para o git nunca ficar esperando interação. O
+  simple-git 4 bloqueia variáveis `GIT_*` e de SSH/askpass por padrão; como vêm do ambiente
+  do próprio usuário (nunca do renderer), são liberadas explicitamente.
+- **Entradas do renderer.** Nomes de branch passam por `git check-ref-format --branch` e não
+  podem começar com `-` (seria lido como opção). Caminhos vão sempre depois de `--` e precisam
+  estar na pasta aberta. O caminho da worktree é calculado no main.
+- **Worktrees** em `../<repo>-worktrees/<branch>`, com `/` da branch trocado por `-`. Se a
+  branch já existe e está livre, a worktree usa essa branch; senão cria uma nova a partir do
+  HEAD. "Abrir worktree" só aceita caminhos listados por `git worktree list` do repositório
+  aberto (`workspace:openWorktree`). Remover pede confirmação; se houver alterações não
+  commitadas, pede uma segunda confirmação antes do `--force`.
+- **Watcher do `.git`** (HEAD, index, refs; sem `objects`/`logs`), separado do watcher de
+  arquivos, que ignora `.git`. Numa worktree, observa também o diretório comum do repositório.
+  Assim o painel acompanha commits e checkouts feitos no terminal, o que a Fase 5 (agentes)
+  precisa.
+- **Diff somente leitura.** Duas visões: alterações (index × disco) e stage (HEAD × index).
+  Para editar, "Abrir arquivo".
+- **Sem "descartar alterações"** por enquanto: é destrutivo e não está no escopo da fase.
+- **Pasta aberta como subpasta do repositório:** o status mostra só os arquivos dela.
+- **Correções encontradas nesta fase:** o watcher começava depois da primeira leitura da
+  árvore (arquivos criados nesse intervalo não apareciam), e trocar de aba na sidebar ou
+  recolhê-la desmontava a árvore e perdia as pastas expandidas.

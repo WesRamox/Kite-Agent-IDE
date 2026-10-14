@@ -10,6 +10,11 @@ import type {
   FileContent,
   FileEncoding,
   FsChangedEvent,
+  GitBranch,
+  GitChangedEvent,
+  GitDiff,
+  GitStatus,
+  GitWorktree,
   PtyCreateOptions,
   PtyDataEvent,
   PtyExitEvent,
@@ -49,6 +54,24 @@ export interface InvokeChannels {
   'clipboard:readText': { args: []; result: string }
   'clipboard:writeText': { args: [text: string]; result: void }
 
+  'workspace:openWorktree': { args: [path: string]; result: string }
+
+  'git:status': { args: [root: string]; result: GitStatus }
+  'git:diff': { args: [root: string, path: string, staged: boolean]; result: GitDiff }
+  'git:stage': { args: [root: string, paths: string[]]; result: void }
+  'git:unstage': { args: [root: string, paths: string[]]; result: void }
+  'git:commit': { args: [root: string, message: string]; result: { hash: string } }
+  'git:branches': { args: [root: string]; result: GitBranch[] }
+  'git:checkout': { args: [root: string, branch: string, create: boolean]; result: void }
+  'git:worktreeList': { args: [root: string]; result: GitWorktree[] }
+  'git:worktreeAdd': {
+    args: [root: string, branch: string, createBranch: boolean]
+    result: { path: string }
+  }
+  'git:worktreeRemove': { args: [root: string, path: string, force: boolean]; result: void }
+  'git:watch': { args: [root: string]; result: void }
+  'git:unwatch': { args: [root: string]; result: void }
+
   // Resposta ao evento `app:closeRequested`: o renderer terminou de salvar e o app pode fechar.
   'app:confirmClose': { args: []; result: void }
 }
@@ -58,6 +81,7 @@ export interface EventChannels {
   'pty:data': PtyDataEvent
   'pty:exit': PtyExitEvent
   'app:closeRequested': Record<string, never>
+  'git:changed': GitChangedEvent
 }
 
 export type InvokeChannel = keyof InvokeChannels
@@ -101,6 +125,22 @@ export interface Api {
     openRecent: Fn<'workspace:openRecent'>
     recent: Fn<'workspace:recent'>
     removeRecent: Fn<'workspace:removeRecent'>
+    openWorktree: Fn<'workspace:openWorktree'>
+  }
+  git: {
+    status: Fn<'git:status'>
+    diff: Fn<'git:diff'>
+    stage: Fn<'git:stage'>
+    unstage: Fn<'git:unstage'>
+    commit: Fn<'git:commit'>
+    branches: Fn<'git:branches'>
+    checkout: Fn<'git:checkout'>
+    worktreeList: Fn<'git:worktreeList'>
+    worktreeAdd: Fn<'git:worktreeAdd'>
+    worktreeRemove: Fn<'git:worktreeRemove'>
+    watch: Fn<'git:watch'>
+    unwatch: Fn<'git:unwatch'>
+    onChanged: (listener: (event: GitChangedEvent) => void) => Unsubscribe
   }
   fs: {
     readDir: Fn<'fs:readDir'>

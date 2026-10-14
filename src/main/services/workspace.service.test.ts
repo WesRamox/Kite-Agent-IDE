@@ -28,6 +28,7 @@ describe('WorkspaceService', () => {
       ),
       pickFolder: async () => picked,
       onRootClosed,
+      isKnownWorktree: async (d) => d === path.join(dir, 'b'),
     })
   })
   afterEach(() => cleanup())
@@ -63,5 +64,12 @@ describe('WorkspaceService', () => {
     }
     expect(await service.recent()).toHaveLength(2)
     await expect(service.removeRecent(path.join(dir, 'a'))).resolves.toEqual([path.join(dir, 'b')])
+  })
+  it('abre worktree só se o git a reconhecer', async () => {
+    await expect(service.openWorktree(path.join(dir, 'a'))).rejects.toMatchObject({
+      code: 'FORBIDDEN_PATH',
+    })
+    await expect(service.openWorktree(path.join(dir, 'b'))).resolves.toBe(path.join(dir, 'b'))
+    expect(guard.getRoots()).toEqual([path.join(dir, 'b')])
   })
 })

@@ -1,19 +1,45 @@
-import { SquareTerminal } from 'lucide-react'
+import { FolderGit2, GitBranch, SquareTerminal } from 'lucide-react'
 import { useEditorStore } from '../features/editor/editor.store'
+import { useGitStore } from '../features/git/git.store'
 import { focusOrCreateTerminal } from '../features/terminal/terminal.actions'
+import { basename } from '../lib/paths'
+import { useLayoutStore } from '../stores/layout.store'
 import { useWorkspaceStore } from '../stores/workspace.store'
 import { useAppInfo } from '../lib/use-app-info'
 
 export function StatusBar() {
   const info = useAppInfo()
   const root = useWorkspaceStore((s) => s.root)
+  const status = useGitStore((s) => s.status)
+  const showGit = () => {
+    const layout = useLayoutStore.getState()
+    if (layout.activeView !== 'git' || !layout.sidebarVisible) layout.selectView('git')
+  }
   const cursor = useEditorStore((s) => s.cursor)
   const language = useEditorStore((s) => (s.activePath ? s.tabs[s.activePath]?.language : null))
 
   return (
     <footer className="flex h-6 shrink-0 items-center gap-4 border-t border-border bg-surface-1 px-3 text-[11px] text-fg-muted">
-      <span>sem branch</span>
-      <span>sem worktree</span>
+      {status?.isRepo ? (
+        <>
+          <button
+            type="button"
+            title="Branch atual"
+            onClick={showGit}
+            className="flex items-center gap-1 hover:text-fg"
+          >
+            <GitBranch size={12} />
+            {status.branch ?? `(${status.head ?? 'sem commits'})`}
+            {status.files.length > 0 && <span className="text-amber-300">*</span>}
+          </button>
+          <span title={status.worktreePath} className="flex items-center gap-1">
+            <FolderGit2 size={12} />
+            {status.isMainWorktree ? 'worktree principal' : basename(status.worktreePath)}
+          </span>
+        </>
+      ) : (
+        <span>sem repositório</span>
+      )}
       <span>0 agentes</span>
       {root && (
         <button

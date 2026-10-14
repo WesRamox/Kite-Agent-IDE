@@ -15,6 +15,8 @@ export interface WorkspaceServiceDeps {
   pickFolder: () => Promise<string | null>
   // Chamado quando uma raiz deixa de estar aberta (para parar o watcher).
   onRootClosed: (root: string) => Promise<void>
+  // A pasta é uma worktree do repositório de alguma raiz aberta?
+  isKnownWorktree: (dir: string) => Promise<boolean>
 }
 
 // Controla qual pasta está aberta. O renderer nunca escolhe um caminho arbitrário:
@@ -31,6 +33,15 @@ export class WorkspaceService {
     const { recent } = await this.deps.store.read()
     if (!recent.includes(dir))
       throw new AppException('FORBIDDEN_PATH', 'Pasta não está nas recentes')
+    return this.open(dir)
+  }
+
+  // Abre uma worktree do repositório atual como workspace. Só aceita caminhos que o próprio
+  // git lista como worktree das raízes abertas.
+  async openWorktree(dir: string): Promise<string> {
+    if (!(await this.deps.isKnownWorktree(dir))) {
+      throw new AppException('FORBIDDEN_PATH', 'Não é uma worktree deste repositório')
+    }
     return this.open(dir)
   }
 

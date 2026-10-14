@@ -1,6 +1,8 @@
 import { ChevronRight } from 'lucide-react'
 import type { NodeRendererProps } from 'react-arborist'
 import { useEditorStore } from '../editor/editor.store'
+import { displayKind, KIND_COLOR, KIND_LABEL, KIND_LETTER } from '../git/git-format'
+import { useGitStore } from '../git/git.store'
 import { createEntry, renameEntry } from './explorer.actions'
 import { useExplorerStore } from './explorer.store'
 import { FileIcon } from './FileIcon'
@@ -14,6 +16,10 @@ export function TreeRow({ node, style, dragHandle }: NodeRendererProps<TreeNodeD
   const stopEditing = useExplorerStore((s) => s.stopEditing)
   const dirty = useEditorStore((s) => s.tabs[data.id]?.dirty ?? false)
   const active = useEditorStore((s) => s.activePath === data.id)
+  const change = useGitStore((s) => s.byPath.get(data.id))
+  const dirHasChanges = useGitStore((s) => s.changedDirs.has(data.id))
+  const kind = change ? displayKind(change) : null
+  const gitColor = kind ? KIND_COLOR[kind] : dirHasChanges ? 'text-amber-200/80' : ''
 
   const isDir = data.kind === 'directory'
   const editing = data.isNew || renaming
@@ -50,9 +56,19 @@ export function TreeRow({ node, style, dragHandle }: NodeRendererProps<TreeNodeD
           }
         />
       ) : (
-        <span className={`truncate ${dirty ? 'italic' : ''}`}>{data.name}</span>
+        <span className={`truncate ${dirty ? 'italic' : ''} ${gitColor}`}>{data.name}</span>
       )}
-      {dirty && !editing && <span className="ml-auto size-2 shrink-0 rounded-full bg-fg/70" />}
+      {!editing && (
+        <span className="ml-auto flex shrink-0 items-center gap-1.5">
+          {dirty && <span className="size-2 rounded-full bg-fg/70" />}
+          {kind && (
+            <span title={KIND_LABEL[kind]} className={`font-mono text-[11px] ${KIND_COLOR[kind]}`}>
+              {KIND_LETTER[kind]}
+            </span>
+          )}
+          {!kind && dirHasChanges && <span className="size-1.5 rounded-full bg-amber-200/70" />}
+        </span>
+      )}
     </div>
   )
 }

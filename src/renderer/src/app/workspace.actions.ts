@@ -26,8 +26,10 @@ async function switchWorkspace(open: () => Promise<Result<string | null>>): Prom
   const explorer = useExplorerStore.getState()
   explorer.reset()
   workspace.setRoot(root)
-  await explorer.load(root)
+  // Observa antes de carregar: nada criado entre a leitura e o início do watcher se perde.
   await attempt(window.api.fs.watch(root), 'Erro ao observar a pasta')
+  await attempt(window.api.git.watch(root), 'Erro ao observar o repositório')
+  await explorer.load(root)
   await restoreTerminalSessions(root)
 }
 
@@ -37,4 +39,8 @@ export function openFolder(): Promise<void> {
 
 export function openRecent(path: string): Promise<void> {
   return switchWorkspace(() => window.api.workspace.openRecent(path))
+}
+
+export function openWorktree(path: string): Promise<void> {
+  return switchWorkspace(() => window.api.workspace.openWorktree(path))
 }
