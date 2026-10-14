@@ -1,0 +1,11 @@
+# electron/node-pty são nativos; layout hoisted evita problemas de resolução no Electron
+nodeLinker: hoisted
+
+# pnpm não roda scripts de instalação sem permissão explícita
+allowBuilds:
+  esbuild: true
+  node-pty: true
+  '@parcel/watcher': true
+
+minimumReleaseAgeExclude:
+  - electron@44.7.1
