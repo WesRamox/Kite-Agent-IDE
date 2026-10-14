@@ -3,7 +3,18 @@
 IDE desktop para trabalhar com agentes de IA (Claude Code, Codex, Gemini CLI…), com arquivos,
 terminais, Git/worktrees e GitHub. Especificação completa em [`AGENTS.md`](AGENTS.md).
 
-**Status:** Fase 0 (fundação) concluída: janela com o layout base e IPC tipado.
+**Status:** Fases 0 e 1 concluídas: fundação, explorador de arquivos e editor.
+
+O que já funciona:
+
+- Abrir pasta (diálogo nativo) e pastas recentes
+- Árvore de arquivos virtualizada: criar, renomear (F2), mover para a lixeira (Delete), com
+  `.git`, `node_modules`, `dist`, `build`, `.next` e o `.gitignore` respeitados
+- Atualização automática quando arquivos mudam fora da IDE
+- Editor Monaco com abas, indicador de "não salvo", detecção de linguagem e Ln/Col
+- Recarga de arquivos alterados no disco (pergunta se houver alterações locais)
+- Quick open com busca fuzzy
+- Atalhos: `Ctrl/Cmd+S` salvar, `Ctrl/Cmd+P` quick open, `Ctrl/Cmd+W` fechar aba
 
 ## Requisitos
 
@@ -44,9 +55,13 @@ src/
   preload/    expõe window.api (só funções nomeadas)
   shared/     contrato IPC e tipos compartilhados
   renderer/   UI React
+e2e/        testes e2e (Playwright dirigindo o Electron)
 docs/decisions.md   decisões tomadas fora do AGENTS.md
 ```
 
 Para adicionar um canal IPC: declare em `src/shared/ipc-contract.ts` (em `InvokeChannels` e em
 `Api`), registre o handler com schema zod em `src/main/ipc/<dominio>.ipc.ts` e exponha a função
 em `src/preload/index.ts`.
+
+Variáveis de ambiente úteis para testes: `AIC_USER_DATA_DIR` troca a pasta de perfil (pastas
+recentes etc.).

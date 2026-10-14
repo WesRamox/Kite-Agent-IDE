@@ -1,7 +1,25 @@
 import type { z } from 'zod'
+import type { AppError, ErrorCode } from '@shared/types'
 import type { InvokeArgs, InvokeChannel, InvokeData, InvokeResult } from '@shared/ipc-contract'
 import { AppException } from '../lib/errors'
 import type { Logger } from '../lib/logger'
+
+const ERRNO_TO_ERROR: Record<string, AppError> = {
+  ENOENT: { code: 'NOT_FOUND', message: 'Arquivo ou pasta não encontrado' },
+  EEXIST: { code: 'ALREADY_EXISTS', message: 'Já existe' },
+  ENOTEMPTY: { code: 'ALREADY_EXISTS', message: 'O destino já existe e não está vazio' },
+  EACCES: { code: 'PERMISSION_DENIED', message: 'Sem permissão' },
+  EPERM: { code: 'PERMISSION_DENIED', message: 'Operação não permitida' },
+}
+
+function errnoError(err: unknown): AppError | undefined {
+  const code = (err as { code?: unknown } | null)?.code
+  return typeof code === 'string' ? ERRNO_TO_ERROR[code] : undefined
+}
+
+function fail(code: ErrorCode, message: string): { ok: false; error: AppError } {
+  return { ok: false, error: { code, message } }
+}
 
 export type ArgsSchema<C extends InvokeChannel> = z.ZodType<InvokeArgs<C>>
 export type HandlerFn<C extends InvokeChannel> = (
@@ -20,17 +38,19 @@ export function createHandler<C extends InvokeChannel>(
     const parsed = schema.safeParse(rawArgs)
     if (!parsed.success) {
       log.warn('argumentos inválidos', { channel, issues: parsed.error.issues.length })
-      return { ok: false, error: { code: 'INVALID_ARGS', message: 'Argumentos inválidos' } }
+      return fail('INVALID_ARGS', 'Argumentos inválidos')
     }
     try {
       return { ok: true, data: await fn(...parsed.data) }
     } catch (err) {
       if (err instanceof AppException) return { ok: false, error: err.toAppError() }
+      const mapped = errnoError(err)
+      if (mapped) return { ok: false, error: mapped }
       log.error('erro inesperado no handler', {
         channel,
         error: err instanceof Error ? err.message : String(err),
       })
-      return { ok: false, error: { code: 'INTERNAL', message: 'Erro interno' } }
+      return fail('INTERNAL', 'Erro interno')
     }
   }
 }

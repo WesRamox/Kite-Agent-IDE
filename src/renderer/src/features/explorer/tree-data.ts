@@ -1,0 +1,43 @@
+import type { DirEntry } from '@shared/types'
+import type { PendingCreate } from './explorer.store'
+
+export const NEW_NODE_ID = '\0new'
+
+export interface TreeNodeData {
+  id: string
+  name: string
+  kind: 'file' | 'directory'
+  // null = folha; [] = pasta ainda não carregada (ou vazia).
+  children: TreeNodeData[] | null
+  isNew?: boolean
+}
+
+// Monta os dados do react-arborist a partir das pastas carregadas.
+export function buildTree(
+  root: string,
+  children: Record<string, DirEntry[]>,
+  pending: PendingCreate | null,
+): TreeNodeData[] {
+  const build = (dir: string): TreeNodeData[] => {
+    const nodes: TreeNodeData[] = (children[dir] ?? []).map((e) => ({
+      id: e.path,
+      name: e.name,
+      kind: e.kind,
+      children: e.kind === 'directory' ? build(e.path) : null,
+    }))
+    if (pending?.parent === dir) {
+      const node: TreeNodeData = {
+        id: NEW_NODE_ID,
+        name: '',
+        kind: pending.kind,
+        children: pending.kind === 'directory' ? [] : null,
+        isNew: true,
+      }
+      // Pastas novas no topo; arquivos novos depois das pastas.
+      const at = pending.kind === 'directory' ? 0 : nodes.findIndex((n) => n.kind === 'file')
+      nodes.splice(at === -1 ? nodes.length : at, 0, node)
+    }
+    return nodes
+  }
+  return build(root)
+}

@@ -28,3 +28,17 @@ body {
   user-select: none;
   overflow: hidden;
 }
+
+/* Dockview com a paleta do app (base: tema Abyss). */
+.aic-dock .dockview-theme-abyss,
+.aic-dock.dockview-theme-abyss {
+  --dv-color-abyss-dark: var(--color-surface-0);
+  --dv-color-abyss: var(--color-surface-1);
+  --dv-color-abyss-light: var(--color-surface-1);
+  --dv-color-abyss-lighter: var(--color-border);
+  --dv-color-abyss-accent: var(--color-accent);
+  --dv-color-abyss-secondary-text: var(--color-fg-muted);
+  --dv-paneview-active-outline-color: var(--color-accent);
+  --dv-tabs-and-actions-container-height: 34px;
+  --dv-tabs-and-actions-container-font-size: 12px;
+}
