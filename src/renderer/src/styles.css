@@ -42,3 +42,8 @@ body {
   --dv-tabs-and-actions-container-height: 34px;
   --dv-tabs-and-actions-container-font-size: 12px;
 }
+
+/* O canvas do minimap do Monaco tem opacidade < 1; sem fundo opaco o texto vaza por baixo. */
+.monaco-editor .minimap {
+  background: var(--color-surface-0);
+}

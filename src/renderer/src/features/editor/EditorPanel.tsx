@@ -34,8 +34,10 @@ export function EditorPanel({ params, api }: IDockviewPanelProps<{ path: string 
   }, [api])
 
   return (
-    <div className="h-full w-full">
+    <div className="h-full w-full overflow-hidden">
       <Editor
+        // min-w-0: sem isso o contêiner flex não encolhe e o Monaco não reage ao resize.
+        className="min-w-0 overflow-hidden"
         // O modelo já foi criado em models.ts; o path faz o componente reutilizá-lo.
         path={uriFor(path).toString()}
         theme="aic-dark"

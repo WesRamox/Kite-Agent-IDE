@@ -1,9 +1,9 @@
 import { FolderOpen, X } from 'lucide-react'
 import { basename } from '../lib/paths'
+import { isMac } from '../lib/platform'
 import { useWorkspaceStore } from '../stores/workspace.store'
 import { openFolder, openRecent } from './workspace.actions'
 
-const isMac = navigator.userAgent.includes('Mac')
 const mod = isMac ? '⌘' : 'Ctrl+'
 
 export function Welcome() {

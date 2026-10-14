@@ -7,6 +7,7 @@ import { Toasts } from '../components/Toasts'
 import { QuickOpen } from '../features/quick-open/QuickOpen'
 import { useLayoutStore } from '../stores/layout.store'
 import { useWorkspaceStore } from '../stores/workspace.store'
+import { useCloseFlow } from './use-close-flow'
 import { useFsEvents } from './use-fs-events'
 import { useKeybindings } from './use-keybindings'
 
@@ -14,6 +15,7 @@ export function App() {
   const sidebarVisible = useLayoutStore((s) => s.sidebarVisible)
   useKeybindings()
   useFsEvents()
+  useCloseFlow()
   useEffect(() => {
     void useWorkspaceStore.getState().loadRecent()
   }, [])

@@ -30,6 +30,24 @@ function subscribe<E extends EventChannel>(
 const api: Api = {
   app: {
     getInfo: invoke('app:getInfo'),
+    confirmClose: invoke('app:confirmClose'),
+    onCloseRequested: (listener) => subscribe('app:closeRequested')(() => listener()),
+  },
+  clipboard: {
+    readText: invoke('clipboard:readText'),
+    writeText: invoke('clipboard:writeText'),
+  },
+  pty: {
+    create: invoke('pty:create'),
+    write: invoke('pty:write'),
+    resize: invoke('pty:resize'),
+    kill: invoke('pty:kill'),
+    onData: subscribe('pty:data'),
+    onExit: subscribe('pty:exit'),
+  },
+  terminal: {
+    loadSessions: invoke('terminal:loadSessions'),
+    saveSessions: invoke('terminal:saveSessions'),
   },
   dialog: {
     confirm: invoke('dialog:confirm'),

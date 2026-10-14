@@ -58,3 +58,36 @@ Decisões fáceis de desfazer, não cobertas pelo `AGENTS.md`. Mais recente no f
   a lixeira são substituídos no processo main durante o teste. `AIC_USER_DATA_DIR` isola o
   perfil.
 - **Tema do dockview:** Abyss com as variáveis trocadas pela paleta do app.
+
+## Fase 2
+
+- **Fallback do WebGL é o renderer DOM.** O xterm 6 removeu o renderer canvas e o
+  `@xterm/addon-canvas` só suporta o xterm 5. Se o WebGL falhar ou perder o contexto, o xterm
+  volta ao renderer DOM embutido.
+- **Shell padrão:** `$SHELL` no Unix (`/bin/bash` ou `/bin/zsh` como fallback). No macOS roda
+  como login shell (`-l`), como os terminais nativos. No Windows, `pwsh` se estiver no PATH,
+  senão o `powershell` embutido. Um shell explícito vindo do renderer só é aceito se estiver
+  em `/etc/shells` (ou for pwsh/powershell/cmd no Windows).
+- **Env dos terminais sem as variáveis internas** (`ELECTRON_RENDERER_URL`,
+  `AIC_USER_DATA_DIR`, ...). Sem isso, rodar `pnpm dev` de outro projeto Electron no terminal
+  herdaria a URL do nosso renderer.
+- **Saída do PTY agrupada em lotes de ~5 ms** antes do IPC. Aguenta saída intensa (testado com
+  20 mil linhas) sem travar a UI. Não há controle de fluxo (backpressure) por enquanto.
+- **Terminal pertence ao workspace.** Precisa de pasta aberta; o `cwd` é a raiz, validado pelo
+  guard. Trocar de pasta salva e fecha os terminais da anterior e restaura os da nova.
+- **Histórico:** ao fechar o app ou trocar de pasta, o scrollback (últimas 1000 linhas,
+  `addon-serialize`) de cada terminal vai para `userData/terminal-sessions/<hash da raiz>.json`.
+  Ao reabrir, os terminais voltam como abas, com o histórico e um novo shell. A disposição dos
+  splits não é restaurada (possível melhoria).
+- **Fluxo de fechamento.** O main intercepta o `close` da janela e pede ao renderer para
+  perguntar sobre arquivos não salvos e salvar os terminais. Só fecha quando o renderer
+  confirma. Se o renderer travou ou caiu, fecha direto. Depois, `killAll` nos PTYs.
+- **Shell que sai com código 0 fecha a aba**; com outro código, a aba fica com a mensagem.
+- **Atalhos dentro do terminal (Linux/Windows):** `Ctrl+S` e `Ctrl+W` vão para o shell (XOFF,
+  apagar palavra); `Ctrl+P` e ``Ctrl+` `` continuam globais. `Ctrl+F` abre a busca do terminal.
+  No Windows, `Ctrl+C` com seleção copia (como no Windows Terminal) e `Ctrl+V` cola.
+- **Clipboard via IPC.** O renderer está em sandbox e a API de clipboard do navegador exigiria
+  permissões; o main usa o `clipboard` do Electron.
+- **Correções da Fase 1 encontradas aqui:** o Monaco não encolhia com a janela (contêiner flex
+  com `min-width: auto`), o texto vazava por baixo do minimap (canvas com opacidade < 1) e um
+  Enter no quick open antes de a lista carregar era ignorado.

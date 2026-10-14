@@ -7,22 +7,31 @@ import { useEditorStore } from '../features/editor/editor.store'
 import { EditorPanel } from '../features/editor/EditorPanel'
 import { EditorTab } from '../features/editor/EditorTab'
 import { disposeModel } from '../features/editor/models'
+import { noteActivePanel, TERMINAL_COMPONENT } from '../features/terminal/terminal.actions'
+import { TerminalGroupActions } from '../features/terminal/TerminalGroupActions'
+import { TerminalPanel } from '../features/terminal/TerminalPanel'
+import { TerminalTab } from '../features/terminal/TerminalTab'
+import { disposeSession, isTerminalPanel } from '../features/terminal/terminals'
 import { setDockApi } from '../lib/dock'
 
-const components = { [EDITOR_COMPONENT]: EditorPanel }
-const tabComponents = { [EDITOR_COMPONENT]: EditorTab }
+const components = { [EDITOR_COMPONENT]: EditorPanel, [TERMINAL_COMPONENT]: TerminalPanel }
+const tabComponents = { [EDITOR_COMPONENT]: EditorTab, [TERMINAL_COMPONENT]: TerminalTab }
 
 export function MainArea() {
   const onReady = useCallback(({ api }: DockviewReadyEvent) => {
     setDockApi(api)
     api.onDidActivePanelChange(({ panel }) => {
-      useEditorStore.getState().setActive(panel?.id ?? null)
+      const id = panel?.id ?? null
+      noteActivePanel(id)
+      useEditorStore.getState().setActive(id && !isTerminalPanel(id) ? id : null)
     })
     // Painel removido por outro caminho: libera o modelo. Mover entre grupos também dispara
     // remoção, então confere depois que o movimento termina.
     api.onDidRemovePanel((panel) => {
       setTimeout(() => {
-        if (!api.getPanel(panel.id)) disposeModel(panel.id)
+        if (api.getPanel(panel.id)) return
+        if (isTerminalPanel(panel.id)) disposeSession(panel.id)
+        else disposeModel(panel.id)
       }, 0)
     })
   }, [])
@@ -35,6 +44,7 @@ export function MainArea() {
         components={components}
         tabComponents={tabComponents}
         watermarkComponent={Welcome}
+        rightHeaderActionsComponent={TerminalGroupActions}
         onReady={onReady}
         defaultRenderer="always"
       />

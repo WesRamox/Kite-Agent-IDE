@@ -57,6 +57,18 @@ function QuickOpenDialog({ root }: { root: string }) {
     void openFile(item.item.path)
   }
 
+  // Enter antes da lista carregar: espera a lista e abre o melhor resultado.
+  const chooseWhenLoaded = async () => {
+    const store = useQuickOpenStore.getState()
+    await store.ensureFiles(root)
+    const loaded = useQuickOpenStore.getState().files ?? []
+    const rel = loaded.map((path) => ({ path, rel: relative(root, path) }))
+    const first = fuzzyFilter(query, rel, (f) => f.rel, 1)[0]
+    if (!first || !useQuickOpenStore.getState().open) return
+    hide()
+    void openFile(first.item.path)
+  }
+
   return (
     <div
       className="fixed inset-0 z-40 flex justify-center bg-black/30 pt-[12vh]"
@@ -79,8 +91,10 @@ function QuickOpenDialog({ root }: { root: string }) {
           }}
           onKeyDown={(e) => {
             if (e.key === 'Escape') hide()
-            else if (e.key === 'Enter') choose(selected)
-            else if (e.key === 'ArrowDown') setSelected((s) => Math.min(s + 1, items.length - 1))
+            else if (e.key === 'Enter') {
+              if (files === null) void chooseWhenLoaded()
+              else choose(selected)
+            } else if (e.key === 'ArrowDown') setSelected((s) => Math.min(s + 1, items.length - 1))
             else if (e.key === 'ArrowUp') setSelected((s) => Math.max(s - 1, 0))
             else return
             e.preventDefault()

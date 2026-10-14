@@ -10,7 +10,11 @@ import type {
   FileContent,
   FileEncoding,
   FsChangedEvent,
+  PtyCreateOptions,
+  PtyDataEvent,
+  PtyExitEvent,
   Result,
+  TerminalSession,
 } from './types'
 
 export interface InvokeChannels {
@@ -33,10 +37,27 @@ export interface InvokeChannels {
   'fs:listFiles': { args: [root: string]; result: { files: string[]; truncated: boolean } }
   'fs:watch': { args: [root: string]; result: void }
   'fs:unwatch': { args: [root: string]; result: void }
+
+  'pty:create': { args: [options: PtyCreateOptions]; result: { id: string; pid: number } }
+  'pty:write': { args: [id: string, data: string]; result: void }
+  'pty:resize': { args: [id: string, cols: number, rows: number]; result: void }
+  'pty:kill': { args: [id: string]; result: void }
+
+  'terminal:loadSessions': { args: [root: string]; result: TerminalSession[] }
+  'terminal:saveSessions': { args: [root: string, sessions: TerminalSession[]]; result: void }
+
+  'clipboard:readText': { args: []; result: string }
+  'clipboard:writeText': { args: [text: string]; result: void }
+
+  // Resposta ao evento `app:closeRequested`: o renderer terminou de salvar e o app pode fechar.
+  'app:confirmClose': { args: []; result: void }
 }
 
 export interface EventChannels {
   'fs:changed': FsChangedEvent
+  'pty:data': PtyDataEvent
+  'pty:exit': PtyExitEvent
+  'app:closeRequested': Record<string, never>
 }
 
 export type InvokeChannel = keyof InvokeChannels
@@ -53,6 +74,24 @@ type Fn<C extends InvokeChannel> = (...args: InvokeArgs<C>) => Promise<InvokeRes
 export interface Api {
   app: {
     getInfo: Fn<'app:getInfo'>
+    confirmClose: Fn<'app:confirmClose'>
+    onCloseRequested: (listener: () => void) => Unsubscribe
+  }
+  clipboard: {
+    readText: Fn<'clipboard:readText'>
+    writeText: Fn<'clipboard:writeText'>
+  }
+  pty: {
+    create: Fn<'pty:create'>
+    write: Fn<'pty:write'>
+    resize: Fn<'pty:resize'>
+    kill: Fn<'pty:kill'>
+    onData: (listener: (event: PtyDataEvent) => void) => Unsubscribe
+    onExit: (listener: (event: PtyExitEvent) => void) => Unsubscribe
+  }
+  terminal: {
+    loadSessions: Fn<'terminal:loadSessions'>
+    saveSessions: Fn<'terminal:saveSessions'>
   }
   dialog: {
     confirm: Fn<'dialog:confirm'>

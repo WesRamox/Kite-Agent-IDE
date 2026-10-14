@@ -7,7 +7,14 @@ export interface Launched {
   app: ElectronApplication
   page: Page
   workspace: string
+  userData: string
   cleanup: () => Promise<void>
+}
+
+export interface LaunchOptions {
+  keepWorkspace?: boolean
+  // Reaproveita um perfil (para testar fechar e reabrir). Não é apagado no cleanup.
+  userData?: string
 }
 
 export async function makeWorkspace(files: Record<string, string | Buffer>): Promise<string> {
@@ -20,11 +27,8 @@ export async function makeWorkspace(files: Record<string, string | Buffer>): Pro
   return dir
 }
 
-export async function launch(
-  workspace: string,
-  opts: { keepWorkspace?: boolean } = {},
-): Promise<Launched> {
-  const userData = await mkdtemp(path.join(tmpdir(), 'aic-profile-'))
+export async function launch(workspace: string, opts: LaunchOptions = {}): Promise<Launched> {
+  const userData = opts.userData ?? (await mkdtemp(path.join(tmpdir(), 'aic-profile-')))
   const app = await electron.launch({
     args: [path.join(__dirname, '..')],
     env: { ...process.env, AIC_USER_DATA_DIR: userData, ELECTRON_RENDERER_URL: '' },
@@ -49,10 +53,11 @@ export async function launch(
     app,
     page,
     workspace,
+    userData,
     cleanup: async () => {
-      await app.close()
+      await app.close().catch(() => {})
       if (!opts.keepWorkspace) await rm(workspace, { recursive: true, force: true })
-      await rm(userData, { recursive: true, force: true })
+      if (!opts.userData) await rm(userData, { recursive: true, force: true })
     },
   }
 }
@@ -65,4 +70,11 @@ export function setConfirmAnswer(app: ElectronApplication, answer: number): Prom
 
 export function trashed(app: ElectronApplication): Promise<string[]> {
   return app.evaluate(() => (globalThis as unknown as { __trashed: string[] }).__trashed)
+}
+
+// Fecha a janela pelo fluxo real (o renderer salva os terminais e confirma).
+export async function closeWindow(app: ElectronApplication): Promise<void> {
+  const closed = new Promise<void>((resolve) => app.once('close', () => resolve()))
+  await app.evaluate(({ BrowserWindow }) => BrowserWindow.getAllWindows()[0]?.close())
+  await closed
 }

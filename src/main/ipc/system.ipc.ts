@@ -1,0 +1,20 @@
+import { z } from 'zod'
+import type { Logger } from '../lib/logger'
+import { registerHandler } from './register'
+
+export interface SystemDeps {
+  readClipboard: () => string | Promise<string>
+  writeClipboard: (text: string) => void
+  confirmClose: () => void
+}
+
+export function registerSystemIpc(deps: SystemDeps, log: Logger): void {
+  registerHandler('clipboard:readText', z.tuple([]), () => deps.readClipboard(), log)
+  registerHandler(
+    'clipboard:writeText',
+    z.tuple([z.string().max(10_000_000)]),
+    (text) => deps.writeClipboard(text),
+    log,
+  )
+  registerHandler('app:confirmClose', z.tuple([]), () => deps.confirmClose(), log)
+}

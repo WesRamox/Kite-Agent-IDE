@@ -52,3 +52,27 @@ export interface ConfirmOptions {
   buttons: string[]
   kind?: 'info' | 'warning' | 'question'
 }
+
+export interface PtyCreateOptions {
+  cwd: string
+  shell?: string
+  cols: number
+  rows: number
+  env?: Record<string, string>
+}
+
+export interface PtyDataEvent {
+  id: string
+  data: string
+}
+
+export interface PtyExitEvent {
+  id: string
+  exitCode: number
+}
+
+// Terminal salvo ao fechar o app/workspace, restaurado ao reabrir.
+export interface TerminalSession {
+  title: string
+  scrollback: string
+}

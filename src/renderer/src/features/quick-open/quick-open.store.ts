@@ -12,6 +12,8 @@ interface QuickOpenState {
   ensureFiles: (root: string) => Promise<void>
 }
 
+let inflight: Promise<void> | null = null
+
 export const useQuickOpenStore = create<QuickOpenState>((set, get) => ({
   open: false,
   files: null,
@@ -19,11 +21,18 @@ export const useQuickOpenStore = create<QuickOpenState>((set, get) => ({
   show: () => set({ open: true }),
   hide: () => set({ open: false }),
   invalidate: () => set({ files: null }),
-  ensureFiles: async (root) => {
-    if (get().files || get().loading) return
-    set({ loading: true })
-    const res = await attempt(window.api.fs.listFiles(root), 'Erro ao listar arquivos')
-    set({ loading: false, files: res?.files ?? [] })
-    if (res?.truncated) toast.warning('Projeto grande: o quick open mostra só parte dos arquivos.')
+  ensureFiles: (root) => {
+    if (get().files) return Promise.resolve()
+    // Chamadas concorrentes esperam a mesma carga.
+    inflight ??= (async () => {
+      set({ loading: true })
+      const res = await attempt(window.api.fs.listFiles(root), 'Erro ao listar arquivos')
+      set({ loading: false, files: res?.files ?? [] })
+      if (res?.truncated)
+        toast.warning('Projeto grande: o quick open mostra só parte dos arquivos.')
+    })().finally(() => {
+      inflight = null
+    })
+    return inflight
   },
 }))

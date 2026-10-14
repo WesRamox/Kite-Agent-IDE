@@ -3,7 +3,7 @@
 IDE desktop para trabalhar com agentes de IA (Claude Code, Codex, Gemini CLI…), com arquivos,
 terminais, Git/worktrees e GitHub. Especificação completa em [`AGENTS.md`](AGENTS.md).
 
-**Status:** Fases 0 e 1 concluídas: fundação, explorador de arquivos e editor.
+**Status:** Fases 0, 1 e 2 concluídas: fundação, explorador de arquivos, editor e terminais.
 
 O que já funciona:
 
@@ -14,7 +14,14 @@ O que já funciona:
 - Editor Monaco com abas, indicador de "não salvo", detecção de linguagem e Ln/Col
 - Recarga de arquivos alterados no disco (pergunta se houver alterações locais)
 - Quick open com busca fuzzy
-- Atalhos: `Ctrl/Cmd+S` salvar, `Ctrl/Cmd+P` quick open, `Ctrl/Cmd+W` fechar aba
+- Terminais reais (PTY) com o shell padrão do SO, em abas e splits (botões no cabeçalho do
+  grupo), WebGL, busca (`Ctrl/Cmd+F`), links clicáveis e copiar/colar (`Ctrl+Shift+C/V`;
+  `Cmd+C/V` no macOS)
+- Histórico dos terminais salvo ao fechar o app (ou trocar de pasta) e restaurado ao reabrir
+- Ao fechar a janela: pergunta sobre arquivos não salvos e encerra todos os processos
+- Atalhos: `Ctrl/Cmd+S` salvar, `Ctrl/Cmd+P` quick open, `Ctrl/Cmd+W` fechar aba,
+  ``Ctrl/Cmd+` `` abrir/focar terminal, ``Ctrl/Cmd+Shift+` `` novo terminal. No Linux/Windows,
+  com o foco no terminal, `Ctrl+S` e `Ctrl+W` vão para o shell.
 
 ## Requisitos
 
