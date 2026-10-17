@@ -6,8 +6,10 @@ import { StatusBar } from '../components/StatusBar'
 import { Toasts } from '../components/Toasts'
 import { useAgentsSync } from '../features/agents/agents.actions'
 import { useSessionsSync } from '../features/agents/sessions.actions'
+import { useTasksSync } from '../features/tasks/tasks.actions'
 import { useGitSync } from '../features/git/git-sync'
 import { QuickOpen } from '../features/quick-open/QuickOpen'
+import { TaskSwitcher } from '../features/tasks/TaskSwitcher'
 import { useLayoutStore } from '../stores/layout.store'
 import { useThemeStore } from '../stores/theme.store'
 import { useWorkspaceStore } from '../stores/workspace.store'
@@ -23,6 +25,7 @@ export function App() {
   useGitSync()
   useAgentsSync()
   useSessionsSync()
+  useTasksSync()
   useEffect(() => {
     void useWorkspaceStore.getState().loadRecent()
     void useThemeStore.getState().syncFromMain()
@@ -39,6 +42,7 @@ export function App() {
       </div>
       <StatusBar />
       <QuickOpen />
+      <TaskSwitcher />
       <Toasts />
     </div>
   )

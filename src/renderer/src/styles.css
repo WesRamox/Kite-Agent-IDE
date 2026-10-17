@@ -169,3 +169,12 @@ body {
 .monaco-editor .minimap {
   background: var(--color-surface-0);
 }
+
+/* Dock de uma tarefa que não está ativa (Fase 8): continua montado e com o tamanho certo (o
+   xterm e o Monaco não precisam se refazer), mas nada dele aparece nem recebe cliques. O
+   dockview força visibility nos filhos, por isso o !important. */
+[data-hidden-context],
+[data-hidden-context] * {
+  visibility: hidden !important;
+  pointer-events: none !important;
+}

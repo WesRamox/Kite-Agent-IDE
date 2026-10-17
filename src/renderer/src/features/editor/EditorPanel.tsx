@@ -4,10 +4,11 @@ import { useEffect, useRef } from 'react'
 import { useEditorStore } from './editor.store'
 import { uriFor } from './models'
 import { type monaco, useMonacoTheme } from './monaco-setup'
+import { CODE_FONT } from '../../lib/code-font'
 
 const OPTIONS: monaco.editor.IStandaloneEditorConstructionOptions = {
   automaticLayout: true,
-  fontFamily: "'JetBrains Mono', ui-monospace, 'SF Mono', Menlo, Consolas, monospace",
+  fontFamily: CODE_FONT,
   fontSize: 13,
   minimap: { enabled: true },
   scrollBeyondLastLine: false,

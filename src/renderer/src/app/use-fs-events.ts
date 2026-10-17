@@ -3,6 +3,7 @@ import { handleExternalChange, handleExternalDelete } from '../features/editor/e
 import { useExplorerStore } from '../features/explorer/explorer.store'
 import { useQuickOpenStore } from '../features/quick-open/quick-open.store'
 import { basename, dirname } from '../lib/paths'
+import { useTasksStore } from '../features/tasks/tasks.store'
 import { useWorkspaceStore } from '../stores/workspace.store'
 
 // Reage às mudanças no disco vindas do watcher do main.
@@ -10,7 +11,12 @@ export function useFsEvents(): void {
   useEffect(
     () =>
       window.api.fs.onChanged(({ root, events }) => {
-        if (root !== useWorkspaceStore.getState().root) return
+        // A pasta aberta e as worktrees das tarefas abertas.
+        if (
+          root !== useWorkspaceStore.getState().root &&
+          !(root in useTasksStore.getState().status)
+        )
+          return
         const explorer = useExplorerStore.getState()
         const dirs = new Set<string>()
         let structural = false

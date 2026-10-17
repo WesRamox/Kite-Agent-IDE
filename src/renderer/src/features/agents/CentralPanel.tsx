@@ -2,20 +2,21 @@ import { useEffect, useRef } from 'react'
 import { basename } from '../../lib/paths'
 import { isMac } from '../../lib/platform'
 import { openReview } from './agents.actions'
-import { useAgentsStore } from './agents.store'
+import { touchedByRepo } from '../tasks/task-links'
+import { openTask } from '../tasks/tasks.actions'
 import {
   ago,
-  attentionItems,
   chipLabel,
   doing,
   elapsed,
   groupItems,
   origin,
+  shortKey,
   type AttentionItem,
 } from './attention'
 import { copyResume, respond, resumeHere } from './attention.actions'
 import { useAttentionStore } from './attention.store'
-import { useSessionsStore } from './sessions.store'
+import { useAttentionItems } from './use-attention'
 import { useNow } from './use-now'
 
 // Central de atenção (canvas, tela 1: Main.dc.html, área principal).
@@ -26,10 +27,9 @@ const BTN_PRIMARY = `${BTN} bg-accent font-semibold text-accent-fg hover:bg-acce
 const BTN_SECONDARY = `${BTN} border border-border bg-surface-2 text-fg hover:bg-surface-3`
 
 export function CentralPanel() {
-  const sessions = useSessionsStore((s) => s.sessions)
-  const tasks = useAgentsStore((s) => s.tasks)
+  const items = useAttentionItems(15_000)
   const now = useNow(true, 15_000)
-  const groups = groupItems(attentionItems(sessions, tasks, now))
+  const groups = groupItems(items)
 
   return (
     <div className="h-full overflow-y-auto bg-surface-0 font-geist text-[13px] text-fg">
@@ -82,13 +82,17 @@ export function CentralPanel() {
                   <span className="flex-[2_1_260px] truncate text-fg-muted">
                     {reviewDetail(item, now)}
                   </span>
-                  {item.task && (
+                  {(item.task || item.wsTask) && (
                     <button
                       type="button"
-                      onClick={() => item.task && openReview(item.task.id)}
+                      onClick={() =>
+                        item.task
+                          ? openReview(item.task.id)
+                          : item.wsTask && void openTask(item.wsTask.id)
+                      }
                       className="h-[30px] rounded-[7px] border border-border bg-surface-2 px-3 text-fg hover:bg-surface-3"
                     >
-                      Revisar
+                      {item.task ? 'Revisar' : 'Abrir tarefa'}
                     </button>
                   )}
                 </Row>
@@ -106,7 +110,8 @@ function reviewDetail(item: AttentionItem, now: number): string {
     return `Agente terminou ${ago(now - item.since)} · ${item.task.branch}`
   }
   const n = item.session?.touchedCount ?? 0
-  return `Sessão terminou ${ago(now - item.since)} · ${item.key} · ${n} ${n === 1 ? 'arquivo' : 'arquivos'}`
+  const where = item.wsTask ? item.wsTask.worktrees.map((w) => w.repoName).join(' e ') : item.key
+  return `Sessão terminou ${ago(now - item.since)} · ${where} · ${n} ${n === 1 ? 'arquivo' : 'arquivos'}`
 }
 
 function Row(props: {
@@ -123,7 +128,9 @@ function Row(props: {
       }`}
     >
       <span className={`size-2 rounded-full ${props.dot}`} />
-      <span className="w-16 truncate font-geist-mono text-xs text-fg-muted">{props.item.key}</span>
+      <span className="w-16 truncate font-geist-mono text-xs text-fg-muted">
+        {shortKey(props.item)}
+      </span>
       <span className="flex-[1_1_200px] truncate font-medium">{props.item.name}</span>
       {props.children}
     </div>
@@ -138,8 +145,18 @@ function WaitingCard({ item, now }: { item: AttentionItem; now: number }) {
   }, [highlighted])
   const s = item.session
   const pending = item.waitReason === 'permission' ? s?.pending : null
-  const changed = s?.touchedCount ?? 0
-  const repo = item.task ? basename(item.task.repoPath) : item.key
+  // Um chip por repo da tarefa, com os arquivos que os agentes editaram nele.
+  const chips = item.wsTask
+    ? Object.entries(touchedByRepo(item.wsTask, item.sessions)).map(([repo, changed]) => ({
+        repo,
+        changed,
+      }))
+    : [
+        {
+          repo: item.task ? basename(item.task.repoPath) : item.key,
+          changed: s?.touchedCount ?? 0,
+        },
+      ]
 
   return (
     <article
@@ -150,7 +167,9 @@ function WaitingCard({ item, now }: { item: AttentionItem; now: number }) {
       }`}
     >
       <div className="flex flex-wrap items-center gap-2.5">
-        <span className="font-geist-mono text-xs text-fg-muted">{item.key}</span>
+        {shortKey(item) && (
+          <span className="font-geist-mono text-xs text-fg-muted">{item.key}</span>
+        )}
         <h2 className="text-base font-semibold">{item.name}</h2>
         <span className="inline-flex h-[22px] items-center gap-1.5 rounded-full bg-accent/15 px-2 text-xs font-medium text-accent">
           <span className="size-1.5 rounded-full bg-accent" />
@@ -174,14 +193,19 @@ function WaitingCard({ item, now }: { item: AttentionItem; now: number }) {
       </div>
 
       <div className="flex flex-wrap items-center gap-2">
-        <span className="inline-flex h-6 items-center gap-1.5 rounded-md border border-border bg-surface-2 px-2 text-xs">
-          <span className="font-geist-mono">{repo}</span>
-          {changed > 0 && (
-            <span className="text-fg-muted">
-              {changed} {changed === 1 ? 'alterado' : 'alterados'}
-            </span>
-          )}
-        </span>
+        {chips.map((c) => (
+          <span
+            key={c.repo}
+            className="inline-flex h-6 items-center gap-1.5 rounded-md border border-border bg-surface-2 px-2 text-xs"
+          >
+            <span className="font-geist-mono">{c.repo}</span>
+            {c.changed > 0 && (
+              <span className="text-fg-muted">
+                {c.changed} {c.changed === 1 ? 'alterado' : 'alterados'}
+              </span>
+            )}
+          </span>
+        ))}
         <span className="flex-1" />
         {item.inKite ? (
           <button type="button" onClick={() => respond(item)} className={BTN_PRIMARY}>
@@ -190,6 +214,15 @@ function WaitingCard({ item, now }: { item: AttentionItem; now: number }) {
         ) : (
           <button type="button" onClick={() => void resumeHere(item)} className={BTN_PRIMARY}>
             Retomar aqui
+          </button>
+        )}
+        {item.wsTask && (
+          <button
+            type="button"
+            onClick={() => item.wsTask && void openTask(item.wsTask.id)}
+            className={BTN_SECONDARY}
+          >
+            Abrir tarefa
           </button>
         )}
         {item.task && (

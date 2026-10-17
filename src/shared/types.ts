@@ -354,3 +354,52 @@ export interface HooksStatus {
   snippet: string
   error: string | null
 }
+
+// Tarefas multi-repo (Fase 8): grupos de worktrees de repositórios diferentes, descobertos no
+// workspace (pasta com vários repos).
+export type TaskGroupingMode = 'auto' | 'pattern' | 'manual'
+
+export interface TaskGrouping {
+  mode: TaskGroupingMode
+  // Ex.: ".worktrees/{tarefa}/{repo}", relativo à pasta aberta (modo 'pattern').
+  pattern: string
+}
+
+export interface TaskWorktree {
+  repo: string
+  repoName: string
+  path: string
+  branch: string | null
+  head: string
+}
+
+export type TaskSource = 'folder' | 'branch' | 'pattern' | 'manual'
+
+export interface Task {
+  id: string
+  // Rótulo curto (pasta ou branch), ex.: "PAY-412".
+  key: string
+  name: string
+  cardUrl: string | null
+  source: TaskSource
+  // Por que estas worktrees foram agrupadas (tela de descoberta).
+  why: string
+  // Pasta da tarefa quando as worktrees ficam juntas (ex.: .worktrees/PAY-412).
+  folder: string | null
+  worktrees: TaskWorktree[]
+  // Desmarcada na descoberta: não aparece na Central.
+  hidden: boolean
+  notes: string
+}
+
+export interface WorkspaceTasks {
+  root: string
+  repos: { path: string; name: string }[]
+  tasks: Task[]
+  unassigned: TaskWorktree[]
+  grouping: TaskGrouping
+  // O usuário já passou pela tela de descoberta.
+  imported: boolean
+  // Vínculos manuais sessão → tarefa (vencem a detecção automática).
+  sessionLinks: Record<string, string>
+}

@@ -114,6 +114,28 @@ PATH do seu `.bashrc`/`.zshrc` vale (ex.: CLIs instalados via nvm).
 
 Os CLIs precisam estar instalados e autenticados por conta própria.
 
+### Tarefas multi-repo
+
+Abra a pasta que reúne os seus repositórios (ex.: `~/projetos`). O Kite acha os repos (até dois
+níveis), lista as worktrees de cada um e agrupa em **tarefas**, sem você precisar criá-las por ele:
+
+- **Automático:** worktrees de repos diferentes na mesma pasta (ex.: `.worktrees/PAY-412/api` e
+  `.worktrees/PAY-412/web`) ou com o mesmo nome de branch, ignorando prefixos como `feat/`.
+- **Por padrão de pasta** (ex.: `.worktrees/{tarefa}/{repo}`) ou **manual**.
+
+Na primeira vez aparece a tela **Descobrir tarefas** para conferir, renomear, desmarcar e decidir o
+que fazer com worktrees soltas; para voltar a ela, `Ctrl/Cmd+K` → "Descobrir tarefas…". Um
+`TASK.md` (primeiro título) ou `.kite-task.json` (`{ "title", "url" }`) na pasta da tarefa dá o
+título e o link do card. Worktrees criadas depois, por qualquer script ou skill, entram sozinhas.
+
+Abrir uma tarefa (na Central ou `Ctrl/Cmd+K`) mostra um explorer com uma raiz por worktree, o
+quick open busca em todos os repos dela, as abas mostram o repo do arquivo e os terminais abrem
+na pasta da tarefa (botão direito numa raiz: "Abrir terminal aqui"). Cada tarefa guarda as
+próprias abas e terminais: trocar de tarefa não fecha nada. À direita ficam o card, a situação de
+cada repo, as sessões de agente e notas. Uma sessão do Claude Code é ligada à tarefa pelo cwd ou
+pelos arquivos que edita (mesmo aberta na raiz do workspace); em Conectar agentes dá para
+vincular à mão.
+
 ### Central de atenção
 
 O primeiro ícone da activity bar abre a **Central de atenção**: na sidebar, as tarefas e sessões
@@ -121,6 +143,7 @@ agrupadas em Esperando você, Trabalhando, Para revisar e Sem agente; na área p
 cada agente parado pede (o comando que quer rodar ou a última mensagem), o que os outros estão
 fazendo e o que terminou. Com o Claude Code conectado, o app já abre nela.
 
+- `Ctrl/Cmd+K` troca de tarefa (no terminal, `Ctrl+Shift+K`).
 - `Ctrl/Cmd+J` vai para o próximo agente que espera, do que espera há mais tempo. Com o foco num
   terminal, use `Ctrl+Shift+J` (lá `Ctrl+J` é quebra de linha).
 - "Responder no terminal" vai até a aba do agente, inclusive quando o `claude` foi aberto à mão

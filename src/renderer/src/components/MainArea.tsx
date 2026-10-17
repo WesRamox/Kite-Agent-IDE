@@ -1,6 +1,6 @@
 import { DockviewReact, themeAbyss, type DockviewReadyEvent } from 'dockview-react'
 import 'dockview-react/dist/styles/dockview.css'
-import { useCallback } from 'react'
+import { useCallback, useEffect, useRef } from 'react'
 import { Welcome } from '../app/Welcome'
 import {
   AGENT_TAB_COMPONENT,
@@ -49,7 +49,18 @@ import { TerminalGroupActions } from '../features/terminal/TerminalGroupActions'
 import { TerminalPanel } from '../features/terminal/TerminalPanel'
 import { TerminalTab } from '../features/terminal/TerminalTab'
 import { disposeSession, isAgentPanel, isTerminalPanel } from '../features/terminal/terminals'
-import { setDockApi } from '../lib/dock'
+import { DiscoverPanel } from '../features/tasks/DiscoverPanel'
+import { DiscoverTab } from '../features/tasks/DiscoverTab'
+import { TaskDetails } from '../features/tasks/TaskDetails'
+import {
+  DISCOVER_COMPONENT,
+  DISCOVER_TAB_COMPONENT,
+  isDiscoverPanel,
+} from '../features/tasks/tasks.actions'
+import { useTasksStore } from '../features/tasks/tasks.store'
+import { findPanel, registerDock, unregisterDock, WORKSPACE_CONTEXT } from '../lib/dock'
+import { isMac } from '../lib/platform'
+import { useContextStore } from '../stores/context.store'
 
 const components = {
   [EDITOR_COMPONENT]: EditorPanel,
@@ -61,6 +72,7 @@ const components = {
   [REVIEW_COMPONENT]: ReviewPanel,
   [CONNECT_COMPONENT]: ConnectAgentsPanel,
   [ATTENTION_COMPONENT]: CentralPanel,
+  [DISCOVER_COMPONENT]: DiscoverPanel,
 }
 const tabComponents = {
   [EDITOR_COMPONENT]: EditorTab,
@@ -71,6 +83,7 @@ const tabComponents = {
   [REVIEW_TAB_COMPONENT]: ReviewTab,
   [CONNECT_TAB_COMPONENT]: ConnectAgentsTab,
   [ATTENTION_TAB_COMPONENT]: AttentionTab,
+  [DISCOVER_TAB_COMPONENT]: DiscoverTab,
 }
 
 // Painéis de editor são identificados pelo caminho do arquivo; os demais têm prefixo.
@@ -83,40 +96,84 @@ function isEditorPanel(id: string): boolean {
     isReviewPanel,
     isConnectPanel,
     isAttentionPanel,
+    isDiscoverPanel,
   ].some((is) => is(id))
 }
 
+// Um dock por contexto (workspace e cada tarefa aberta). Só o ativo fica visível; os outros
+// continuam montados, então abas e terminais de cada tarefa sobrevivem à troca.
 export function MainArea() {
-  const onReady = useCallback(({ api }: DockviewReadyEvent) => {
-    setDockApi(api)
-    api.onDidActivePanelChange(({ panel }) => {
-      const id = panel?.id ?? null
-      noteActivePanel(id)
-      useEditorStore.getState().setActive(id && isEditorPanel(id) ? id : null)
-    })
-    // Painel removido por outro caminho: libera o modelo. Mover entre grupos também dispara
-    // remoção, então confere depois que o movimento termina.
-    api.onDidRemovePanel((panel) => {
-      setTimeout(() => {
-        if (api.getPanel(panel.id)) return
-        if (isTerminalPanel(panel.id) || isAgentPanel(panel.id)) disposeSession(panel.id)
-        else if (isEditorPanel(panel.id)) disposeModel(panel.id)
-      }, 0)
-    })
-  }, [])
+  const contexts = useContextStore((s) => s.contexts)
+  const active = useContextStore((s) => s.active)
+  const taskOpen = useTasksStore((s) => s.activeTaskId !== null)
 
   return (
-    <main className="min-w-0 flex-1">
+    <main className="flex min-w-0 flex-1">
+      <div className="relative min-w-0 flex-1">
+        {contexts.map((id) => (
+          <DockContext key={id} id={id} visible={id === active} />
+        ))}
+      </div>
+      {taskOpen && <TaskDetails />}
+    </main>
+  )
+}
+
+function syncActive(id: string | null): void {
+  noteActivePanel(id)
+  useEditorStore.getState().setActive(id && isEditorPanel(id) ? id : null)
+}
+
+function DockContext({ id, visible }: { id: string; visible: boolean }) {
+  const apiRef = useRef<DockviewReadyEvent['api'] | null>(null)
+  const onReady = useCallback(
+    ({ api }: DockviewReadyEvent) => {
+      apiRef.current = api
+      registerDock(id, api)
+      api.onDidActivePanelChange(({ panel }) => {
+        if (useContextStore.getState().active === id) syncActive(panel?.id ?? null)
+      })
+      // Painel removido por outro caminho: libera o modelo ou o terminal, se nenhum outro
+      // contexto ainda o mostra. Mover entre grupos também dispara remoção, então confere
+      // depois que o movimento termina.
+      api.onDidRemovePanel((panel) => {
+        setTimeout(() => {
+          if (findPanel(panel.id)) return
+          if (isTerminalPanel(panel.id) || isAgentPanel(panel.id)) disposeSession(panel.id)
+          else if (isEditorPanel(panel.id)) disposeModel(panel.id)
+        }, 0)
+      })
+    },
+    [id],
+  )
+
+  useEffect(() => () => unregisterDock(id), [id])
+  // Ao virar o contexto ativo, o editor e o terminal "atuais" passam a ser os deste dock.
+  useEffect(() => {
+    if (visible) syncActive(apiRef.current?.activePanel?.id ?? null)
+  }, [visible])
+
+  return (
+    <div className="absolute inset-0" data-hidden-context={visible ? undefined : ''}>
       <DockviewReact
         className="kite-dock"
         theme={themeAbyss}
         components={components}
         tabComponents={tabComponents}
-        watermarkComponent={Welcome}
+        watermarkComponent={id === WORKSPACE_CONTEXT ? Welcome : TaskWatermark}
         rightHeaderActionsComponent={TerminalGroupActions}
         onReady={onReady}
         defaultRenderer="always"
       />
-    </main>
+    </div>
+  )
+}
+
+function TaskWatermark() {
+  const mod = isMac ? '⌘' : 'Ctrl+'
+  return (
+    <div className="flex h-full items-center justify-center font-geist text-fg-muted">
+      Abra um arquivo no explorer da tarefa ou use {mod}P para buscar nos repositórios dela.
+    </div>
   )
 }

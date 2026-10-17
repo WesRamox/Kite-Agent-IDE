@@ -314,3 +314,46 @@ Decisões fáceis de desfazer, não cobertas pelo `AGENTS.md`. Mais recente no f
 - **Diferenças do desenho nesta fase:** sem "Abrir tarefa" (Fase 8) e sem "Revisar mudanças" para
   sessões de fora (Fase 9); o botão do workspace na sidebar abre o seletor de pasta e mostra
   "1 repo" (vários repos na Fase 8); estados vazios ganharam uma frase curta.
+
+## Fase 8 — Tarefas multi-repo
+
+- **Workspace = a pasta aberta.** Repositórios são as pastas com `.git` (diretório) nela e em
+  até dois níveis abaixo, sem descer em repositórios, pastas ignoradas ou ocultas; repos de fora
+  entram pelo diálogo nativo ("+ Adicionar repo de outra pasta") e ficam salvos por workspace.
+- **Agrupamento automático**, em ordem: (1) pasta pai em comum com worktrees de repos diferentes
+  (ou uma só com o nome do repo) — uma pasta com várias worktrees do mesmo repo, como
+  `api-worktrees/`, é pasta de worktrees e não tarefa; (2) mesmo nome de branch, sem os prefixos
+  `feat/`, `feature/`, `fix/`, `bugfix/`, `hotfix/`, `chore/`, `refactor/`, `agent/`, `task/`,
+  `wip/`. Uma worktree sozinha com branch própria vira tarefa de um repo; sem branch (detached)
+  fica "Sem tarefa". Os ids são estáveis (`folder:<pasta>`, `branch:<nome>`, `pattern:<chave>`,
+  `manual:<uuid>`), então renomear, esconder, mover e ignorar continuam valendo nas próximas
+  descobertas. Ajustes em `userData/tasks.json`, por workspace.
+- **Segurança:** abrir uma tarefa adiciona as worktrees dela (e a pasta da tarefa) às raízes do
+  `WorkspaceGuard`, mas só caminhos que o próprio `git worktree list` dos repositórios do
+  workspace devolve. Trocar de workspace fecha tudo, como antes.
+- **Observação:** o `.git` de cada repositório (sem `objects/`, `logs/`, `hooks/`) com debounce de
+  300 ms; worktree criada, removida ou trocando de branch redescobre e avisa o renderer.
+- **Um dockview por tarefa aberta.** O workspace e cada tarefa têm o próprio dock; só o ativo
+  aparece. Os outros continuam montados (tamanho preservado, sem refazer xterm e Monaco),
+  escondidos por `[data-hidden-context]`, que precisa de `visibility: hidden !important` em todos
+  os descendentes porque o dockview força `visibility` em partes das abas. As ações agem no dock
+  ativo; fechar um arquivo libera o modelo só quando nenhum outro contexto o mostra. Os terminais
+  restaurados ao reabrir continuam sendo só os do workspace.
+- **Ligação sessão ↔ tarefa** no renderer: vínculo manual; senão cwd dentro da pasta da tarefa ou
+  de uma worktree; senão a tarefa da maioria dos arquivos editados. Sessões de agentes abertos pelo
+  Kite (Fase 5) continuam no item do agente.
+- **Central com tarefas:** cada tarefa importada e não escondida é um item, no grupo da sessão que
+  mais pede atenção (espera > trabalha > terminou com mudanças); sem sessão, "Sem agente" (clicar
+  abre a tarefa). Chips por repo contam os arquivos editados em cada worktree. Quando a tarefa não
+  tem título, o rótulo curto não se repete ao lado do nome.
+- **Fonte do código:** editor, diffs e terminais em Geist Mono (como no canvas). O terminal espera
+  a fonte carregar (até 1,5 s) antes de abrir, para medir os glifos certos.
+- **`Ctrl+K`** troca de tarefa; no terminal (onde `Ctrl+K` apaga até o fim da linha), `Ctrl+Shift+K`.
+- **"+ Adicionar repositório à tarefa"** cria a worktree na pasta da tarefa (ou em
+  `../<repo>-worktrees/<branch>`) com a branch mais comum da tarefa, criando-a a partir do `HEAD`
+  do repositório se não existir.
+- **Diferenças do desenho nesta fase:** os terminais da tarefa são os do dockview (sem o botão
+  "+ Agente", que vem com a "Nova tarefa" da Fase 10); o cartão de cada repo mostra o upstream no
+  lugar do status do PR (PRs na Fase 9) e "nada à frente" em vez de "nada commitado"; as notas são
+  editáveis (o desenho mostra só o texto); a tela de descoberta ganhou um campo para o padrão de
+  pasta quando esse modo está escolhido.

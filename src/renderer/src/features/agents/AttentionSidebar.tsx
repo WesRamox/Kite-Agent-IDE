@@ -10,11 +10,10 @@ import {
   restartAgent,
   stopAgent,
 } from './agents.actions'
-import { useAgentsStore } from './agents.store'
 import {
-  attentionItems,
   GROUP_LABEL,
   GROUP_ORDER,
+  shortKey,
   groupItems,
   type AttentionGroup,
   type AttentionItem,
@@ -24,8 +23,9 @@ import { useAttentionStore } from './attention.store'
 import { NewTaskForm } from './NewTaskForm'
 import { PresetEditor } from './PresetEditor'
 import { tildePath } from './session-format'
-import { useSessionsStore } from './sessions.store'
-import { useNow } from './use-now'
+import { openTask, setTaskHidden } from '../tasks/tasks.actions'
+import { useTasksStore } from '../tasks/tasks.store'
+import { useAttentionItems } from './use-attention'
 
 // Sidebar da Central de atenção (canvas, tela 1: Main.dc.html, coluna "Tarefas").
 
@@ -37,6 +37,13 @@ const GROUP_DOT: Record<AttentionGroup, string> = {
 }
 
 function taskMenu(item: AttentionItem): MenuItem[] {
+  const ws = item.wsTask
+  if (ws) {
+    return [
+      { label: 'Abrir tarefa', onSelect: () => void openTask(ws.id) },
+      { label: 'Esconder da Central', onSelect: () => void setTaskHidden(ws.id, true) },
+    ]
+  }
   const task = item.task
   if (!task) return []
   return [
@@ -50,15 +57,14 @@ function taskMenu(item: AttentionItem): MenuItem[] {
 }
 
 export function AttentionSidebar() {
-  const sessions = useSessionsStore((s) => s.sessions)
-  const tasks = useAgentsStore((s) => s.tasks)
+  const items = useAttentionItems()
+  const repos = useTasksStore((s) => s.workspace?.repos.length ?? 0)
   const mode = useAttentionStore((s) => s.mode)
   const highlighted = useAttentionStore((s) => s.highlighted)
   const root = useWorkspaceStore((s) => s.root)
   const isRepo = useGitStore((s) => s.status?.isRepo ?? false)
-  const now = useNow(true, 30_000)
   const [menu, setMenu] = useState<{ x: number; y: number; items: MenuItem[] } | null>(null)
-  const groups = groupItems(attentionItems(sessions, tasks, now))
+  const groups = groupItems(items)
   const setMode = (m: typeof mode) => useAttentionStore.getState().set({ mode: m })
   const empty = GROUP_ORDER.every((g) => groups[g].length === 0)
 
@@ -96,7 +102,11 @@ export function AttentionSidebar() {
             <path d="M3 6h6l2 2h10v11H3z" />
           </svg>
           <span className="min-w-0 flex-1 truncate">{root ? tildePath(root) : 'Abrir pasta'}</span>
-          {isRepo && <span className="text-[11px] text-fg-muted">1 repo</span>}
+          {(repos > 0 || isRepo) && (
+            <span className="text-[11px] text-fg-muted">
+              {Math.max(repos, 1)} {Math.max(repos, 1) === 1 ? 'repo' : 'repos'}
+            </span>
+          )}
         </button>
       </div>
       {mode === 'new' && <NewTaskForm onDone={() => setMode('list')} />}
@@ -120,7 +130,12 @@ export function AttentionSidebar() {
                 key={item.id}
                 type="button"
                 aria-label={`Tarefa ${item.name}`}
-                onClick={() => focusItem(item)}
+                // Tarefa sem agente não tem cartão na Central: abre a tarefa direto.
+                onClick={() =>
+                  item.wsTask && item.group === 'idle'
+                    ? void openTask(item.wsTask.id)
+                    : focusItem(item)
+                }
                 onContextMenu={(e) => {
                   const items = taskMenu(item)
                   if (items.length === 0) return
@@ -132,7 +147,9 @@ export function AttentionSidebar() {
                 }`}
               >
                 <span className="flex items-baseline gap-2">
-                  <span className="font-geist-mono text-[11px] text-fg-muted">{item.key}</span>
+                  <span className="font-geist-mono text-[11px] text-fg-muted">
+                    {shortKey(item)}
+                  </span>
                   <span className="min-w-0 flex-1 truncate">{item.name}</span>
                 </span>
                 <span className="text-[11px] text-fg-muted" aria-label="Status">

@@ -1,6 +1,8 @@
 import { useEffect } from 'react'
 import { jumpToNextWaiting } from '../features/agents/attention.actions'
 import { closeActive, saveActive } from '../features/editor/editor.actions'
+import { useTaskSwitcherStore } from '../features/tasks/task-switcher.store'
+import { useTasksStore } from '../features/tasks/tasks.store'
 import { useQuickOpenStore } from '../features/quick-open/quick-open.store'
 import { focusOrCreateTerminal, openTerminal } from '../features/terminal/terminal.actions'
 import { isMac } from '../lib/platform'
@@ -31,6 +33,9 @@ export function useKeybindings(): void {
       // Ctrl+J no terminal é quebra de linha (inclusive no prompt do Claude Code): lá dentro,
       // use Ctrl+Shift+J.
       else if (key === 'j' && (e.shiftKey || !shellOwns)) jumpToNextWaiting()
+      // Ctrl+K no terminal apaga até o fim da linha: lá dentro, Ctrl+Shift+K.
+      else if (key === 'k' && (e.shiftKey || !shellOwns) && useTasksStore.getState().workspace)
+        useTaskSwitcherStore.getState().show()
       else handled = false
       if (handled) {
         e.preventDefault()

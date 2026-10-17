@@ -1,12 +1,15 @@
 import type { IDockviewPanelHeaderProps } from 'dockview-react'
 import { X } from 'lucide-react'
 import { FileIcon } from '../explorer/FileIcon'
+import { useActiveTask, worktreeOf } from '../tasks/tasks.store'
 import { closeFile } from './editor.actions'
 import { useEditorStore } from './editor.store'
 
 export function EditorTab({ api, params }: IDockviewPanelHeaderProps<{ path: string }>) {
   const path = params.path
   const dirty = useEditorStore((s) => s.tabs[path]?.dirty ?? false)
+  // Na tarefa, o repo do arquivo vem antes do nome (dois repos podem ter o mesmo arquivo).
+  const repo = worktreeOf(useActiveTask(), path)?.repoName
 
   return (
     <div
@@ -20,6 +23,11 @@ export function EditorTab({ api, params }: IDockviewPanelHeaderProps<{ path: str
       }}
       className="group flex h-full items-center gap-1.5 px-3"
     >
+      {repo && (
+        <span className="rounded bg-surface-3 px-[5px] py-px font-geist-mono text-[10px] text-fg-muted">
+          {repo}
+        </span>
+      )}
       <FileIcon name={api.title ?? ''} kind="file" />
       <span className={dirty ? 'italic' : ''}>{api.title}</span>
       <button

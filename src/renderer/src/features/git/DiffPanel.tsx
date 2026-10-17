@@ -9,6 +9,7 @@ import { detectLanguage } from '../editor/language'
 import { monaco, useMonacoTheme } from '../editor/monaco-setup'
 import type { DiffParams } from './git.actions'
 import { useGitStore } from './git.store'
+import { CODE_FONT } from '../../lib/code-font'
 
 type State =
   { kind: 'loading' } | { kind: 'error'; message: string } | { kind: 'ready'; diff: GitDiff }
@@ -72,7 +73,7 @@ export function DiffPanel({ api, params }: IDockviewPanelProps<DiffParams>) {
               automaticLayout: true,
               renderSideBySide: true,
               fontSize: 13,
-              fontFamily: "'JetBrains Mono', ui-monospace, 'SF Mono', Menlo, Consolas, monospace",
+              fontFamily: CODE_FONT,
               scrollBeyondLastLine: false,
               minimap: { enabled: false },
             }}

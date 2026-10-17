@@ -10,6 +10,15 @@ export interface TreeNodeData {
   // null = folha; [] = pasta ainda não carregada (ou vazia).
   children: TreeNodeData[] | null
   isNew?: boolean
+  // Raiz de uma worktree na árvore da tarefa: nome do repo em negrito e um selo (branch).
+  isRoot?: boolean
+  badge?: string
+}
+
+export interface ForestRoot {
+  path: string
+  name: string
+  badge: string
 }
 
 // Monta os dados do react-arborist a partir das pastas carregadas.
@@ -40,4 +49,28 @@ export function buildTree(
     return nodes
   }
   return build(root)
+}
+
+// Árvore da tarefa: arquivos soltos da pasta da tarefa (ex.: TASK.md) e uma raiz por worktree.
+export function buildForest(
+  roots: ForestRoot[],
+  looseFiles: DirEntry[],
+  children: Record<string, DirEntry[]>,
+  pending: PendingCreate | null,
+): TreeNodeData[] {
+  const loose: TreeNodeData[] = looseFiles.map((e) => ({
+    id: e.path,
+    name: e.name,
+    kind: e.kind,
+    children: null,
+  }))
+  const trees: TreeNodeData[] = roots.map((r) => ({
+    id: r.path,
+    name: r.name,
+    kind: 'directory',
+    isRoot: true,
+    badge: r.badge,
+    children: buildTree(r.path, children, pending),
+  }))
+  return [...loose, ...trees]
 }

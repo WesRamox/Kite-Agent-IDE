@@ -5,9 +5,11 @@ import { useWorkspaceStore } from '../../stores/workspace.store'
 import { focusTerminalByPty, openTerminal } from '../terminal/terminal.actions'
 import { openAgentTerminal } from './agents.actions'
 import { useAgentsStore } from './agents.store'
-import { attentionItems, nextWaiting, type AttentionItem } from './attention'
+import { nextWaiting, type AttentionItem } from './attention'
 import { useAttentionStore } from './attention.store'
 import { useSessionsStore } from './sessions.store'
+import { useTasksStore } from '../tasks/tasks.store'
+import { buildItems } from './use-attention'
 
 export const ATTENTION_COMPONENT = 'attention'
 export const ATTENTION_TAB_COMPONENT = 'attention-tab'
@@ -18,7 +20,12 @@ export function isAttentionPanel(id: string): boolean {
 }
 
 export function currentItems(now = Date.now()): AttentionItem[] {
-  return attentionItems(useSessionsStore.getState().sessions, useAgentsStore.getState().tasks, now)
+  return buildItems(
+    useSessionsStore.getState().sessions,
+    useAgentsStore.getState().tasks,
+    useTasksStore.getState().workspace,
+    now,
+  )
 }
 
 // Abre (ou foca) a Central de atenção na área principal.

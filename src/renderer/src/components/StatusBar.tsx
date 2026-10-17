@@ -8,6 +8,7 @@ import { useGitStore } from '../features/git/git.store'
 import { focusOrCreateTerminal } from '../features/terminal/terminal.actions'
 import { basename } from '../lib/paths'
 import { useLayoutStore } from '../stores/layout.store'
+import { useActiveTask } from '../features/tasks/tasks.store'
 import { useWorkspaceStore } from '../stores/workspace.store'
 
 // Moldura do canvas (Main.dc.html e Task.dc.html): 26 px, contagens da Central à esquerda.
@@ -16,6 +17,8 @@ export function StatusBar() {
   const status = useGitStore((s) => s.status)
   const hooksInstalled = useSessionsStore((s) => s.hooks?.installed ?? false)
   const groups = useAttentionGroups()
+  const task = useActiveTask()
+  const taskBranch = task?.worktrees.find((w) => w.branch)?.branch ?? null
   const showGit = () => {
     const layout = useLayoutStore.getState()
     if (layout.activeView !== 'git' || !layout.sidebarVisible) layout.selectView('git')
@@ -34,7 +37,14 @@ export function StatusBar() {
 
   return (
     <footer className="flex h-[26px] shrink-0 items-center gap-4 border-t border-border bg-surface-1 px-3 font-geist text-[11px] text-fg-muted">
-      {status?.isRepo ? (
+      {task ? (
+        <>
+          <span>
+            {task.key} · {task.worktrees.map((w) => w.repoName).join(', ')}
+          </span>
+          {taskBranch && <span>branch {taskBranch}</span>}
+        </>
+      ) : status?.isRepo ? (
         <>
           <button
             type="button"

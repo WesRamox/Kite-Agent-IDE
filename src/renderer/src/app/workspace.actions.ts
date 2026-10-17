@@ -8,6 +8,9 @@ import {
   restoreTerminalSessions,
   saveTerminalSessions,
 } from '../features/terminal/terminal.actions'
+import { loadTasks } from '../features/tasks/tasks.actions'
+import { useTasksStore } from '../features/tasks/tasks.store'
+import { useContextStore } from '../stores/context.store'
 import { useWorkspaceStore } from '../stores/workspace.store'
 
 async function switchWorkspace(open: () => Promise<Result<string | null>>): Promise<void> {
@@ -22,6 +25,9 @@ async function switchWorkspace(open: () => Promise<Result<string | null>>): Prom
 
   closeAllNow()
   closeAllTerminals()
+  // Contextos das tarefas do workspace anterior somem junto.
+  useContextStore.getState().reset()
+  useTasksStore.getState().reset()
   useQuickOpenStore.getState().invalidate()
   const explorer = useExplorerStore.getState()
   explorer.reset()
@@ -31,6 +37,7 @@ async function switchWorkspace(open: () => Promise<Result<string | null>>): Prom
   await attempt(window.api.git.watch(root), 'Erro ao observar o repositório')
   await explorer.load(root)
   await restoreTerminalSessions(root)
+  await loadTasks(root, { fromOpen: true })
 }
 
 export function openFolder(): Promise<void> {

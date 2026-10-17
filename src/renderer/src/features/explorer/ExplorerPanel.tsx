@@ -7,6 +7,8 @@ import { useWorkspaceStore } from '../../stores/workspace.store'
 import { beginCreate } from './explorer.actions'
 import { useExplorerStore } from './explorer.store'
 import { FileTree } from './FileTree'
+import { TaskExplorer } from '../tasks/TaskExplorer'
+import { useTasksStore } from '../tasks/tasks.store'
 import type { TreeNodeData } from './tree-data'
 
 function IconButton(props: { label: string; onClick: () => void; children: React.ReactNode }) {
@@ -25,7 +27,10 @@ function IconButton(props: { label: string; onClick: () => void; children: React
 
 export function ExplorerPanel() {
   const root = useWorkspaceStore((s) => s.root)
+  const taskOpen = useTasksStore((s) => s.activeTaskId !== null)
   const treeRef = useRef<TreeApi<TreeNodeData> | null>(null)
+
+  if (root && taskOpen) return <TaskExplorer />
 
   if (!root) {
     return (

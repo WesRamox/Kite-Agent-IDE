@@ -14,7 +14,7 @@ interface GitState {
   reset: (root: string | null) => void
 }
 
-function index(status: GitStatus | null, root: string | null) {
+export function indexStatus(status: GitStatus | null, root: string | null) {
   const byPath = new Map<string, GitFileChange>()
   const changedDirs = new Set<string>()
   if (status?.isRepo && root) {
@@ -40,7 +40,7 @@ export const useGitStore = create<GitState>((set, get) => ({
   set: (data) => {
     const root = data.root !== undefined ? data.root : get().root
     const status = data.status !== undefined ? data.status : get().status
-    set({ ...data, ...(data.status !== undefined ? index(status, root) : {}) })
+    set({ ...data, ...(data.status !== undefined ? indexStatus(status, root) : {}) })
   },
   reset: (root) =>
     set({

@@ -6,6 +6,7 @@ import { WebglAddon } from '@xterm/addon-webgl'
 import { Terminal } from '@xterm/xterm'
 import type { PtyDataEvent, PtyExitEvent } from '@shared/types'
 import { isMac, isWindows } from '../../lib/platform'
+import { CODE_FONT, codeFontReady } from '../../lib/code-font'
 import { routePty, unseenPart } from './pty-router'
 import { useThemeStore } from '../../stores/theme.store'
 import { terminalTheme } from './terminal-theme'
@@ -41,7 +42,7 @@ export class TerminalSession {
   constructor(private readonly options: SessionOptions) {
     this.term = new Terminal({
       theme: terminalTheme(useThemeStore.getState().theme),
-      fontFamily: "'JetBrains Mono', ui-monospace, 'SF Mono', Menlo, Consolas, monospace",
+      fontFamily: CODE_FONT,
       fontSize: 13,
       scrollback: SCROLLBACK_LINES,
       cursorBlink: true,
@@ -60,6 +61,8 @@ export class TerminalSession {
   async attach(el: HTMLElement): Promise<void> {
     if (this.opened) return
     this.opened = true
+    await codeFontReady()
+    if (this.disposed) return
     this.term.open(el)
     this.loadRenderer()
     this.fit()

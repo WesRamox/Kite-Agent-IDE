@@ -24,6 +24,9 @@ import type {
   AgentSession,
   AgentTask,
   HooksStatus,
+  Task,
+  TaskGrouping,
+  WorkspaceTasks,
   StartAgentInput,
   DeviceFlowPoll,
   DeviceFlowStart,
@@ -128,6 +131,26 @@ export interface InvokeChannels {
   'hooks:status': { args: []; result: HooksStatus }
   'hooks:install': { args: []; result: HooksStatus }
   'hooks:uninstall': { args: []; result: HooksStatus }
+  // Tarefas multi-repo (Fase 8). `root` é a pasta aberta.
+  'task:discover': { args: [root: string]; result: WorkspaceTasks }
+  'task:watch': { args: [root: string]; result: void }
+  'task:setGrouping': { args: [root: string, grouping: TaskGrouping]; result: WorkspaceTasks }
+  'task:rename': { args: [root: string, taskId: string, name: string]; result: WorkspaceTasks }
+  'task:move': { args: [root: string, worktree: string, target: string]; result: WorkspaceTasks }
+  'task:ignore': { args: [root: string, worktree: string]; result: WorkspaceTasks }
+  'task:import': { args: [root: string, hidden: string[]]; result: WorkspaceTasks }
+  'task:setHidden': {
+    args: [root: string, taskId: string, hidden: boolean]
+    result: WorkspaceTasks
+  }
+  'task:setNotes': { args: [root: string, taskId: string, notes: string]; result: WorkspaceTasks }
+  'task:linkSession': {
+    args: [root: string, sessionId: string, taskId: string | null]
+    result: WorkspaceTasks
+  }
+  'task:addExternalRepo': { args: [root: string]; result: WorkspaceTasks }
+  'task:open': { args: [root: string, taskId: string]; result: Task }
+  'task:addRepo': { args: [root: string, taskId: string, repo: string]; result: WorkspaceTasks }
 
   // Resposta ao evento `app:closeRequested`: o renderer terminou de salvar e o app pode fechar.
   'app:confirmClose': { args: []; result: void }
@@ -146,6 +169,8 @@ export interface EventChannels {
   'agentSession:changed': AgentSession
   // Clique na notificação de uma sessão.
   'agentSession:focus': { id: string }
+  // Worktrees mudaram (criadas, removidas ou trocando de branch) no workspace observado.
+  'task:changed': WorkspaceTasks
 }
 
 export type InvokeChannel = keyof InvokeChannels
@@ -191,6 +216,22 @@ export interface Api {
     list: Fn<'agentSession:list'>
     onChanged: (listener: (session: AgentSession) => void) => Unsubscribe
     onFocus: (listener: (event: { id: string }) => void) => Unsubscribe
+  }
+  task: {
+    discover: Fn<'task:discover'>
+    watch: Fn<'task:watch'>
+    setGrouping: Fn<'task:setGrouping'>
+    rename: Fn<'task:rename'>
+    move: Fn<'task:move'>
+    ignore: Fn<'task:ignore'>
+    import: Fn<'task:import'>
+    setHidden: Fn<'task:setHidden'>
+    setNotes: Fn<'task:setNotes'>
+    linkSession: Fn<'task:linkSession'>
+    addExternalRepo: Fn<'task:addExternalRepo'>
+    open: Fn<'task:open'>
+    addRepo: Fn<'task:addRepo'>
+    onChanged: (listener: (tasks: WorkspaceTasks) => void) => Unsubscribe
   }
   hooks: {
     status: Fn<'hooks:status'>

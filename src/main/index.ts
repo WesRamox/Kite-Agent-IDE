@@ -26,6 +26,7 @@ import { registerGitIpc } from './ipc/git.ipc'
 import { registerGitHubIpc } from './ipc/github.ipc'
 import { registerSettingsIpc, themeSchema } from './ipc/settings.ipc'
 import { registerSystemIpc } from './ipc/system.ipc'
+import { registerTaskIpc } from './ipc/task.ipc'
 import { registerTerminalIpc } from './ipc/terminal.ipc'
 import { registerWorkspaceIpc } from './ipc/workspace.ipc'
 import { JsonStore } from './lib/json-store'
@@ -50,6 +51,7 @@ import { GitHubAuthService } from './services/github-auth.service'
 import { fetchGitHubUser, GitHubService } from './services/github.service'
 import { PtyService } from './services/pty.service'
 import { SettingsService } from './services/settings.service'
+import { TaskService, taskStateSchema, type TaskState } from './services/task.service'
 import { TerminalSessionService } from './services/terminal-session.service'
 import { WatchService } from './services/watch.service'
 import { WorkspaceService, type WorkspaceState } from './services/workspace.service'
@@ -235,6 +237,24 @@ function createServices() {
     git: gitService,
     host: process.env['GITHUB_HOST'] ?? 'github.com',
   })
+  const pickFolder = async (): Promise<string | null> => {
+    const options: Electron.OpenDialogOptions = { properties: ['openDirectory'] }
+    const res = mainWindow
+      ? await dialog.showOpenDialog(mainWindow, options)
+      : await dialog.showOpenDialog(options)
+    return res.canceled ? null : (res.filePaths[0] ?? null)
+  }
+  const taskService = new TaskService({
+    guard,
+    run: createGitRunner(),
+    store: new JsonStore<TaskState>(join(app.getPath('userData'), 'tasks.json'), taskStateSchema, {
+      workspaces: {},
+    }),
+    subscribe,
+    emit: (tasks) => emit('task:changed', tasks),
+    pickFolder,
+    log: log.child('tasks'),
+  })
   const workspaceService = new WorkspaceService({
     guard,
     store: new JsonStore<WorkspaceState>(
@@ -252,7 +272,11 @@ function createServices() {
       return res.canceled ? null : (res.filePaths[0] ?? null)
     },
     onRootClosed: async (root) => {
-      await Promise.all([watchService.unwatch(root), gitWatchService.unwatch(root)])
+      await Promise.all([
+        watchService.unwatch(root),
+        gitWatchService.unwatch(root),
+        taskService.unwatch(),
+      ])
     },
     isKnownWorktree: async (dir) => {
       for (const root of guard.getRoots()) {
@@ -325,6 +349,7 @@ function createServices() {
     log: log.child('agent-events'),
   })
   return {
+    taskService,
     hooksService,
     agentEvents,
     settingsService,
@@ -388,6 +413,7 @@ void app.whenReady().then(async () => {
   registerGitHubIpc(services.githubAuth, services.githubService, ipcLog)
   registerAgentIpc(services.agentService, ipcLog)
   registerAgentSessionIpc(services.agentEvents, services.hooksService, ipcLog)
+  registerTaskIpc(services.taskService, ipcLog)
   services.hooksService.ensureWrapper().catch((err: unknown) => {
     log.warn('não foi possível criar o kite-hook.sh', { error: (err as Error).message })
   })
@@ -428,6 +454,7 @@ void app.whenReady().then(async () => {
       clearInterval(agentTicker)
       void services.agentService.shutdown()
       void services.agentEvents.dispose()
+      void services.taskService.unwatch()
       services.ptyService.killAll()
       void services.watchService.unwatchAll()
       void services.gitWatchService.unwatchAll()

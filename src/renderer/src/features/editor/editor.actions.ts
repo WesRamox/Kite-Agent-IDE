@@ -1,5 +1,5 @@
 import { attempt } from '../../lib/ipc'
-import { getDockApi } from '../../lib/dock'
+import { allDocks, findPanel, getDockApi } from '../../lib/dock'
 import { basename, isInside, rebase } from '../../lib/paths'
 import { toast } from '../../stores/toast.store'
 import { closeDiff, isDiffPanel } from '../git/git.actions'
@@ -85,10 +85,20 @@ async function resolveDirty(path: string): Promise<boolean> {
   return true
 }
 
+// Fecha a aba (no contexto ativo, se ela estiver lá). O modelo só é liberado quando nenhuma
+// outra tarefa aberta mostra o mesmo arquivo.
 function removePanel(path: string): void {
-  const dock = getDockApi()
-  const panel = dock?.getPanel(path)
-  if (dock && panel) dock.removePanel(panel)
+  const found = findPanel(path)
+  if (found) found.dock.removePanel(found.panel)
+  if (!findPanel(path)) disposeModel(path)
+}
+
+// Fecha o arquivo em todos os contextos.
+function removeEverywhere(path: string): void {
+  for (const dock of allDocks()) {
+    const panel = dock.getPanel(path)
+    if (panel) dock.removePanel(panel)
+  }
   disposeModel(path)
 }
 
@@ -127,12 +137,12 @@ export async function resolveAllDirty(): Promise<boolean> {
 }
 
 export function closeAllNow(): void {
-  for (const p of openPaths()) removePanel(p)
+  for (const p of openPaths()) removeEverywhere(p)
 }
 
 // Arquivo ou pasta excluído pela IDE: fecha as abas afetadas sem perguntar.
 export function closeUnder(target: string): void {
-  for (const p of openPaths()) if (isInside(target, p)) removePanel(p)
+  for (const p of openPaths()) if (isInside(target, p)) removeEverywhere(p)
 }
 
 // Arquivo ou pasta renomeado pela IDE: reabre as abas afetadas no novo caminho,
@@ -147,7 +157,7 @@ export function renameUnder(from: string, to: string): void {
     const content = entry.model.getValue()
     const dirty = isDirty(oldPath)
     const wasActive = dock?.activePanel?.id === oldPath
-    removePanel(oldPath)
+    removeEverywhere(oldPath)
     createModel(newPath, content, entry.encoding, dirty ? entry.savedContent : undefined)
     dock?.addPanel({
       id: newPath,

@@ -1,8 +1,9 @@
 import type { PtyExitEvent, TerminalSession as SavedSession } from '@shared/types'
-import { getDockApi } from '../../lib/dock'
+import { allDocks, findPanel, getDock, getDockApi, WORKSPACE_CONTEXT } from '../../lib/dock'
 import { attempt } from '../../lib/ipc'
 import { toast } from '../../stores/toast.store'
 import { useWorkspaceStore } from '../../stores/workspace.store'
+import { taskBaseDir } from '../tasks/tasks.store'
 import {
   disposeSession,
   getSession,
@@ -31,12 +32,9 @@ export function noteActivePanel(id: string | null): void {
   if (id && isTerminalPanel(id)) lastTerminalId = id
 }
 
-function terminalPanels(): string[] {
-  return (
-    getDockApi()
-      ?.panels.map((p) => p.id)
-      .filter(isTerminalPanel) ?? []
-  )
+// Terminais de um contexto (padrão: o ativo).
+function terminalPanels(dock = getDockApi()): string[] {
+  return dock?.panels.map((p) => p.id).filter(isTerminalPanel) ?? []
 }
 
 export interface OpenTerminalOptions {
@@ -62,7 +60,8 @@ export function openTerminal(opts: OpenTerminalOptions = {}): string | null {
   counter += 1
   const id = `${TERMINAL_PREFIX}${counter}`
   const params: TerminalParams = {
-    cwd: opts.cwd ?? root,
+    // Na tarefa, a pasta dela (ou a primeira worktree); senão, a pasta aberta.
+    cwd: opts.cwd ?? taskBaseDir() ?? root,
     restore: opts.restore?.scrollback,
     input: opts.input,
   }
@@ -119,9 +118,8 @@ export function focusTerminalByPty(ptyId: string): boolean {
 
 export function closeTerminal(id: string): void {
   disposeSession(id)
-  const dock = getDockApi()
-  const panel = dock?.getPanel(id)
-  if (dock && panel) dock.removePanel(panel)
+  const found = findPanel(id)
+  if (found) found.dock.removePanel(found.panel)
   if (lastTerminalId === id) lastTerminalId = terminalPanels().at(-1) ?? null
 }
 
@@ -138,9 +136,10 @@ export function handleTerminalExit(id: string, { exitCode }: PtyExitEvent): void
   getSession(id)?.write(`\r\n\x1b[2m[processo encerrado com código ${exitCode}]\x1b[0m\r\n`)
 }
 
+// Terminais do workspace (os das tarefas não são restaurados ao reabrir).
 export function collectSessions(): SavedSession[] {
-  const dock = getDockApi()
-  return terminalPanels().flatMap((id) => {
+  const dock = getDock(WORKSPACE_CONTEXT)
+  return terminalPanels(dock).flatMap((id) => {
     const session = getSession(id)
     const title = dock?.getPanel(id)?.title ?? 'Terminal'
     return session ? [{ title, scrollback: session.serialize() }] : []
@@ -155,7 +154,7 @@ export async function saveTerminalSessions(root: string): Promise<void> {
 }
 
 export function closeAllTerminals(): void {
-  for (const id of terminalPanels()) closeTerminal(id)
+  for (const dock of allDocks()) for (const id of terminalPanels(dock)) closeTerminal(id)
   counter = 0
   lastTerminalId = null
 }

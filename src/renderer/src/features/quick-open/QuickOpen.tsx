@@ -1,10 +1,11 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { fuzzyFilter } from '../../lib/fuzzy'
-import { basename, relative } from '../../lib/paths'
+import { basename } from '../../lib/paths'
 import { useWorkspaceStore } from '../../stores/workspace.store'
+import { useActiveTask } from '../tasks/tasks.store'
 import { openFile } from '../editor/editor.actions'
 import { FileIcon } from '../explorer/FileIcon'
-import { useQuickOpenStore } from './quick-open.store'
+import { useQuickOpenStore, type QuickOpenRoot } from './quick-open.store'
 
 function Highlighted({ text, positions }: { text: string; positions: Set<number> }) {
   return (
@@ -25,11 +26,15 @@ function Highlighted({ text, positions }: { text: string; positions: Set<number>
 export function QuickOpen() {
   const open = useQuickOpenStore((s) => s.open)
   const root = useWorkspaceStore((s) => s.root)
+  const task = useActiveTask()
   if (!open || !root) return null
-  return <QuickOpenDialog root={root} />
+  const roots: QuickOpenRoot[] = task
+    ? task.worktrees.map((w) => ({ path: w.path, label: w.repoName }))
+    : [{ path: root, label: null }]
+  return <QuickOpenDialog roots={roots} />
 }
 
-function QuickOpenDialog({ root }: { root: string }) {
+function QuickOpenDialog({ roots }: { roots: QuickOpenRoot[] }) {
   const files = useQuickOpenStore((s) => s.files)
   const loading = useQuickOpenStore((s) => s.loading)
   const hide = useQuickOpenStore((s) => s.hide)
@@ -38,13 +43,11 @@ function QuickOpenDialog({ root }: { root: string }) {
   const listRef = useRef<HTMLUListElement>(null)
 
   useEffect(() => {
-    void useQuickOpenStore.getState().ensureFiles(root)
-  }, [root, files])
+    void useQuickOpenStore.getState().ensureFiles(roots)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [files])
 
-  const items = useMemo(() => {
-    const rel = (files ?? []).map((path) => ({ path, rel: relative(root, path) }))
-    return fuzzyFilter(query, rel, (f) => f.rel, 50)
-  }, [files, query, root])
+  const items = useMemo(() => fuzzyFilter(query, files ?? [], (f) => f.rel, 50), [files, query])
 
   useEffect(() => {
     listRef.current?.children[selected]?.scrollIntoView({ block: 'nearest' })
@@ -60,10 +63,9 @@ function QuickOpenDialog({ root }: { root: string }) {
   // Enter antes da lista carregar: espera a lista e abre o melhor resultado.
   const chooseWhenLoaded = async () => {
     const store = useQuickOpenStore.getState()
-    await store.ensureFiles(root)
+    await store.ensureFiles(roots)
     const loaded = useQuickOpenStore.getState().files ?? []
-    const rel = loaded.map((path) => ({ path, rel: relative(root, path) }))
-    const first = fuzzyFilter(query, rel, (f) => f.rel, 1)[0]
+    const first = fuzzyFilter(query, loaded, (f) => f.rel, 1)[0]
     if (!first || !useQuickOpenStore.getState().open) return
     hide()
     void openFile(first.item.path)

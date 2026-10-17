@@ -1,4 +1,9 @@
 import type { AgentSession, HooksStatus } from '@shared/types'
+import { useState } from 'react'
+import { ContextMenu, type MenuItem } from '../../components/ContextMenu'
+import { linkSessions } from '../tasks/task-links'
+import { linkSession } from '../tasks/tasks.actions'
+import { useTasksStore } from '../tasks/tasks.store'
 import { openAgentTerminal } from './agents.actions'
 import { showAttentionView } from './attention.actions'
 import { useAttentionStore } from './attention.store'
@@ -197,6 +202,43 @@ function SessionCard({ session }: { session: AgentSession }) {
   const task = useAgentsStore((s) =>
     session.agentTaskId ? s.tasks.find((t) => t.id === session.agentTaskId) : undefined,
   )
+  const ws = useTasksStore((s) => s.workspace)
+  const [menu, setMenu] = useState<{ x: number; y: number; items: MenuItem[] } | null>(null)
+  const visible = ws?.imported ? ws.tasks.filter((t) => !t.hidden) : []
+  const linkedId = linkSessions([session], visible, ws?.sessionLinks ?? {}).get(session.id)
+  const linked = visible.find((t) => t.id === linkedId)
+  const manual = ws?.sessionLinks[session.id] === linkedId
+  const startedInside =
+    linked &&
+    !manual &&
+    [linked.folder, ...linked.worktrees.map((w) => w.path)].some(
+      (d) => d && (session.cwd === d || session.cwd.startsWith(`${d}/`)),
+    )
+  const evidence =
+    startedInside && session.touchedCount === 0
+      ? 'Começou dentro da pasta da tarefa.'
+      : sessionEvidence(session)
+
+  const openMenu = (e: React.MouseEvent) =>
+    setMenu({
+      x: e.clientX,
+      y: e.clientY,
+      items: [
+        ...visible.map((t) => ({
+          label: `${t.key} · ${t.name}`,
+          onSelect: () => void linkSession(session.id, t.id),
+        })),
+        ...(manual
+          ? [
+              {
+                label: 'Voltar à detecção automática',
+                onSelect: () => void linkSession(session.id, null),
+              },
+            ]
+          : []),
+      ],
+    })
+
   return (
     <div className="flex flex-col gap-2 rounded-[10px] border border-border bg-surface-1 px-4 py-3">
       <div className="flex flex-wrap items-center gap-2.5">
@@ -205,10 +247,15 @@ function SessionCard({ session }: { session: AgentSession }) {
         <span className="font-geist-mono text-xs text-fg-muted">{tildePath(session.cwd)}</span>
         <span className={`ml-auto text-xs ${TONE_TEXT[tone]}`}>{sessionStatusLabel(session)}</span>
       </div>
-      <div className="text-xs leading-[1.45] text-fg-muted">{sessionEvidence(session)}</div>
+      <div className="text-xs leading-[1.45] text-fg-muted">{evidence}</div>
       <div className="flex flex-wrap items-center gap-2">
         {task ? (
           <span className="text-xs text-fg">Aberta pelo Kite · {task.name}</span>
+        ) : linked ? (
+          <span className="text-xs text-fg">
+            Vinculada a {linked.key}
+            {manual ? '' : ' automaticamente'}
+          </span>
         ) : (
           <span className="text-xs text-accent">Sem tarefa por enquanto</span>
         )}
@@ -220,14 +267,18 @@ function SessionCard({ session }: { session: AgentSession }) {
         ) : (
           <button
             type="button"
-            disabled
-            title="Disponível com as tarefas multi-repo"
+            disabled={visible.length === 0}
+            title={visible.length === 0 ? 'Abra um workspace com tarefas importadas' : undefined}
+            onClick={openMenu}
             className={BTN_SMALL}
           >
-            Vincular a…
+            {linked ? 'Trocar tarefa' : 'Vincular a…'}
           </button>
         )}
       </div>
+      {menu && menu.items.length > 0 && (
+        <ContextMenu x={menu.x} y={menu.y} items={menu.items} onClose={() => setMenu(null)} />
+      )}
     </div>
   )
 }

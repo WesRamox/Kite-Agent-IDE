@@ -5,12 +5,24 @@ import { useElementSize } from '../../lib/use-element-size'
 import { openFile } from '../editor/editor.actions'
 import { beginCreate, deleteEntry } from './explorer.actions'
 import { useExplorerStore } from './explorer.store'
-import { buildTree, NEW_NODE_ID, type TreeNodeData } from './tree-data'
+import {
+  buildForest,
+  buildTree,
+  NEW_NODE_ID,
+  type ForestRoot,
+  type TreeNodeData,
+} from './tree-data'
+import type { DirEntry } from '@shared/types'
 import { TreeRow } from './TreeRow'
 
 interface Props {
+  // Pasta aberta (árvore comum) ou, na tarefa, a pasta base para "Novo arquivo" na raiz.
   root: string
   treeRef: React.RefObject<TreeApi<TreeNodeData> | null>
+  // Árvore da tarefa: uma raiz por worktree e os arquivos soltos da pasta da tarefa.
+  forest?: { roots: ForestRoot[]; loose: DirEntry[] }
+  // Itens extras no menu de contexto de uma raiz de worktree.
+  rootMenu?: (path: string) => MenuItem[]
 }
 
 interface MenuState {
@@ -19,7 +31,7 @@ interface MenuState {
   items: MenuItem[]
 }
 
-export function FileTree({ root, treeRef }: Props) {
+export function FileTree({ root, treeRef, forest, rootMenu }: Props) {
   const children = useExplorerStore((s) => s.children)
   const pending = useExplorerStore((s) => s.pendingCreate)
   const load = useExplorerStore((s) => s.load)
@@ -27,7 +39,13 @@ export function FileTree({ root, treeRef }: Props) {
   const [containerRef, size] = useElementSize<HTMLDivElement>()
   const [menu, setMenu] = useState<MenuState | null>(null)
 
-  const data = useMemo(() => buildTree(root, children, pending), [root, children, pending])
+  const data = useMemo(
+    () =>
+      forest
+        ? buildForest(forest.roots, forest.loose, children, pending)
+        : buildTree(root, children, pending),
+    [root, children, pending, forest],
+  )
 
   const onToggle = useCallback(
     (id: string) => {
@@ -47,6 +65,7 @@ export function FileTree({ root, treeRef }: Props) {
       { label: 'Nova pasta', onSelect: () => beginCreate(root, 'directory', node, openDir) },
     ]
     if (!node) return create
+    if (node.isRoot) return [...create, ...(rootMenu?.(node.id) ?? [])]
     return [
       ...create,
       { label: 'Renomear', onSelect: () => startRename(node.id) },
