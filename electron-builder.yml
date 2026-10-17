@@ -34,7 +34,7 @@ win:
     - nsis
     - zip
   icon: resources/icon.png
-  artifactName: Kite-${version}-${arch}-setup.${ext}
+  artifactName: Kite-${version}-${arch}.${ext}
 nsis:
   oneClick: false
   allowToChangeInstallationDirectory: true
