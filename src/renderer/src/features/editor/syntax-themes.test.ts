@@ -1,0 +1,30 @@
+import { describe, expect, it } from 'vitest'
+import { THEMES } from '@shared/themes'
+import { bracketColors, SYNTAX, syntaxRules } from './syntax-themes'
+
+describe('syntax-themes', () => {
+  it('todo tema do app tem paleta de sintaxe com cores hex válidas', () => {
+    for (const t of THEMES) {
+      const s = SYNTAX[t.id]
+      const { source, italicComments, brackets, ...colors } = s
+      expect(source).not.toBe('')
+      expect(typeof italicComments).toBe('boolean')
+      for (const c of [...Object.values(colors), ...brackets]) expect(c).toMatch(/^#[0-9a-f]{6}$/)
+    }
+  })
+
+  it('gera regras do Monaco sem # e com estilo nos comentários', () => {
+    const rules = syntaxRules(SYNTAX.kite)
+    expect(rules.find((r) => r.token === 'keyword')?.foreground).toBe('ff8f40')
+    expect(rules.find((r) => r.token === 'comment')?.fontStyle).toBe('italic')
+    expect(syntaxRules(SYNTAX.light).find((r) => r.token === 'comment')?.fontStyle).toBe('')
+    for (const r of rules) if (r.foreground) expect(r.foreground).toMatch(/^[0-9a-f]{6}$/)
+  })
+
+  it('repete as 3 cores de colchetes nos 6 níveis', () => {
+    const colors = bracketColors(SYNTAX.dark)
+    expect(colors['editorBracketHighlight.foreground1']).toBe('#d19a66')
+    expect(colors['editorBracketHighlight.foreground4']).toBe('#d19a66')
+    expect(colors['editorBracketHighlight.foreground6']).toBe('#56b6c2')
+  })
+})

@@ -70,10 +70,12 @@ export function paletteOf(themeId: string): Palette {
   probe.style.display = 'none'
   document.body.appendChild(probe)
   const style = getComputedStyle(probe)
-  const palette = Object.fromEntries(
-    TOKENS.map((t) => [t, toHex(style.getPropertyValue(`--color-${t}`).trim())]),
-  ) as Palette
+  const raw = TOKENS.map((t) => [t, style.getPropertyValue(`--color-${t}`).trim()] as const)
   probe.remove()
+  const palette = Object.fromEntries(raw.map(([t, v]) => [t, toHex(v)])) as Palette
+  // CSS ainda não carregado (em dev o Vite injeta o styles.css depois dos módulos): não guarda
+  // a paleta vazia no cache, para a próxima leitura pegar as cores certas.
+  if (raw.some(([, v]) => v === '')) return palette
   cache.set(themeId, palette)
   return palette
 }
