@@ -100,7 +100,7 @@ export function CreatePullPanel() {
         <button
           type="submit"
           disabled={!canSubmit}
-          className="self-start rounded-md bg-accent px-4 py-1.5 text-white enabled:hover:bg-accent/85 disabled:opacity-40"
+          className="self-start rounded-md bg-accent px-4 py-1.5 text-accent-fg enabled:hover:bg-accent/85 disabled:opacity-40"
         >
           {busy ? 'Enviando…' : 'Criar pull request'}
         </button>

@@ -57,7 +57,7 @@ export function PresetEditor({ onDone }: { onDone: () => void }) {
       <div className="flex gap-2">
         <button
           type="submit"
-          className="flex-1 rounded-md bg-accent py-1 text-white hover:bg-accent/85"
+          className="flex-1 rounded-md bg-accent py-1 text-accent-fg hover:bg-accent/85"
         >
           Salvar presets
         </button>

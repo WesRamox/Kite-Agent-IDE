@@ -40,7 +40,7 @@ export function Welcome() {
         <button
           type="button"
           onClick={() => void openFolder()}
-          className="mt-6 flex items-center gap-2 rounded-md bg-accent px-3 py-1.5 text-white hover:bg-accent/85"
+          className="mt-6 flex items-center gap-2 rounded-md bg-accent px-3 py-1.5 text-accent-fg hover:bg-accent/85"
         >
           <FolderOpen size={14} /> Abrir pasta
         </button>

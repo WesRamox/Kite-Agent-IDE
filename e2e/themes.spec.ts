@@ -15,7 +15,7 @@ test('tema padrão Kite, troca para Claro e persiste ao reabrir', async () => {
     await expect(page).toHaveTitle('Kite')
     await expect(page.getByRole('heading', { name: 'Kite' })).toBeVisible()
     await expect(page.locator('html')).toHaveAttribute('data-theme', 'kite')
-    expect(await bodyBg(page)).toBe('rgb(17, 17, 18)') // #111112
+    expect(await bodyBg(page)).toBe('rgb(11, 11, 12)') // #0b0b0c
 
     await page.getByRole('button', { name: 'Abrir pasta' }).first().click()
     await page.locator(`[data-node-id="${path.join(ws, 'a.ts')}"]`).click()

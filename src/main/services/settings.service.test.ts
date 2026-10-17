@@ -5,7 +5,7 @@ import { JsonStore } from '../lib/json-store'
 import { makeTree } from '../test/tmp'
 import { SettingsService } from './settings.service'
 
-const schema = z.object({ theme: z.enum(['kite', 'midnight', 'dimmed', 'light', 'paper']) })
+const schema = z.object({ theme: z.enum(['kite', 'dark', 'midnight', 'dimmed', 'light', 'paper']) })
 
 describe('SettingsService', () => {
   let dir: string

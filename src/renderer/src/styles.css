@@ -6,15 +6,17 @@
 /* Tokens do tema. Os valores padrão são do tema Kite; os demais temas redefinem as variáveis
    em [data-theme="..."] mais abaixo. */
 @theme {
-  --color-surface-0: #111112;
-  --color-surface-1: #171719;
-  --color-surface-2: #1d1d20;
-  --color-surface-3: #242428;
-  --color-border: #ffffff17;
-  --color-fg: #f5f5f5;
-  --color-fg-muted: #a3a3a3;
-  --color-accent: #3b82f6;
-  --color-success: #22c55e;
+  --color-surface-0: #0b0b0c;
+  --color-surface-1: #111110;
+  --color-surface-2: #181715;
+  --color-surface-3: #22201d;
+  --color-border: #2c2a27;
+  --color-fg: #ededec;
+  --color-fg-muted: #a3a09a;
+  --color-accent: #ffb224;
+  /* Texto sobre o accent (botões primários): escuro no âmbar, branco nos azuis. */
+  --color-accent-fg: #1a1305;
+  --color-success: #4ade80;
   --color-warning: #eab308;
   --color-danger: #f87171;
   --color-info: #60a5fa;
@@ -23,10 +25,29 @@
   --font-mono: 'JetBrains Mono', ui-monospace, 'SF Mono', Menlo, Consolas, monospace;
 }
 
-/* Kite: escuro neutro, no estilo do Orca (onorca.dev). */
+/* Kite: cores do logo. Grafite quente com destaque âmbar. */
 :root,
 [data-theme='kite'] {
   color-scheme: dark;
+}
+
+/* Escuro: preto total, neutro, destaque azul. */
+[data-theme='dark'] {
+  color-scheme: dark;
+  --color-surface-0: #000000;
+  --color-surface-1: #050505;
+  --color-surface-2: #0c0c0c;
+  --color-surface-3: #161616;
+  --color-border: #ffffff14;
+  --color-fg: #f5f5f5;
+  --color-fg-muted: #a3a3a3;
+  --color-accent: #3b82f6;
+  --color-accent-fg: #ffffff;
+  --color-success: #22c55e;
+  --color-warning: #eab308;
+  --color-danger: #f87171;
+  --color-info: #60a5fa;
+  --color-merged: #a78bfa;
 }
 
 [data-theme='midnight'] {
@@ -39,6 +60,7 @@
   --color-fg: #d7dae0;
   --color-fg-muted: #8b93a7;
   --color-accent: #6d8cff;
+  --color-accent-fg: #ffffff;
   --color-success: #6ee7b7;
   --color-warning: #fcd34d;
   --color-danger: #fca5a5;
@@ -57,6 +79,7 @@
   --color-fg: #adbac7;
   --color-fg-muted: #768390;
   --color-accent: #539bf5;
+  --color-accent-fg: #ffffff;
   --color-success: #57ab5a;
   --color-warning: #c69026;
   --color-danger: #e5534b;
@@ -74,6 +97,7 @@
   --color-fg: #1f2328;
   --color-fg-muted: #656d76;
   --color-accent: #2563eb;
+  --color-accent-fg: #ffffff;
   --color-success: #1a7f37;
   --color-warning: #9a6700;
   --color-danger: #cf222e;
@@ -92,6 +116,7 @@
   --color-fg: #3b3226;
   --color-fg-muted: #7a6c58;
   --color-accent: #b0632c;
+  --color-accent-fg: #ffffff;
   --color-success: #4f7a28;
   --color-warning: #9a6a00;
   --color-danger: #b3362a;

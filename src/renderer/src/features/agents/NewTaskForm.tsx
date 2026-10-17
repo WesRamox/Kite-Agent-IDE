@@ -88,7 +88,7 @@ export function NewTaskForm({ onDone }: { onDone: () => void }) {
       <button
         type="submit"
         disabled={disabled}
-        className="flex items-center justify-center gap-1.5 rounded-md bg-accent py-1 text-white enabled:hover:bg-accent/85 disabled:opacity-40"
+        className="flex items-center justify-center gap-1.5 rounded-md bg-accent py-1 text-accent-fg enabled:hover:bg-accent/85 disabled:opacity-40"
       >
         <Play size={14} /> {busy ? 'Criando worktree…' : 'Iniciar agente'}
       </button>

@@ -67,7 +67,7 @@ export function WorktreeSection() {
             type="button"
             disabled={!trimmed}
             onClick={() => void submit()}
-            className="rounded-md bg-accent py-0.5 text-white enabled:hover:bg-accent/85 disabled:opacity-40"
+            className="rounded-md bg-accent py-0.5 text-accent-fg enabled:hover:bg-accent/85 disabled:opacity-40"
           >
             Criar worktree
           </button>

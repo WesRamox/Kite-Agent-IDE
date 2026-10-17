@@ -70,7 +70,7 @@ export function PullPanel({ params }: IDockviewPanelProps<{ number: number }>) {
               setBusy(true)
               void checkoutPull(pr.number).finally(() => setBusy(false))
             }}
-            className="flex items-center gap-1.5 rounded-md bg-accent px-3 py-1 text-white hover:bg-accent/85 disabled:opacity-50"
+            className="flex items-center gap-1.5 rounded-md bg-accent px-3 py-1 text-accent-fg hover:bg-accent/85 disabled:opacity-50"
           >
             <FolderGit2 size={14} /> {busy ? 'Preparando worktree…' : 'Abrir em worktree'}
           </button>

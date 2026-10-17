@@ -55,7 +55,7 @@ export function LoginBox() {
         type="button"
         disabled={state.kind === 'starting'}
         onClick={() => void login()}
-        className="flex items-center gap-2 rounded-md bg-accent px-3 py-1.5 text-white hover:bg-accent/85 disabled:opacity-50"
+        className="flex items-center gap-2 rounded-md bg-accent px-3 py-1.5 text-accent-fg hover:bg-accent/85 disabled:opacity-50"
       >
         <GitHubMark size={14} /> Entrar com GitHub
       </button>

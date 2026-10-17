@@ -1,7 +1,7 @@
 // Temas da interface. As cores de cada tema ficam em `renderer/src/styles.css`
 // (`[data-theme="<id>"]`); aqui só o que o main também precisa (fundo da janela, claro/escuro).
 
-export type ThemeId = 'kite' | 'midnight' | 'dimmed' | 'light' | 'paper'
+export type ThemeId = 'kite' | 'dark' | 'midnight' | 'dimmed' | 'light' | 'paper'
 
 export interface ThemeInfo {
   id: ThemeId
@@ -17,8 +17,15 @@ export const THEMES: readonly ThemeInfo[] = [
     id: 'kite',
     label: 'Kite (padrão)',
     kind: 'dark',
-    background: '#111112',
-    swatches: ['#111112', '#242428', '#3b82f6'],
+    background: '#0b0b0c',
+    swatches: ['#0b0b0c', '#2c2a27', '#ffb224'],
+  },
+  {
+    id: 'dark',
+    label: 'Escuro',
+    kind: 'dark',
+    background: '#000000',
+    swatches: ['#000000', '#161616', '#3b82f6'],
   },
   {
     id: 'midnight',

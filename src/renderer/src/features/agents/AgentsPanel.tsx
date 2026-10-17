@@ -16,7 +16,7 @@ export function AgentsPanel() {
           type="button"
           aria-pressed={mode === 'new'}
           onClick={() => setMode(mode === 'new' ? 'list' : 'new')}
-          className="flex flex-1 items-center justify-center gap-1 rounded-md bg-accent py-1 text-white hover:bg-accent/85"
+          className="flex flex-1 items-center justify-center gap-1 rounded-md bg-accent py-1 text-accent-fg hover:bg-accent/85"
         >
           <Plus size={14} /> Nova tarefa
         </button>

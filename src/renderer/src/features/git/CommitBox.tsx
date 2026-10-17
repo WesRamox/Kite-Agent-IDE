@@ -36,7 +36,7 @@ export function CommitBox({ stagedCount }: { stagedCount: number }) {
         type="button"
         disabled={disabled}
         onClick={() => void submit()}
-        className="flex items-center justify-center gap-1.5 rounded-md bg-accent py-1 text-white enabled:hover:bg-accent/85 disabled:opacity-40"
+        className="flex items-center justify-center gap-1.5 rounded-md bg-accent py-1 text-accent-fg enabled:hover:bg-accent/85 disabled:opacity-40"
       >
         <Check size={14} /> Commit{stagedCount > 0 ? ` (${stagedCount})` : ''}
       </button>
