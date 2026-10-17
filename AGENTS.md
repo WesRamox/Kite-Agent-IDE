@@ -235,6 +235,64 @@ Ao terminar cada fase: rode lint, typecheck e testes, faça um commit `feat(fase
 
 **Aceite:** iniciar 3 agentes em paralelo em 3 worktrees, acompanhar o status de cada um e revisar o diff de um deles.
 
+### Fases 6 a 10 — Tarefas multi-repo e central de atenção
+
+Problema: quem trabalha em várias tarefas ao mesmo tempo, cada uma mexendo em vários repositórios, perde o controle de qual agente está esperando resposta e precisa abrir uma janela do editor por worktree. Telas aprovadas no canvas "Kite — Tarefas multi-repo" (https://claude.ai/artifact/Ebc9UREpgS9uAxuwZ9fbTu).
+
+Princípios:
+- O Kite **observa** o fluxo que já existe; não exige que as worktrees ou os agentes sejam criados por ele. Worktrees criadas por scripts, skills ou à mão, e agentes abertos em terminais externos, têm que funcionar.
+- Nada específico de uma empresa ou layout de pastas: agrupamento por heurísticas genéricas, com padrão configurável e ajuste manual que sempre vence a heurística.
+- Conceitos: **workspace** (pasta com vários repos), **tarefa** (grupo de worktrees de repos diferentes), **sessão** (um agente rodando, dentro ou fora do Kite, ligada a uma tarefa).
+- **O layout segue exatamente as telas do canvas**: mesma estrutura, ordem dos elementos, tamanhos, espaçamentos, raios, pesos de fonte, textos e estados. Antes de implementar uma tela, leia o `.dc.html` dela no canvas (`project/<Tela>.dc.html`) e use-o como especificação. As cores do canvas são as do tema Kite: no código, use os tokens do tema equivalentes (`surface-*`, `border`, `fg`, `fg-muted`, `accent`, `accent-fg`, `info`, `success`, `danger`), para que os outros temas continuem funcionando. Os dados de exemplo do canvas (tarefas, repos, mensagens) são só ilustração. Qualquer desvio do desenho precisa ser combinado antes.
+- Tipografia das telas novas como no canvas: Geist e Geist Mono, empacotadas localmente (sem CDN, por causa da CSP).
+
+### Fase 6 — Eventos de agentes (hooks do Claude Code)
+- `kite-hook`: script empacotado com o app, executado pelo binário do Electron com `ELECTRON_RUN_AS_NODE=1` (não depende de Node instalado). Lê o JSON do hook no stdin, acrescenta uma linha num spool `userData/agent-events/<session_id>.jsonl` e sai com código 0 em menos de 100 ms. Nunca bloqueia nem altera o comportamento do agente; em erro, só sai. Inclui `KITE_AGENT_ID` do ambiente quando o agente foi aberto num PTY do Kite.
+- `HooksService`: instala e remove os hooks (`SessionStart`, `UserPromptSubmit`, `PreToolUse`, `PostToolUse`, `Notification`, `Stop`, `SessionEnd`) no `~/.claude/settings.json`. Merge que preserva hooks existentes, idempotente, com backup e prévia do que muda. Só com confirmação do usuário.
+- `AgentEventService`: observa o spool (`@parcel/watcher`), valida cada evento com zod (evento desconhecido é ignorado) e mantém sessões `{ id, cli, cwd, status, lastMessage, pendingPermission, touchedPaths, transcriptPath, startedAt, lastEventAt, endedAt }`. Status: `UserPromptSubmit`/`PreToolUse`/`PostToolUse` → `running`; `Notification` → `waiting` (com o texto do pedido); `Stop` → `waiting` ("sua vez", última mensagem do agente lida do fim da transcrição); `SessionEnd` → `ended`. Como o spool fica em disco, o estado é reconstruído ao abrir o Kite.
+- Agentes abertos pelo Kite (Fase 5) que também mandam hooks usam o status dos hooks; a heurística do terminal fica como fallback para CLIs sem integração.
+- Badge persistente de "esperando" na activity bar e na status bar; notificação nativa ao entrar em `waiting`.
+- Tela "Conectar agentes" (canvas, tela 5).
+- Nunca logar mensagens do agente nem conteúdo de arquivos; guardar só caminhos e um trecho da última mensagem, apenas localmente.
+
+**Aceite:** com o Claude Code aberto num terminal fora do Kite, a sessão aparece no Kite; quando ele pede permissão, fica `waiting` em menos de 2 s com o texto do pedido; ao responder, volta para `running`; ao fechar e reabrir o Kite, as sessões voltam com o último estado; remover a integração deixa o `settings.json` igual ao original.
+
+### Fase 7 — Central de atenção
+- Nova view inicial (canvas, tela 1), com badge na activity bar: grupos **Esperando você** (ordenado por tempo de espera), **Trabalhando**, **Para revisar** e **Sem tarefa**.
+- Card de quem espera: pedido de permissão ou última mensagem do agente, tempo esperando, repos e número de arquivos alterados.
+- Ações: "Responder no terminal" (sessão num PTY do Kite: foca a aba), "Retomar aqui" (`claude --resume <id>` num PTY novo no cwd original; avisa se a sessão original ainda está aberta), "Abrir tarefa", "Revisar".
+- `Ctrl/Cmd+J`: vai para o próximo que espera.
+- O painel Agents da Fase 5 passa a ser esta view.
+
+**Aceite:** com 3 sessões em paralelo (2 externas, 1 aberta pelo Kite), a central mostra cada uma no grupo certo; `Ctrl+J` percorre as que esperam, em ordem; responder uma tira ela de "Esperando".
+
+### Fase 8 — Tarefas multi-repo
+- Workspace = pasta com vários repos: detecta subpastas com `.git` (até 2 níveis) e aceita repos de outras pastas. O `WorkspaceGuard` passa a ter uma raiz por repo e por worktree da tarefa aberta.
+- `TaskService`: lista worktrees com `git worktree list --porcelain` em cada repo e agrupa por (1) pasta pai em comum que não é um repo (ex.: `.worktrees/PAY-412/{api,web}`), (2) mesmo nome de branch em repos diferentes, ignorando prefixos como `feat/` e `fix/`, (3) padrão configurável `{tarefa}`/`{repo}`, (4) manual. Ajustes do usuário (renomear, juntar, separar, ignorar) ficam em `userData/tasks.json` e vencem a heurística nas próximas descobertas.
+- Observa `.git/worktrees` de cada repo: uma worktree nova entra na tarefa certa sozinha.
+- Ligação sessão ↔ tarefa: cwd dentro de uma worktree da tarefa; senão, a tarefa da maioria dos arquivos tocados; senão, manual. A escolha manual vence.
+- Nome da tarefa: pasta ou branch. Se houver um arquivo de metadados na pasta da tarefa (ex.: `TASK.md` ou `.kite-task.json`, nome configurável), lê título e link do card.
+- Tela "Descobrir tarefas" (canvas, tela 4) ao abrir um workspace.
+- Tela "Tarefa" (canvas, tela 2): explorer com uma raiz por worktree (branch, à frente/atrás, arquivos alterados), quick open em todas as raízes, abas com o nome do repo, terminais da tarefa com cwd escolhido, painel de detalhes (card, repos, sessões, notas do Kite).
+- `Ctrl/Cmd+K` troca de tarefa, guardando abas e terminais de cada uma.
+
+**Aceite:** num workspace com 3 repos, 3 tarefas criadas por fora com `git worktree add` em layouts diferentes são descobertas corretamente; uma worktree nova criada por fora aparece em menos de 3 s; dá para editar arquivos de 2 repos da mesma tarefa na mesma janela; a sessão de um agente aberto na raiz do workspace é ligada à tarefa certa quando ele edita arquivos dela.
+
+### Fase 9 — Revisão e entrega multi-repo
+- Tela "Revisão" (canvas, tela 3): arquivos alterados agrupados por repo, diff contra o merge-base com a branch base de cada repo.
+- Commit por repo ou em lote (mesma mensagem), push e PR por repo reaproveitando o `GitHubService`, com links cruzados entre os PRs da mesma tarefa na descrição.
+- "Pedir ajuste ao agente": envia um texto para a sessão (só sessões em PTY do Kite; nas externas, oferece "Retomar aqui").
+
+**Aceite:** revisar uma tarefa com 2 repos, commitar os dois em lote e abrir os 2 PRs, cada um com o link do outro.
+
+### Fase 10 — Outros agentes e nova tarefa pelo Kite
+- Interface de adaptador de eventos; adaptadores para Codex CLI (comando de notificação) e Gemini CLI (hooks), com a mesma tela de conectar.
+- "Nova tarefa" pelo Kite, para quem não tem script próprio: nome → repos → cria as worktrees no padrão configurado → abre o agente na pasta da tarefa → prompt inicial opcional. O fluxo de um repo só da Fase 5 vira um caso particular.
+
+**Aceite:** uma sessão do Codex aparece na central com o status certo; criar uma tarefa com 2 repos pelo Kite gera as worktrees no padrão configurado e abre o agente na pasta da tarefa.
+
+Pontos que dependem do SO e precisam de verificação depois: caminho e aspas do comando do hook no Windows, `ELECTRON_RUN_AS_NODE` no app empacotado do macOS e permissões do spool.
+
 ---
 
 ## 6. Fora do escopo do MVP
