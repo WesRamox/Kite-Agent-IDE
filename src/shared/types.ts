@@ -327,6 +327,10 @@ export interface AgentSession {
   waitingSince: number | null
   // Ferramenta que o agente quer usar (pedido de permissão), ex.: Bash + o comando.
   pending: { tool: string; detail: string } | null
+  // O que o agente está fazendo agora (última ferramenta iniciada).
+  activity: { tool: string; detail: string } | null
+  // Desde quando está trabalhando sem parar para esperar o usuário.
+  runningSince: number | null
   // Texto do aviso ou trecho da última resposta do agente.
   lastMessage: string | null
   firstPrompt: string | null
@@ -334,6 +338,8 @@ export interface AgentSession {
   touchedPaths: string[]
   touchedCount: number
   agentTaskId: string | null
+  // Terminal do Kite em que o agente roda, se for o caso.
+  ptyId: string | null
   startedAt: number
   lastEventAt: number
   endedAt: number | null

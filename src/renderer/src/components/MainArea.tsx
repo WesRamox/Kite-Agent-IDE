@@ -9,6 +9,13 @@ import {
   REVIEW_TAB_COMPONENT,
 } from '../features/agents/agents.actions'
 import { AgentTab } from '../features/agents/AgentTab'
+import {
+  ATTENTION_COMPONENT,
+  ATTENTION_TAB_COMPONENT,
+  isAttentionPanel,
+} from '../features/agents/attention.actions'
+import { AttentionTab } from '../features/agents/AttentionTab'
+import { CentralPanel } from '../features/agents/CentralPanel'
 import { ConnectAgentsPanel } from '../features/agents/ConnectAgentsPanel'
 import { ConnectAgentsTab } from '../features/agents/ConnectAgentsTab'
 import {
@@ -53,6 +60,7 @@ const components = {
   [CREATE_PR_COMPONENT]: CreatePullPanel,
   [REVIEW_COMPONENT]: ReviewPanel,
   [CONNECT_COMPONENT]: ConnectAgentsPanel,
+  [ATTENTION_COMPONENT]: CentralPanel,
 }
 const tabComponents = {
   [EDITOR_COMPONENT]: EditorTab,
@@ -62,6 +70,7 @@ const tabComponents = {
   [AGENT_TAB_COMPONENT]: AgentTab,
   [REVIEW_TAB_COMPONENT]: ReviewTab,
   [CONNECT_TAB_COMPONENT]: ConnectAgentsTab,
+  [ATTENTION_TAB_COMPONENT]: AttentionTab,
 }
 
 // Painéis de editor são identificados pelo caminho do arquivo; os demais têm prefixo.
@@ -73,6 +82,7 @@ function isEditorPanel(id: string): boolean {
     isGitHubPanel,
     isReviewPanel,
     isConnectPanel,
+    isAttentionPanel,
   ].some((is) => is(id))
 }
 

@@ -15,7 +15,10 @@ const SAVED_LINES = 1000
 
 export interface SessionOptions {
   // Terminal próprio (cria um shell em `cwd`) ou visualização do PTY de um agente.
-  source: { kind: 'shell'; cwd: string; restore?: string } | { kind: 'agent'; taskId: string }
+  // `input`: texto digitado no shell assim que ele abre (ex.: `claude --resume <id>`).
+  source:
+    | { kind: 'shell'; cwd: string; restore?: string; input?: string }
+    | { kind: 'agent'; taskId: string }
   onExit: (event: PtyExitEvent) => void
   onOpenSearch: () => void
 }
@@ -62,10 +65,15 @@ export class TerminalSession {
     this.fit()
     const source = this.options.source
     if (source.kind === 'agent') await this.attachAgent(source.taskId)
-    else await this.startShell(source.cwd, source.restore)
+    else await this.startShell(source.cwd, source.restore, source.input)
   }
 
-  private async startShell(cwd: string, restore?: string): Promise<void> {
+  // PTY ligado a este terminal (shell próprio ou agente).
+  get pty(): string | null {
+    return this.ptyId
+  }
+
+  private async startShell(cwd: string, restore?: string, input?: string): Promise<void> {
     if (restore) {
       this.term.write(restore)
       this.term.write('\r\n\x1b[2m── sessão restaurada ──\x1b[0m\r\n')
@@ -86,6 +94,7 @@ export class TerminalSession {
       return
     }
     this.connect(res.data.id, [])
+    if (input) void window.api.pty.write(res.data.id, `${input}\r`)
   }
 
   // Conecta a um agente que roda no main: escreve o histórico e segue a saída ao vivo, sem

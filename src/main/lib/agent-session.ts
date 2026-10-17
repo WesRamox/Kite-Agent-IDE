@@ -11,6 +11,7 @@ export const hookRecordSchema: z.ZodType<HookRecord> = z.object({
   sessionId: z.string().regex(/^[A-Za-z0-9_-]{1,128}$/),
   cwd: z.string().max(4096),
   agentId: z.string().uuid().optional(),
+  ptyId: z.string().uuid().optional(),
   notificationType: z.string().max(64).optional(),
   message: z.string().max(LIMITS.message).optional(),
   tool: z.string().max(100).optional(),
@@ -36,11 +37,14 @@ function newSession(rec: HookRecord): AgentSession {
     waitReason: null,
     waitingSince: null,
     pending: null,
+    activity: null,
+    runningSince: null,
     lastMessage: null,
     firstPrompt: null,
     touchedPaths: [],
     touchedCount: 0,
     agentTaskId: null,
+    ptyId: null,
     startedAt: rec.ts,
     lastEventAt: rec.ts,
     endedAt: null,
@@ -51,9 +55,11 @@ function wait(s: AgentSession, reason: WaitReason, ts: number): void {
   if (s.status !== 'waiting' || s.waitReason !== reason) s.waitingSince = ts
   s.status = 'waiting'
   s.waitReason = reason
+  s.runningSince = null
 }
 
-function work(s: AgentSession): void {
+function work(s: AgentSession, ts: number): void {
+  if (s.status !== 'running') s.runningSince = ts
   s.status = 'running'
   s.waitReason = null
   s.waitingSince = null
@@ -77,11 +83,13 @@ export function reduceSession(prev: AgentSession | undefined, rec: HookRecord): 
         ...prev,
         touchedPaths: [...prev.touchedPaths],
         pending: prev.pending && { ...prev.pending },
+        activity: prev.activity && { ...prev.activity },
       }
     : newSession(rec)
   s.cwd = rec.cwd
   s.lastEventAt = Math.max(s.lastEventAt, rec.ts)
   if (rec.agentId) s.agentTaskId = rec.agentId
+  if (rec.ptyId) s.ptyId = rec.ptyId
   // Sessão retomada depois de encerrada.
   if (s.status === 'ended' && rec.event !== 'SessionEnd') {
     s.status = 'idle'
@@ -93,14 +101,15 @@ export function reduceSession(prev: AgentSession | undefined, rec: HookRecord): 
       if (s.status !== 'running' && s.status !== 'waiting') s.status = 'idle'
       break
     case 'UserPromptSubmit':
-      work(s)
+      work(s, rec.ts)
       s.firstPrompt ??= rec.prompt ?? null
       break
     case 'PreToolUse':
-      work(s)
+      work(s, rec.ts)
+      if (rec.tool) s.activity = { tool: rec.tool, detail: rec.toolDetail ?? '' }
       break
     case 'PostToolUse':
-      work(s)
+      work(s, rec.ts)
       if (rec.paths) touch(s, rec.paths)
       break
     case 'PermissionRequest':
@@ -121,6 +130,7 @@ export function reduceSession(prev: AgentSession | undefined, rec: HookRecord): 
     case 'Stop':
       wait(s, 'turn', rec.ts)
       s.pending = null
+      s.activity = null
       if (rec.lastMessage) s.lastMessage = rec.lastMessage
       break
     case 'SessionEnd':
@@ -128,6 +138,8 @@ export function reduceSession(prev: AgentSession | undefined, rec: HookRecord): 
       s.waitReason = null
       s.waitingSince = null
       s.pending = null
+      s.activity = null
+      s.runningSince = null
       s.endedAt = rec.ts
       break
   }

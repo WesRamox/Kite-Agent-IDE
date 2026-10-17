@@ -8,6 +8,7 @@ import { refreshGit } from '../git/git-sync'
 import { closeTerminal, type TerminalParams } from '../terminal/terminal.actions'
 import { agentPanelId, isAgentPanel, isTerminalPanel } from '../terminal/terminals'
 import { useAgentsStore } from './agents.store'
+import { useAttentionStore } from './attention.store'
 
 export const REVIEW_COMPONENT = 'agent-review'
 export const AGENT_TAB_COMPONENT = 'agent-terminal'
@@ -35,8 +36,10 @@ export function useAgentsSync(): void {
     const offStatus = window.api.agent.onStatus((task) => store().upsert(task))
     const offFocus = window.api.agent.onFocus(({ id }) => {
       store().set({ focused: id })
+      useAttentionStore.getState().set({ highlighted: `task:${id}` })
       const layout = useLayoutStore.getState()
-      if (layout.activeView !== 'agents' || !layout.sidebarVisible) layout.selectView('agents')
+      if (layout.activeView !== 'attention' || !layout.sidebarVisible)
+        layout.selectView('attention')
       openAgentTerminal(id)
     })
     return () => {

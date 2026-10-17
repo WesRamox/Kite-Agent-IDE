@@ -8,6 +8,7 @@ import {
   getSession,
   isAgentPanel,
   isTerminalPanel,
+  panelByPty,
   TERMINAL_PREFIX,
 } from './terminals'
 
@@ -17,6 +18,8 @@ const INITIAL_HEIGHT = 280
 export interface TerminalParams {
   cwd?: string
   restore?: string
+  // Digitado no shell assim que ele abre.
+  input?: string
   // Painel que mostra o terminal de um agente (o PTY pertence ao main).
   agentTaskId?: string
 }
@@ -41,6 +44,10 @@ export interface OpenTerminalOptions {
   // Cria ao lado de um terminal existente.
   reference?: string
   direction?: 'right' | 'below' | 'within'
+  // Pasta do shell (padrão: a pasta aberta) e texto a digitar quando ele abrir.
+  cwd?: string
+  input?: string
+  title?: string
 }
 
 export function openTerminal(opts: OpenTerminalOptions = {}): string | null {
@@ -54,12 +61,16 @@ export function openTerminal(opts: OpenTerminalOptions = {}): string | null {
 
   counter += 1
   const id = `${TERMINAL_PREFIX}${counter}`
-  const params: TerminalParams = { cwd: root, restore: opts.restore?.scrollback }
+  const params: TerminalParams = {
+    cwd: opts.cwd ?? root,
+    restore: opts.restore?.scrollback,
+    input: opts.input,
+  }
   const base = {
     id,
     component: TERMINAL_COMPONENT,
     tabComponent: TERMINAL_COMPONENT,
-    title: opts.restore?.title ?? `Terminal ${counter}`,
+    title: opts.restore?.title ?? opts.title ?? `Terminal ${counter}`,
     params,
   }
 
@@ -94,6 +105,16 @@ export function focusOrCreateTerminal(): void {
     return
   }
   openTerminal()
+}
+
+// Foca o terminal (do Kite) em que roda o PTY; false se ele não estiver aberto.
+export function focusTerminalByPty(ptyId: string): boolean {
+  const id = panelByPty(ptyId)
+  const panel = id ? getDockApi()?.getPanel(id) : undefined
+  if (!id || !panel) return false
+  panel.api.setActive()
+  getSession(id)?.focus()
+  return true
 }
 
 export function closeTerminal(id: string): void {

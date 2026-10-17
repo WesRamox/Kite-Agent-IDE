@@ -38,6 +38,12 @@ export function sessionIds(): string[] {
   return [...sessions.keys()]
 }
 
+// Painel do terminal que roda o PTY `ptyId` (shell próprio ou agente).
+export function panelByPty(ptyId: string): string | undefined {
+  for (const [id, session] of sessions) if (session.pty === ptyId) return id
+  return undefined
+}
+
 export function disposeSession(id: string): void {
   sessions.get(id)?.dispose()
   sessions.delete(id)

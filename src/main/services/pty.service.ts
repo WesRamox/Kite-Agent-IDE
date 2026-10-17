@@ -83,14 +83,15 @@ export class PtyService {
   // Inicia um processo num PTY sem validar o cwd contra as pastas abertas. Uso interno do main
   // (agentes em worktrees criadas pelo próprio app); nunca exposto direto ao renderer.
   spawnAt(spec: SpawnSpec): { id: string; pid: number } {
+    const id = randomUUID()
     const proc = this.deps.spawn(spec.file, spec.args, {
       name: 'xterm-256color',
       cols: spec.cols,
       rows: spec.rows,
       cwd: spec.cwd,
-      env: terminalEnv(this.deps.baseEnv, spec.env),
+      // KITE_PTY_ID chega aos hooks de um agente rodado neste terminal (Fase 7: ir até a aba).
+      env: terminalEnv(this.deps.baseEnv, { ...spec.env, KITE_PTY_ID: id }),
     })
-    const id = randomUUID()
     const session: Session = { proc, buffer: '', timer: null, emitted: 0 }
     this.sessions.set(id, session)
 

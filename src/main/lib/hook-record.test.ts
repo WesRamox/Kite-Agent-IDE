@@ -36,6 +36,11 @@ describe('toHookRecord', () => {
     })
   })
 
+  it('guarda o terminal do Kite em que o agente roda', () => {
+    const rec = toHookRecord({ ...base, hook_event_name: 'Stop' }, { KITE_PTY_ID: AGENT }, 1)
+    expect(rec?.ptyId).toBe(AGENT)
+  })
+
   it('ignora KITE_AGENT_ID malformado', () => {
     const rec = toHookRecord({ ...base, hook_event_name: 'Stop' }, { KITE_AGENT_ID: 'x;rm' }, 1)
     expect(rec?.agentId).toBeUndefined()

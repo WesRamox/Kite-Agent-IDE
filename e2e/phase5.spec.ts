@@ -62,12 +62,19 @@ test.afterEach(async () => {
   await rm(`${ctx.workspace}-worktrees`, { recursive: true, force: true })
 })
 
-const card = (page: Page, name: string) => page.getByRole('listitem', { name: `Tarefa ${name}` })
+// Item da tarefa na sidebar da Central de atenção.
+const card = (page: Page, name: string) =>
+  page.getByRole('complementary').getByRole('button', { name: `Tarefa ${name}` })
+const showCentral = (page: Page) =>
+  page
+    .getByRole('navigation', { name: 'Atividades' })
+    .getByRole('button', { name: /^Central de atenção/ })
+    .click()
 const wtOf = (name: string) =>
   path.join(`${ctx.workspace}-worktrees`, `agent-${name.toLowerCase().replace(/ /g, '-')}`)
 
 async function startTask(page: Page, name: string, prompt: string) {
-  await page.getByRole('button', { name: 'Nova tarefa' }).click()
+  await page.getByRole('button', { name: '+ Nova' }).click()
   const form = page.getByRole('form', { name: 'Nova tarefa' })
   await form.getByLabel('Nome da tarefa').fill(name)
   await form.getByLabel('Agente').selectOption('custom')
@@ -77,7 +84,8 @@ async function startTask(page: Page, name: string, prompt: string) {
 }
 
 async function typeInAgent(page: Page, name: string, text: string) {
-  await card(page, name).getByRole('button', { name: 'Terminal do agente' }).click()
+  await card(page, name).click({ button: 'right' })
+  await page.getByRole('menuitem', { name: 'Terminal do agente' }).click()
   await expect(page.locator('.dv-tab.dv-active-tab', { hasText: name })).toBeVisible()
   await page.locator('.xterm:visible').last().click()
   await page.keyboard.type(text)
@@ -89,7 +97,7 @@ test('aceite: 3 agentes em paralelo em 3 worktrees, status de cada um e revisão
   const page = ctx.page
   await page.getByRole('button', { name: 'Abrir pasta' }).first().click()
   await expect(page.locator('footer')).toContainText('main')
-  await page.getByRole('button', { name: 'Agents' }).click()
+  await showCentral(page)
 
   for (const [name, prompt] of [
     ['Tarefa A', "fazer A com 'aspas'"],
@@ -112,11 +120,9 @@ test('aceite: 3 agentes em paralelo em 3 worktrees, status de cada um e revisão
       .toBe(`${prompt}\n`)
     expect(git(wt, 'branch', '--show-current').trim()).toBe(`agent/${slug}`)
   }
-  await expect(page.locator('footer')).toContainText('3 agentes')
-
-  // Parados esperando input → "Aguardando você", com notificação.
+  // Parados esperando input → "esperando você", com notificação.
   for (const name of ['Tarefa A', 'Tarefa B', 'Tarefa C']) {
-    await expect(card(page, name).getByLabel('Status')).toContainText('Aguardando você', {
+    await expect(card(page, name).getByLabel('Status')).toContainText('esperando você', {
       timeout: 15_000,
     })
   }
@@ -129,24 +135,27 @@ test('aceite: 3 agentes em paralelo em 3 worktrees, status de cada um e revisão
         'Tarefa C está aguardando você',
       ]),
     )
-  await expect(page.locator('footer')).toContainText(/3 agentes\s*● 3 esperando você/)
+  await expect(page.locator('footer')).toContainText('● 3 esperando você')
 
   // Respostas diferentes: A termina bem, B falha, C continua esperando.
   await typeInAgent(page, 'Tarefa A', 'sair')
-  await expect(card(page, 'Tarefa A').getByLabel('Status')).toContainText('Concluído')
+  await expect(card(page, 'Tarefa A').getByLabel('Status')).toContainText('terminou')
   await typeInAgent(page, 'Tarefa B', 'falhar')
-  await expect(card(page, 'Tarefa B').getByLabel('Status')).toContainText('Erro (código 3)')
-  await expect(card(page, 'Tarefa C').getByLabel('Status')).toContainText('Aguardando você')
+  await expect(card(page, 'Tarefa B').getByLabel('Status')).toContainText('erro (código 3)')
+  await expect(card(page, 'Tarefa C').getByLabel('Status')).toContainText('esperando você')
   await expect
     .poll(() => notes(ctx.app))
     .toEqual(expect.arrayContaining(['Tarefa A terminou', 'Tarefa B falhou']))
-  await expect(page.locator('footer')).toContainText(/1 agente\s*● 1 esperando você/)
+  await expect(page.locator('footer')).toContainText('● 1 esperando você')
+  await expect(page.locator('footer')).toContainText('● 1 para revisar')
 
-  // Tempo rodando aparece e congela quando o agente termina.
-  await expect(card(page, 'Tarefa A').getByLabel('Tempo rodando')).toHaveText(/^\d+s$|^\d+m \d+s$/)
-
-  // Revisão do diff da Tarefa A contra main.
-  await card(page, 'Tarefa A').getByRole('button', { name: 'Revisar alterações' }).click()
+  // Revisão do diff da Tarefa A contra main, pela seção "Para revisar" da Central.
+  await page.locator('footer').getByRole('button', { name: '● 1 para revisar' }).click()
+  await page
+    .getByRole('region', { name: 'Para revisar' })
+    .getByLabel('Tarefa Tarefa A')
+    .getByRole('button', { name: 'Revisar' })
+    .click()
   const files = page.getByRole('list', { name: 'Arquivos alterados' })
   await expect(files).toContainText('README.md')
   await expect(files).toContainText('saida-tarefa-a.txt')
@@ -164,7 +173,7 @@ test('fechar o terminal não para o agente; fechar o app encerra e marca como in
   test.setTimeout(60_000)
   const page = ctx.page
   await page.getByRole('button', { name: 'Abrir pasta' }).first().click()
-  await page.getByRole('button', { name: 'Agents' }).click()
+  await showCentral(page)
   await startTask(page, 'Longa', 'x')
   const pidFile = path.join(wtOf('Longa'), 'agent.pid')
   await expect.poll(() => readFile(pidFile, 'utf8').catch(() => '')).toMatch(/^\d+$/)
@@ -172,12 +181,12 @@ test('fechar o terminal não para o agente; fechar o app encerra e marca como in
 
   await page.getByRole('button', { name: 'Fechar terminal do agente' }).click()
   await expect(page.locator('.dv-tab', { hasText: 'Longa' })).toHaveCount(0)
-  await expect(card(page, 'Longa').getByLabel('Status')).toContainText(/Trabalhando|Aguardando/)
+  await expect(card(page, 'Longa').getByLabel('Status')).toContainText(/trabalhando|esperando/)
   expect(() => process.kill(pid, 0)).not.toThrow()
 
   // Reabrir conecta de novo ao mesmo processo, que segue aceitando input.
   await typeInAgent(page, 'Longa', 'oi')
-  await expect(card(page, 'Longa').getByLabel('Status')).toContainText(/Trabalhando|Aguardando/)
+  await expect(card(page, 'Longa').getByLabel('Status')).toContainText(/trabalhando|esperando/)
 
   await closeWindow(ctx.app)
   const alive = () => {
@@ -192,8 +201,8 @@ test('fechar o terminal não para o agente; fechar o app encerra e marca como in
 
   const again = await launch(ctx.workspace, { userData, keepWorkspace: true })
   try {
-    await again.page.getByRole('button', { name: 'Agents' }).click()
-    await expect(card(again.page, 'Longa').getByLabel('Status')).toContainText('Interrompido')
+    await showCentral(again.page)
+    await expect(card(again.page, 'Longa').getByLabel('Status')).toContainText('interrompido')
     await expect(stat(wtOf('Longa')).then(() => true)).resolves.toBe(true)
   } finally {
     await again.cleanup()

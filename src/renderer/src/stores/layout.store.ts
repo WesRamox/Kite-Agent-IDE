@@ -1,6 +1,6 @@
 import { create } from 'zustand'
 
-export type SidebarView = 'explorer' | 'git' | 'github' | 'agents'
+export type SidebarView = 'attention' | 'explorer' | 'git' | 'github'
 
 interface LayoutState {
   activeView: SidebarView

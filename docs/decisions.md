@@ -285,3 +285,32 @@ Decisões fáceis de desfazer, não cobertas pelo `AGENTS.md`. Mais recente no f
 - **A verificar em outros SOs:** o comando do hook é POSIX (no Windows o Claude Code usa Git Bash
   ou PowerShell; precisa de um `.cmd`); no app empacotado do macOS, o fuse `runAsNode` precisa
   continuar ligado e o `kite-hook.js` precisa ser legível fora do asar.
+
+## Fase 7 — Central de atenção
+
+- **Moldura do canvas no app inteiro:** activity bar com o logo no topo e botões de 36 px,
+  sidebars de 288 px com cabeçalho em versalete, status bar de 26 px com as contagens da Central
+  (esperando, trabalhando, para revisar) e "Claude Code conectado" à direita. Geist virou a fonte
+  da interface (`--font-sans`/`--font-mono`); editor e terminais continuam com JetBrains Mono por
+  enquanto (trocar a fonte do xterm exige carregar a web font antes de abrir o terminal; fica para
+  a tela de tarefa, Fase 8). Árvore do Explorer com linhas de 26 px e seleção em `surface-3`.
+  Sem número de versão na status bar (não está no desenho).
+- **A view Agents virou a Central:** a sidebar lista tarefas do Kite e sessões dos hooks
+  agrupadas; "+ Nova" abre o formulário de tarefa. Ações que não estão no desenho foram para o
+  menu de contexto das tarefas do Kite (terminal, revisar, parar/reiniciar, remover) e os presets
+  para Conectar agentes → Outros CLIs → Ajustar.
+- **Grupos:** sessão ociosa (aberta, sem pedido) e sessão encerrada sem arquivos editados não
+  aparecem (ficam só em Conectar agentes). Encerradas com edições ficam 12 h em "Para revisar".
+  Agentes do Kite parados com erro, interrompidos ou parados à mão ficam em "Sem agente".
+- **Rótulo curto (fonte mono)** é o nome da pasta da sessão ou do repositório, e o nome é o
+  primeiro pedido da sessão. Na Fase 8 os dois passam a vir da tarefa.
+- **`KITE_PTY_ID`** em todo PTY do Kite chega aos hooks: uma sessão do `claude` aberta à mão num
+  terminal do Kite também tem "Responder no terminal". Sessões de fora têm "Retomar aqui", que só
+  funciona dentro da pasta aberta (o PTY não abre fora dela); fora, o comando é copiado.
+- **`Ctrl+J`** é quebra de linha no terminal (e no prompt do Claude Code), então com o foco no
+  terminal só `Ctrl+Shift+J` pula para o próximo que espera.
+- **Abertura:** com o Claude Code conectado, o app abre na Central (view e aba). Sem a integração,
+  continua abrindo no Explorer com a tela de boas-vindas.
+- **Diferenças do desenho nesta fase:** sem "Abrir tarefa" (Fase 8) e sem "Revisar mudanças" para
+  sessões de fora (Fase 9); o botão do workspace na sidebar abre o seletor de pasta e mostra
+  "1 repo" (vários repos na Fase 8); estados vazios ganharam uma frase curta.

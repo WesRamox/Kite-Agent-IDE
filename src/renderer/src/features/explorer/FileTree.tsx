@@ -88,7 +88,7 @@ export function FileTree({ root, treeRef }: Props) {
           data={data}
           width={size.width}
           height={size.height}
-          rowHeight={24}
+          rowHeight={26}
           indent={12}
           disableDrag
           disableDrop

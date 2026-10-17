@@ -1,4 +1,4 @@
-import { Bot, Files, GitBranch, GitPullRequest, type LucideIcon } from 'lucide-react'
+import { Files, GitBranch, GitPullRequest, Inbox, type LucideIcon } from 'lucide-react'
 import type { SidebarView } from '../stores/layout.store'
 
 export interface ViewDef {
@@ -8,8 +8,8 @@ export interface ViewDef {
 }
 
 export const VIEWS: readonly ViewDef[] = [
+  { id: 'attention', label: 'Central de atenção', icon: Inbox },
   { id: 'explorer', label: 'Explorer', icon: Files },
   { id: 'git', label: 'Git', icon: GitBranch },
   { id: 'github', label: 'GitHub', icon: GitPullRequest },
-  { id: 'agents', label: 'Agents', icon: Bot },
 ]

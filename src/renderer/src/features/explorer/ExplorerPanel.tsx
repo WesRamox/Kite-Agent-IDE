@@ -50,8 +50,8 @@ export function ExplorerPanel() {
 
   return (
     <div className="flex min-h-0 flex-1 flex-col">
-      <div className="group flex h-7 items-center gap-0.5 px-2">
-        <span className="flex-1 truncate text-[11px] font-semibold tracking-wide text-fg uppercase">
+      <div className="group flex h-8 items-center gap-0.5 px-3.5">
+        <span className="flex-1 truncate text-[11px] font-semibold tracking-[0.08em] text-fg uppercase">
           {basename(root)}
         </span>
         <IconButton label="Novo arquivo" onClick={() => createAtSelection('file')}>

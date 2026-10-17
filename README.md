@@ -99,7 +99,7 @@ o login vale até fechar o app. Ele nunca é gravado em texto puro.
 
 ## Agentes
 
-Os presets ficam na aba Agents (ícone de ajustes) e podem ser editados: comando e como o prompt
+Os presets ficam em Conectar agentes → Outros CLIs → Ajustar e podem ser editados: comando e como o prompt
 inicial é passado (como argumento, com flag opcional, ou digitado no terminal quando o agente
 fica pronto). O comando roda no seu shell como shell interativo de login (`$SHELL -ilc`), então o
 PATH do seu `.bashrc`/`.zshrc` vale (ex.: CLIs instalados via nvm).
@@ -114,10 +114,25 @@ PATH do seu `.bashrc`/`.zshrc` vale (ex.: CLIs instalados via nvm).
 
 Os CLIs precisam estar instalados e autenticados por conta própria.
 
+### Central de atenção
+
+O primeiro ícone da activity bar abre a **Central de atenção**: na sidebar, as tarefas e sessões
+agrupadas em Esperando você, Trabalhando, Para revisar e Sem agente; na área principal, o que
+cada agente parado pede (o comando que quer rodar ou a última mensagem), o que os outros estão
+fazendo e o que terminou. Com o Claude Code conectado, o app já abre nela.
+
+- `Ctrl/Cmd+J` vai para o próximo agente que espera, do que espera há mais tempo. Com o foco num
+  terminal, use `Ctrl+Shift+J` (lá `Ctrl+J` é quebra de linha).
+- "Responder no terminal" vai até a aba do agente, inclusive quando o `claude` foi aberto à mão
+  num terminal do Kite.
+- "Retomar aqui" abre `claude --resume <sessão>` num terminal do Kite, na pasta da sessão (que
+  precisa estar dentro da pasta aberta); o botão `claude --resume` copia o comando.
+- Botão direito numa tarefa do Kite: terminal, revisar, parar/reiniciar e remover. Os presets dos
+  agentes ficam em Conectar agentes → Outros CLIs → Ajustar.
+
 ### Saber quando um agente espera você (Claude Code)
 
-Em **Agents → Conectar agentes** (ícone de tomada) ou clicando em "Conectar Claude Code" na
-status bar, o Kite instala hooks no `~/.claude/settings.json`. A partir daí, toda sessão do
+Clicando em "Conectar Claude Code" na status bar, o Kite instala hooks no `~/.claude/settings.json`. A partir daí, toda sessão do
 Claude Code (aberta no Kite ou em qualquer outro terminal) avisa o Kite quando pede permissão,
 termina o turno ou edita arquivos. As sessões aparecem na mesma tela, o número de agentes
 esperando você fica na activity bar e na status bar, e chega uma notificação nativa.

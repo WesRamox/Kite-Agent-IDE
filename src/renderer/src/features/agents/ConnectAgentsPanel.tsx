@@ -1,6 +1,7 @@
 import type { AgentSession, HooksStatus } from '@shared/types'
-import { useLayoutStore } from '../../stores/layout.store'
 import { openAgentTerminal } from './agents.actions'
+import { showAttentionView } from './attention.actions'
+import { useAttentionStore } from './attention.store'
 import { useAgentsStore } from './agents.store'
 import {
   sessionEvidence,
@@ -76,7 +77,10 @@ export function ConnectAgentsPanel() {
                 how="Heurística pelo terminal: só para agentes abertos dentro do Kite."
                 state="Sempre ativo"
                 action="Ajustar"
-                onAction={() => useLayoutStore.getState().selectView('agents')}
+                onAction={() => {
+                  useAttentionStore.getState().set({ mode: 'presets' })
+                  showAttentionView()
+                }}
               />
               {hooks && <SettingsPreview hooks={hooks} />}
             </section>

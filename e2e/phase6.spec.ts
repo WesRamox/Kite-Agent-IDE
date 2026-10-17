@@ -84,7 +84,9 @@ test('hooks do Claude Code: conectar, acompanhar uma sessão externa e remover',
     await expect(sessions.getByText('pede permissão')).toBeVisible()
     expect(Date.now() - t0).toBeLessThan(2000)
     await expect(page.getByText('● 1 esperando você')).toBeVisible()
-    await expect(page.getByLabel('1 esperando você')).toBeVisible()
+    await expect(
+      page.getByRole('button', { name: 'Central de atenção, 1 esperando' }),
+    ).toBeVisible()
     await expect
       .poll(() => notes(app))
       .toEqual([expect.objectContaining({ title: 'Claude pede permissão' })])

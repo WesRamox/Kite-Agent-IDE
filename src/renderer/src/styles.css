@@ -21,8 +21,9 @@
   --color-danger: #f87171;
   --color-info: #60a5fa;
   --color-merged: #a78bfa;
-  --font-sans: 'Inter', system-ui, -apple-system, 'Segoe UI', sans-serif;
-  --font-mono: 'JetBrains Mono', ui-monospace, 'SF Mono', Menlo, Consolas, monospace;
+  /* Interface em Geist, como no canvas (empacotada localmente). */
+  --font-sans: 'Geist Variable', 'Geist', system-ui, -apple-system, 'Segoe UI', sans-serif;
+  --font-mono: 'Geist Mono Variable', 'Geist Mono', ui-monospace, 'SF Mono', Menlo, monospace;
   /* Telas desenhadas no canvas (Fases 6+): Geist, empacotada localmente. */
   --font-geist: 'Geist Variable', 'Geist', system-ui, sans-serif;
   --font-geist-mono: 'Geist Mono Variable', 'Geist Mono', ui-monospace, monospace;

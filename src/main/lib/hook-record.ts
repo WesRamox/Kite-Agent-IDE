@@ -10,6 +10,8 @@ export interface HookRecord {
   sessionId: string
   cwd: string
   agentId?: string
+  // Terminal do Kite em que o agente roda (KITE_PTY_ID).
+  ptyId?: string
   notificationType?: string
   message?: string
   tool?: string
@@ -24,6 +26,7 @@ export const LIMITS = { message: 500, toolDetail: 500, lastMessage: 2000, prompt
 // Ferramentas que alteram arquivos: os caminhos delas viram "arquivos tocados".
 const EDIT_TOOLS = new Set(['Edit', 'Write', 'MultiEdit', 'NotebookEdit'])
 const SESSION_ID = /^[A-Za-z0-9_-]{1,128}$/
+// Ids gerados pelo Kite (randomUUID).
 const AGENT_ID = /^[0-9a-f-]{36}$/i
 
 type Obj = Record<string, unknown>
@@ -65,6 +68,8 @@ export function toHookRecord(
   const rec: HookRecord = { v: 1, ts: now, cli: 'claude', event, sessionId, cwd }
   const agentId = env['KITE_AGENT_ID']
   if (agentId && AGENT_ID.test(agentId)) rec.agentId = agentId
+  const ptyId = env['KITE_PTY_ID']
+  if (ptyId && AGENT_ID.test(ptyId)) rec.ptyId = ptyId
 
   const tool = typeof payload['tool_name'] === 'string' ? payload['tool_name'].slice(0, 100) : null
   const input = isObj(payload['tool_input']) ? payload['tool_input'] : {}

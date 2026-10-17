@@ -258,6 +258,7 @@ Princípios:
 **Aceite:** com o Claude Code aberto num terminal fora do Kite, a sessão aparece no Kite; quando ele pede permissão, fica `waiting` em menos de 2 s com o texto do pedido; ao responder, volta para `running`; ao fechar e reabrir o Kite, as sessões voltam com o último estado; remover a integração deixa o `settings.json` igual ao original.
 
 ### Fase 7 — Central de atenção
+- Primeiro, a moldura do app no visual do canvas, para as telas novas e as antigas: activity bar (logo do Kite no topo, botões de 36 px, badge), sidebars (largura, cabeçalhos, linhas), status bar (altura e itens como no desenho) e Geist como fonte da interface. Explorer, Git e GitHub ajustados para o mesmo estilo.
 - Nova view inicial (canvas, tela 1), com badge na activity bar: grupos **Esperando você** (ordenado por tempo de espera), **Trabalhando**, **Para revisar** e **Sem tarefa**.
 - Card de quem espera: pedido de permissão ou última mensagem do agente, tempo esperando, repos e número de arquivos alterados.
 - Ações: "Responder no terminal" (sessão num PTY do Kite: foca a aba), "Retomar aqui" (`claude --resume <id>` num PTY novo no cwd original; avisa se a sessão original ainda está aberta), "Abrir tarefa", "Revisar".

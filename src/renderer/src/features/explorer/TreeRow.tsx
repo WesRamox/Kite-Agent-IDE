@@ -30,11 +30,11 @@ export function TreeRow({ node, style, dragHandle }: NodeRendererProps<TreeNodeD
       style={style}
       data-node-id={data.isNew ? undefined : data.id}
       onClick={() => isDir && !editing && node.toggle()}
-      className={`flex h-full cursor-pointer items-center gap-1 pr-2 ${
+      className={`flex h-full cursor-pointer items-center gap-1.5 rounded-[5px] pr-2.5 ${
         node.isSelected
-          ? 'bg-accent/25 text-fg'
+          ? 'bg-surface-3 text-fg'
           : active
-            ? 'bg-surface-3/70 text-fg'
+            ? 'bg-surface-3/60 text-fg'
             : 'text-fg/90 hover:bg-surface-2'
       } ${node.isFocused ? 'outline outline-1 -outline-offset-1 outline-accent/60' : ''}`}
     >

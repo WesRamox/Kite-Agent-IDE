@@ -56,6 +56,8 @@ export async function launch(workspace: string, opts: LaunchOptions = {}): Promi
       ...process.env,
       ...GIT_TEST_ENV,
       GITHUB_CLIENT_ID: '',
+      // Nunca o settings.json real do Claude Code (o teste pode sobrescrever).
+      KITE_CLAUDE_SETTINGS: path.join(userData, 'claude-settings.json'),
       ...opts.env,
       KITE_USER_DATA_DIR: userData,
       ELECTRON_RENDERER_URL: '',

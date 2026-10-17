@@ -1,34 +1,39 @@
-import { Bot, FolderGit2, GitBranch, SquareTerminal } from 'lucide-react'
-import { useAgentsStore } from '../features/agents/agents.store'
-import { waitingCount } from '../features/agents/session-format'
+import { FolderGit2, GitBranch, SquareTerminal } from 'lucide-react'
+import { openCentral, showAttentionView } from '../features/agents/attention.actions'
 import { openConnectAgents } from '../features/agents/sessions.actions'
 import { useSessionsStore } from '../features/agents/sessions.store'
+import { useAttentionGroups } from '../features/agents/use-attention'
 import { useEditorStore } from '../features/editor/editor.store'
 import { useGitStore } from '../features/git/git.store'
 import { focusOrCreateTerminal } from '../features/terminal/terminal.actions'
 import { basename } from '../lib/paths'
 import { useLayoutStore } from '../stores/layout.store'
 import { useWorkspaceStore } from '../stores/workspace.store'
-import { useAppInfo } from '../lib/use-app-info'
 
+// Moldura do canvas (Main.dc.html e Task.dc.html): 26 px, contagens da Central à esquerda.
 export function StatusBar() {
-  const info = useAppInfo()
   const root = useWorkspaceStore((s) => s.root)
   const status = useGitStore((s) => s.status)
-  const running = useAgentsStore((s) => s.tasks.filter((t) => t.alive).length)
-  const tasks = useAgentsStore((s) => s.tasks)
-  const sessions = useSessionsStore((s) => s.sessions)
   const hooksInstalled = useSessionsStore((s) => s.hooks?.installed ?? false)
-  const waiting = waitingCount(sessions, tasks)
+  const groups = useAttentionGroups()
   const showGit = () => {
     const layout = useLayoutStore.getState()
     if (layout.activeView !== 'git' || !layout.sidebarVisible) layout.selectView('git')
   }
+  const showCentral = () => {
+    showAttentionView()
+    openCentral()
+  }
   const cursor = useEditorStore((s) => s.cursor)
   const language = useEditorStore((s) => (s.activePath ? s.tabs[s.activePath]?.language : null))
+  const counts = [
+    { n: groups.waiting.length, label: 'esperando você', className: 'text-accent' },
+    { n: groups.running.length, label: 'trabalhando', className: '' },
+    { n: groups.review.length, label: 'para revisar', className: '' },
+  ].filter((c) => c.n > 0)
 
   return (
-    <footer className="flex h-6 shrink-0 items-center gap-4 border-t border-border bg-surface-1 px-3 text-[11px] text-fg-muted">
+    <footer className="flex h-[26px] shrink-0 items-center gap-4 border-t border-border bg-surface-1 px-3 font-geist text-[11px] text-fg-muted">
       {status?.isRepo ? (
         <>
           <button
@@ -49,19 +54,16 @@ export function StatusBar() {
       ) : (
         <span>sem repositório</span>
       )}
-      <button
-        type="button"
-        title="Agentes"
-        onClick={() => {
-          const layout = useLayoutStore.getState()
-          if (layout.activeView !== 'agents' || !layout.sidebarVisible) layout.selectView('agents')
-        }}
-        className="flex items-center gap-1 hover:text-fg"
-      >
-        <Bot size={12} />
-        {running} {running === 1 ? 'agente' : 'agentes'}
-      </button>
-      {waiting > 0 && <span className="text-accent">● {waiting} esperando você</span>}
+      {counts.map((c) => (
+        <button
+          key={c.label}
+          type="button"
+          onClick={showCentral}
+          className={`hover:text-fg ${c.className}`}
+        >
+          ● {c.n} {c.label}
+        </button>
+      ))}
       {root && (
         <button
           type="button"
@@ -73,16 +75,15 @@ export function StatusBar() {
         </button>
       )}
       <span className="ml-auto flex gap-4">
-        <button type="button" onClick={openConnectAgents} className="hover:text-fg">
-          {hooksInstalled ? 'Claude Code conectado' : 'Conectar Claude Code'}
-        </button>
         {cursor && (
           <span>
             Ln {cursor.line}, Col {cursor.column}
           </span>
         )}
         {language && <span>{language}</span>}
-        {info && <span>v{info.version}</span>}
+        <button type="button" onClick={openConnectAgents} className="hover:text-fg">
+          {hooksInstalled ? 'Claude Code conectado' : 'Conectar Claude Code'}
+        </button>
       </span>
     </footer>
   )

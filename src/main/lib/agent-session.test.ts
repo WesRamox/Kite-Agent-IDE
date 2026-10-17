@@ -54,6 +54,20 @@ describe('reduceSession', () => {
     expect(idle.waitingSince).toBe(since)
   })
 
+  it('guarda a atividade atual e desde quando trabalha', () => {
+    const s = run(
+      rec('UserPromptSubmit'),
+      rec('PreToolUse', { tool: 'Edit', toolDetail: '/w/a.ts' }),
+    )
+    expect(s.activity).toEqual({ tool: 'Edit', detail: '/w/a.ts' })
+    const since = s.runningSince
+    expect(since).not.toBeNull()
+    const later = reduceSession(s, rec('PostToolUse', { tool: 'Edit' }))
+    expect(later.runningSince).toBe(since)
+    const stopped = reduceSession(later, rec('Stop'))
+    expect(stopped).toMatchObject({ activity: null, runningSince: null })
+  })
+
   it('conta arquivos editados sem repetir e guarda os mais recentes primeiro', () => {
     const s = run(
       rec('PostToolUse', { tool: 'Edit', paths: ['/w/a.ts'] }),

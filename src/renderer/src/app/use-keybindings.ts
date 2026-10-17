@@ -1,4 +1,5 @@
 import { useEffect } from 'react'
+import { jumpToNextWaiting } from '../features/agents/attention.actions'
 import { closeActive, saveActive } from '../features/editor/editor.actions'
 import { useQuickOpenStore } from '../features/quick-open/quick-open.store'
 import { focusOrCreateTerminal, openTerminal } from '../features/terminal/terminal.actions'
@@ -27,6 +28,9 @@ export function useKeybindings(): void {
       else if (key === 'p' && !e.shiftKey) {
         if (useWorkspaceStore.getState().root) useQuickOpenStore.getState().show()
       } else if (key === 'w' && !e.shiftKey && !shellOwns) void closeActive()
+      // Ctrl+J no terminal é quebra de linha (inclusive no prompt do Claude Code): lá dentro,
+      // use Ctrl+Shift+J.
+      else if (key === 'j' && (e.shiftKey || !shellOwns)) jumpToNextWaiting()
       else handled = false
       if (handled) {
         e.preventDefault()
