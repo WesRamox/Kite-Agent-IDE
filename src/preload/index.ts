@@ -76,6 +76,12 @@ const api: Api = {
     addRepo: invoke('task:addRepo'),
     onChanged: subscribe('task:changed'),
   },
+  review: {
+    task: invoke('review:task'),
+    diff: invoke('review:diff'),
+    prs: invoke('review:prs'),
+    deliver: invoke('review:deliver'),
+  },
   hooks: {
     status: invoke('hooks:status'),
     install: invoke('hooks:install'),

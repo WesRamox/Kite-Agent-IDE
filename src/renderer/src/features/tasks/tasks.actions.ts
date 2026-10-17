@@ -65,6 +65,14 @@ export function useTasksSync(): void {
   }, [])
 }
 
+// PR de cada worktree (para os detalhes da tarefa). Sem GitHub ou sem login: nada.
+async function loadPRs(id: string): Promise<void> {
+  const dir = root()
+  if (!dir) return
+  const res = await window.api.review.prs(dir, id)
+  if (res.ok) store().setPRs(res.data)
+}
+
 export async function refreshTaskStatus(path: string): Promise<void> {
   const res = await window.api.git.status(path)
   if (res.ok) store().setStatus(path, res.data)
@@ -94,6 +102,7 @@ export async function openTask(id: string): Promise<void> {
   useQuickOpenStore.getState().invalidate()
   useContextStore.getState().activate(taskContext(id))
   store().set({ activeTaskId: id })
+  void loadPRs(id)
   const layout = useLayoutStore.getState()
   if (layout.activeView !== 'explorer' || !layout.sidebarVisible) layout.selectView('explorer')
 }

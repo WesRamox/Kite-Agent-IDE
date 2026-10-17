@@ -273,6 +273,75 @@ export class GitService {
   }
 
   // Conteúdo no merge-base × arquivo atual na worktree.
+  // Linhas adicionadas/removidas por arquivo desde o merge-base (inclui o que não foi
+  // commitado). Arquivos novos não rastreados contam as linhas do arquivo inteiro.
+  async numstatSince(
+    worktree: string,
+    mergeBase: string,
+    untracked: string[],
+  ): Promise<Map<string, { added: number | null; deleted: number | null }>> {
+    const out = await this.git(worktree, ['diff', '--numstat', '-z', '--no-renames', mergeBase])
+    const stats = new Map<string, { added: number | null; deleted: number | null }>()
+    for (const entry of out.split('\0').filter(Boolean)) {
+      const [a, d, ...rest] = entry.split('\t')
+      const rel = rest.join('\t')
+      if (!rel) continue
+      stats.set(rel, {
+        added: a === '-' ? null : Number(a),
+        deleted: d === '-' ? null : Number(d),
+      })
+    }
+    for (const rel of untracked) {
+      const content = await readFile(path.join(worktree, ...rel.split('/'))).catch(() => null)
+      if (!content || content.length > MAX_EDITABLE_BYTES || content.includes(0)) {
+        stats.set(rel, { added: null, deleted: null })
+        continue
+      }
+      const text = content.toString('utf8')
+      const lines = text === '' ? 0 : text.split('\n').length - (text.endsWith('\n') ? 1 : 0)
+      stats.set(rel, { added: lines, deleted: 0 })
+    }
+    return stats
+  }
+
+  // Commits na branch desde o merge-base.
+  async commitsSince(worktree: string, mergeBase: string): Promise<number> {
+    const out = await this.git(worktree, ['rev-list', '--count', `${mergeBase}..HEAD`])
+    return Number(out.trim()) || 0
+  }
+
+  // Branch base provável: a padrão do origin (origin/HEAD), senão main ou master locais.
+  async defaultBase(worktree: string): Promise<string | null> {
+    const head = await this.git(worktree, [
+      'symbolic-ref',
+      '-q',
+      '--short',
+      'refs/remotes/origin/HEAD',
+    ])
+      .then((o) => o.trim())
+      .catch(() => '')
+    if (head.startsWith('origin/')) return head.slice('origin/'.length)
+    for (const name of ['main', 'master']) {
+      const out = await this.git(worktree, [
+        'rev-parse',
+        '--verify',
+        '-q',
+        `refs/heads/${name}^{commit}`,
+      ])
+        .then((o) => o.trim())
+        .catch(() => '')
+      if (out) return name
+    }
+    return null
+  }
+
+  // Commita tudo o que mudou na pasta aberta (git add -A).
+  async commitAll(root: string, message: string): Promise<{ hash: string }> {
+    const repo = await this.repo(root)
+    await this.git(repo.toplevel, ['add', '-A', '--', this.pathspec(repo)])
+    return this.commit(root, message)
+  }
+
   async diffSince(worktree: string, mergeBase: string, rel: string): Promise<GitDiff> {
     const normalized = path.posix.normalize(rel)
     if (path.isAbsolute(rel) || normalized.startsWith('..') || rel.includes('\0')) {

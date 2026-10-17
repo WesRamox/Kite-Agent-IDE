@@ -136,6 +136,22 @@ cada repo, as sessões de agente e notas. Uma sessão do Claude Code é ligada �
 pelos arquivos que edita (mesmo aberta na raiz do workspace); em Conectar agentes dá para
 vincular à mão.
 
+### Revisar e entregar uma tarefa
+
+"Revisar" (na Central, ou botão direito na tarefa → "Revisar mudanças") abre a revisão da tarefa:
+os arquivos alterados agrupados por repo, com `+/-`, contra o merge-base com a branch base de
+cada repo (a padrão do `origin`, senão `main`/`master`), e o diff de cada arquivo (em linha ou
+lado a lado). Inclui o que ainda não foi commitado.
+
+- **Commit e PR nos N repos:** uma mensagem de commit para todos, título e descrição do PR, base
+  por repo e rascunho opcional. Cada repo é commitado (`git add -A`), enviado ao `origin` e ganha
+  um PR; com mais de um repo, cada PR recebe no fim da descrição os links dos outros PRs da
+  tarefa. Um PR já aberto para a branch só é atualizado com o push. "Commit em <repo>" e "Abrir
+  PR" fazem o mesmo para um repo só. Requer login no GitHub (seção acima).
+- **Pedir ajuste ao agente:** o texto vai direto para o prompt da sessão ligada à tarefa, se ela
+  roda num terminal do Kite; se roda fora, o Kite oferece "Retomar aqui".
+- Os detalhes da tarefa mostram o PR de cada repo ("sem PR", "PR #42 aberto"...).
+
 ### Central de atenção
 
 O primeiro ícone da activity bar abre a **Central de atenção**: na sidebar, as tarefas e sessões

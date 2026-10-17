@@ -8,21 +8,24 @@ export const TOKEN = 'gho_e2e_token'
 export interface MockGitHub {
   url: string
   apiUrl: string
+  // PRs criados (corpo do POST, com o repo).
   created: Record<string, unknown>[]
+  // Descrições alteradas: { repo, number, body }.
+  updated: { repo: string; number: number; body: string }[]
   close: () => Promise<void>
 }
 
-const pull = (n: number, title: string, head: string, extra: object = {}) => ({
+const pull = (n: number, title: string, head: string, extra: object = {}, repo = 'app') => ({
   number: n,
   title,
   user: { login: 'dev' },
   state: 'open',
   draft: false,
   merged_at: null,
-  head: { ref: head, sha: `sha${n}`, repo: { full_name: 'acme/app' } },
+  head: { ref: head, sha: `sha${n}`, repo: { full_name: `acme/${repo}` } },
   base: { ref: 'main' },
   updated_at: new Date(Date.now() - 3_600_000).toISOString(),
-  html_url: `https://github.com/acme/app/pull/${n}`,
+  html_url: `https://github.com/acme/${repo}/pull/${n}`,
   body: `Corpo do PR ${n}`,
   additions: 10,
   deletions: 2,
@@ -69,6 +72,14 @@ async function readBody(req: IncomingMessage): Promise<Record<string, unknown>> 
 
 export async function startMockGitHub(): Promise<MockGitHub> {
   const created: Record<string, unknown>[] = []
+  const updated: { repo: string; number: number; body: string }[] = []
+  // PRs por repo (acme/<repo>); "app" começa com os PRs de exemplo.
+  const pulls = new Map<string, ReturnType<typeof pull>[]>([['app', [...PULLS]]])
+  const pullsOf = (repo: string) => {
+    const list = pulls.get(repo) ?? []
+    pulls.set(repo, list)
+    return list
+  }
   let polls = 0
   const server: Server = createServer(async (req, res) => {
     const url = new URL(req.url ?? '/', 'http://localhost')
@@ -76,7 +87,7 @@ export async function startMockGitHub(): Promise<MockGitHub> {
       res.writeHead(status, { 'content-type': 'application/json' })
       res.end(JSON.stringify(data))
     }
-    const body = req.method === 'POST' ? await readBody(req) : {}
+    const body = req.method === 'POST' || req.method === 'PATCH' ? await readBody(req) : {}
 
     if (url.pathname === '/login/device/code') {
       return send(200, {
@@ -108,31 +119,50 @@ export async function startMockGitHub(): Promise<MockGitHub> {
       state === 'all' ? items : items.filter((i) => i.state === state)
 
     if (route === '/user') return send(200, { login: 'octocat', name: 'Octo Cat', avatar_url: '' })
-    if (route === '/repos/acme/app') {
+    const repoRoute = /^\/repos\/acme\/([^/]+)(\/.*)?$/.exec(route)
+    const repo = repoRoute?.[1] ?? ''
+    const sub = repoRoute?.[2] ?? ''
+    if (repoRoute && sub === '') {
       return send(200, {
         default_branch: 'main',
-        html_url: 'https://github.com/acme/app',
+        html_url: `https://github.com/acme/${repo}`,
         private: false,
       })
     }
-    if (route === '/repos/acme/app/pulls' && req.method === 'GET') return send(200, byState(PULLS))
-    if (route === '/repos/acme/app/pulls' && req.method === 'POST') {
-      created.push(body)
-      return send(201, {
-        ...pull(42, String(body['title']), String(body['head'])),
-        html_url: 'https://github.com/acme/app/pull/42',
-      })
-    }
-    const pr = /^\/repos\/acme\/app\/pulls\/(\d+)$/.exec(route)
-    if (pr) {
-      const n = Number(pr[1])
-      if (n === 42)
+    if (repoRoute && sub === '/pulls' && req.method === 'GET') {
+      const head = url.searchParams.get('head')
+      if (head) {
+        const branch = head.split(':')[1] ?? ''
         return send(
           200,
-          pull(42, String(created.at(-1)?.['title'] ?? ''), String(created.at(-1)?.['head'] ?? '')),
+          pullsOf(repo)
+            .filter((p) => p.head.ref === branch)
+            .reverse(),
         )
-      const found = PULLS.find((p) => p.number === n)
-      return found ? send(200, found) : send(404, { message: 'Not Found' })
+      }
+      return send(200, byState(pullsOf(repo)))
+    }
+    if (repoRoute && sub === '/pulls' && req.method === 'POST') {
+      const number = 42 + created.length
+      created.push({ ...body, repo })
+      const created_pr = {
+        ...pull(number, String(body['title']), String(body['head']), {}, repo),
+        base: { ref: String(body['base']) },
+        body: String(body['body'] ?? ''),
+      }
+      pullsOf(repo).push(created_pr)
+      return send(201, created_pr)
+    }
+    const pr = /^\/pulls\/(\d+)$/.exec(sub)
+    if (repoRoute && pr) {
+      const n = Number(pr[1])
+      const found = pullsOf(repo).find((p) => p.number === n)
+      if (!found) return send(404, { message: 'Not Found' })
+      if (req.method === 'PATCH') {
+        found.body = String(body['body'] ?? '')
+        updated.push({ repo, number: n, body: found.body })
+      }
+      return send(200, found)
     }
     if (/^\/repos\/acme\/app\/commits\/[^/]+\/check-runs$/.test(route)) {
       return send(200, {
@@ -165,6 +195,7 @@ export async function startMockGitHub(): Promise<MockGitHub> {
     url,
     apiUrl: `${url}/api`,
     created,
+    updated,
     close: () => new Promise((resolve) => server.close(() => resolve())),
   }
 }

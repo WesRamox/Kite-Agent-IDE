@@ -1,3 +1,4 @@
+import type { PullSummary } from '@shared/types'
 import { useState } from 'react'
 import { sessionStatusLabel, sessionTone, type SessionTone } from '../agents/session-format'
 import { useSessionsStore } from '../agents/sessions.store'
@@ -29,6 +30,7 @@ function clock(ts: number): string {
 export function TaskDetails() {
   const task = useActiveTask()
   const status = useTasksStore((s) => s.status)
+  const prs = useTasksStore((s) => s.prs)
   const links = useTasksStore((s) => s.workspace?.sessionLinks ?? {})
   const sessions = useSessionsStore((s) => s.sessions)
   if (!task) return null
@@ -65,9 +67,7 @@ export function TaskDetails() {
             >
               <div className="flex items-center gap-2">
                 <span className="font-geist-mono font-medium">{w.repoName}</span>
-                {st?.isRepo && st.upstream && (
-                  <span className="ml-auto truncate text-[11px] text-fg-muted">{st.upstream}</span>
-                )}
+                <PrBadge pr={prs[w.path]} />
               </div>
               <div className="text-xs text-fg-muted">{w.branch ?? `sem branch (${w.head})`}</div>
               {files !== null && (
@@ -122,5 +122,27 @@ function NotesBox({ taskId, initial }: { taskId: string; initial: string }) {
       rows={5}
       className="resize-y rounded-md border border-transparent bg-transparent p-0 text-xs leading-normal text-fg/80 placeholder:text-fg-muted/60 focus:border-border focus:bg-surface-0 focus:p-1.5 focus:outline-none"
     />
+  )
+}
+
+const PR_STATE: Record<PullSummary['state'], string> = {
+  open: 'aberto',
+  closed: 'fechado',
+  merged: 'mesclado',
+}
+
+// Status do PR da branch (canvas: "sem PR"). Sem GitHub ou sem login: nada.
+function PrBadge({ pr }: { pr: PullSummary | null | undefined }) {
+  if (pr === undefined) return null
+  if (pr === null) return <span className="ml-auto text-[11px] text-fg-muted">sem PR</span>
+  return (
+    <a
+      href={pr.url}
+      target="_blank"
+      rel="noreferrer"
+      className={`ml-auto text-[11px] ${pr.state === 'open' ? 'text-success' : 'text-fg-muted'}`}
+    >
+      PR #{pr.number} {pr.draft ? 'rascunho' : PR_STATE[pr.state]}
+    </a>
   )
 }

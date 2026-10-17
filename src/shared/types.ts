@@ -403,3 +403,56 @@ export interface WorkspaceTasks {
   // Vínculos manuais sessão → tarefa (vencem a detecção automática).
   sessionLinks: Record<string, string>
 }
+
+// Revisão e entrega de uma tarefa multi-repo (Fase 9).
+export interface ReviewFile {
+  // Caminho relativo à worktree, com '/'.
+  rel: string
+  status: GitChangeKind
+  // null em arquivos binários.
+  added: number | null
+  deleted: number | null
+}
+
+export interface ReviewRepo {
+  repoName: string
+  worktree: string
+  branch: string | null
+  base: string
+  mergeBase: string | null
+  // Arquivos alterados desde o merge-base (commitados ou não).
+  files: ReviewFile[]
+  added: number
+  deleted: number
+  // Arquivos ainda não commitados e commits à frente da base.
+  uncommitted: number
+  ahead: number
+  pr: PullSummary | null
+  error: string | null
+}
+
+export interface TaskReview {
+  taskId: string
+  repos: ReviewRepo[]
+}
+
+export interface DeliverInput {
+  worktrees: string[]
+  // Mensagem de commit (obrigatória se algum repo tiver alterações não commitadas).
+  message: string
+  // Abrir PRs (senão, só commita).
+  openPRs: boolean
+  title: string
+  body: string
+  draft: boolean
+  // Branch base por worktree (padrão: a detectada na revisão).
+  bases: Record<string, string>
+}
+
+export interface DeliverResult {
+  repoName: string
+  worktree: string
+  committed: boolean
+  pr: { number: number; url: string; created: boolean } | null
+  error: string | null
+}

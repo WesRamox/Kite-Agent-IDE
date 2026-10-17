@@ -134,6 +134,7 @@ test('cria um PR a partir de uma branch local', async () => {
       head: 'feat/novo-recurso',
       base: 'main',
       draft: false,
+      repo: 'app',
     },
   ])
   // A branch foi enviada ao origin e passou a ter upstream.

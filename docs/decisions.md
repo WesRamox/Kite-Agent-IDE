@@ -357,3 +357,31 @@ Decisões fáceis de desfazer, não cobertas pelo `AGENTS.md`. Mais recente no f
   lugar do status do PR (PRs na Fase 9) e "nada à frente" em vez de "nada commitado"; as notas são
   editáveis (o desenho mostra só o texto); a tela de descoberta ganhou um campo para o padrão de
   pasta quando esse modo está escolhido.
+
+## Fase 9 — Revisão e entrega multi-repo
+
+- **Base de cada repo:** `refs/remotes/origin/HEAD` (a branch padrão do GitHub), senão `main` ou
+  `master` locais, senão `main`. O diálogo deixa trocar por repo antes de abrir o PR. Nomes de
+  branch vindos do renderer passam por uma validação (sem `-` no início, sem `..`) porque viram
+  argumento do git.
+- **O que entra na revisão:** tudo desde o merge-base com a base, inclusive o que não foi
+  commitado e arquivos novos (que contam as linhas do arquivo inteiro como adicionadas). É a mesma
+  base do diff dos agentes (Fase 5), agora com `+/-` por arquivo (`git diff --numstat`).
+- **Entrega em série:** por repo, commit (se houver alterações; `git add -A` na worktree), push e
+  PR (`GitHubService.createPR`). Falha num repo não interrompe os outros; o resultado mostra cada
+  um. Se já há um PR aberto para a branch, só faz o push e não mexe na descrição dele.
+- **Links cruzados:** depois de abrir os PRs, cada PR criado agora tem a descrição atualizada com
+  uma seção "PRs desta tarefa" com os links dos outros (inclusive de PRs que já existiam). Criar
+  e depois editar evita depender da ordem de criação.
+- **"Pedir ajuste ao agente"** escreve no PTY da sessão ligada à tarefa (a que espera há mais
+  tempo, senão a que trabalha) com bracketed paste e Enter, para um texto de várias linhas chegar
+  inteiro ao prompt do Claude Code. Sessão de fora do Kite: oferece "Retomar aqui".
+- **PR nos detalhes da tarefa:** busca o PR mais recente da branch de cada worktree ao abrir a
+  tarefa e depois de entregar. Sem GitHub ou sem login, não mostra nada (em vez de "sem PR").
+- **Tela de revisão fiel ao canvas**, como um painel da tarefa (com o explorer e os detalhes ao
+  lado, por isso a lista de arquivos tem largura fixa e o diff ocupa o resto). Diferenças: o diff
+  é o diff editor do Monaco (em linha por padrão, "Lado a lado" alterna), e "Abrir PR" vira um
+  link "PR #n" quando o repo já tem PR. O diálogo de commit e PR e o de pedir ajuste não estão no
+  canvas e seguem o estilo dos outros diálogos do app.
+- **Mock do GitHub nos e2e** passou a simular vários repos (`acme/<repo>`), busca de PR por
+  branch e edição da descrição.

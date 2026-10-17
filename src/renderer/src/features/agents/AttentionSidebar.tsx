@@ -23,6 +23,7 @@ import { useAttentionStore } from './attention.store'
 import { NewTaskForm } from './NewTaskForm'
 import { PresetEditor } from './PresetEditor'
 import { tildePath } from './session-format'
+import { openTaskReview } from '../tasks/review.actions'
 import { openTask, setTaskHidden } from '../tasks/tasks.actions'
 import { useTasksStore } from '../tasks/tasks.store'
 import { useAttentionItems } from './use-attention'
@@ -41,6 +42,7 @@ function taskMenu(item: AttentionItem): MenuItem[] {
   if (ws) {
     return [
       { label: 'Abrir tarefa', onSelect: () => void openTask(ws.id) },
+      { label: 'Revisar mudanças', onSelect: () => void openTaskReview(ws.id) },
       { label: 'Esconder da Central', onSelect: () => void setTaskHidden(ws.id, true) },
     ]
   }

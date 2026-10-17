@@ -52,6 +52,13 @@ import { disposeSession, isAgentPanel, isTerminalPanel } from '../features/termi
 import { DiscoverPanel } from '../features/tasks/DiscoverPanel'
 import { DiscoverTab } from '../features/tasks/DiscoverTab'
 import { TaskDetails } from '../features/tasks/TaskDetails'
+import { TaskReviewPanel } from '../features/tasks/TaskReviewPanel'
+import { TaskReviewTab } from '../features/tasks/TaskReviewTab'
+import {
+  isTaskReviewPanel,
+  TASK_REVIEW_COMPONENT,
+  TASK_REVIEW_TAB_COMPONENT,
+} from '../features/tasks/review.actions'
 import {
   DISCOVER_COMPONENT,
   DISCOVER_TAB_COMPONENT,
@@ -73,6 +80,7 @@ const components = {
   [CONNECT_COMPONENT]: ConnectAgentsPanel,
   [ATTENTION_COMPONENT]: CentralPanel,
   [DISCOVER_COMPONENT]: DiscoverPanel,
+  [TASK_REVIEW_COMPONENT]: TaskReviewPanel,
 }
 const tabComponents = {
   [EDITOR_COMPONENT]: EditorTab,
@@ -84,6 +92,7 @@ const tabComponents = {
   [CONNECT_TAB_COMPONENT]: ConnectAgentsTab,
   [ATTENTION_TAB_COMPONENT]: AttentionTab,
   [DISCOVER_TAB_COMPONENT]: DiscoverTab,
+  [TASK_REVIEW_TAB_COMPONENT]: TaskReviewTab,
 }
 
 // Painéis de editor são identificados pelo caminho do arquivo; os demais têm prefixo.
@@ -97,6 +106,7 @@ function isEditorPanel(id: string): boolean {
     isConnectPanel,
     isAttentionPanel,
     isDiscoverPanel,
+    isTaskReviewPanel,
   ].some((is) => is(id))
 }
 

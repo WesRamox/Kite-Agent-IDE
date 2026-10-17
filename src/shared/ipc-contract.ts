@@ -26,6 +26,9 @@ import type {
   HooksStatus,
   Task,
   TaskGrouping,
+  TaskReview,
+  DeliverInput,
+  DeliverResult,
   WorkspaceTasks,
   StartAgentInput,
   DeviceFlowPoll,
@@ -151,6 +154,20 @@ export interface InvokeChannels {
   'task:addExternalRepo': { args: [root: string]; result: WorkspaceTasks }
   'task:open': { args: [root: string, taskId: string]; result: Task }
   'task:addRepo': { args: [root: string, taskId: string, repo: string]; result: WorkspaceTasks }
+  // Revisão e entrega da tarefa (Fase 9). `bases`: branch base escolhida por worktree.
+  'review:task': {
+    args: [root: string, taskId: string, bases: Record<string, string>]
+    result: TaskReview
+  }
+  'review:diff': {
+    args: [root: string, taskId: string, worktree: string, base: string, rel: string]
+    result: GitDiff
+  }
+  'review:prs': { args: [root: string, taskId: string]; result: Record<string, PullSummary | null> }
+  'review:deliver': {
+    args: [root: string, taskId: string, input: DeliverInput]
+    result: DeliverResult[]
+  }
 
   // Resposta ao evento `app:closeRequested`: o renderer terminou de salvar e o app pode fechar.
   'app:confirmClose': { args: []; result: void }
@@ -232,6 +249,12 @@ export interface Api {
     open: Fn<'task:open'>
     addRepo: Fn<'task:addRepo'>
     onChanged: (listener: (tasks: WorkspaceTasks) => void) => Unsubscribe
+  }
+  review: {
+    task: Fn<'review:task'>
+    diff: Fn<'review:diff'>
+    prs: Fn<'review:prs'>
+    deliver: Fn<'review:deliver'>
   }
   hooks: {
     status: Fn<'hooks:status'>

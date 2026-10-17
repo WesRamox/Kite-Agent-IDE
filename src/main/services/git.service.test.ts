@@ -189,6 +189,22 @@ describe('GitService', () => {
     expect(git(repo, 'log', '-1', '--format=%s', 'main').trim()).toBe('inicial')
   })
 
+  it('revisão de tarefa: base padrão, +/- desde o merge-base, commits à frente e commit de tudo', async () => {
+    expect(await svc.defaultBase(repo)).toBe('main')
+    git(repo, 'switch', '-q', '-c', 'PAY-412')
+    await writeFile(p('a.txt'), 'um\ndois\ntres\n')
+    git(repo, 'commit', '-q', '-am', 'mais linhas')
+    await writeFile(p('novo.ts'), 'linha 1\nlinha 2\n')
+    const mergeBase = git(repo, 'merge-base', 'main', 'HEAD').trim()
+    expect(await svc.commitsSince(repo, mergeBase)).toBe(1)
+    const stats = await svc.numstatSince(repo, mergeBase, ['novo.ts'])
+    expect(stats.get('a.txt')).toEqual({ added: 2, deleted: 0 })
+    expect(stats.get('novo.ts')).toEqual({ added: 2, deleted: 0 })
+    await svc.commitAll(repo, 'adiciona novo.ts')
+    expect(git(repo, 'status', '--porcelain').trim()).toBe('')
+    expect(await svc.commitsSince(repo, mergeBase)).toBe(2)
+  })
+
   it('status de subpasta só lista arquivos dela', async () => {
     await writeFile(p('a.txt'), 'x\n')
     await writeFile(p('src', 'b.ts'), 'y\n')

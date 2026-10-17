@@ -1,4 +1,4 @@
-import type { GitFileChange, GitStatus, Task, WorkspaceTasks } from '@shared/types'
+import type { GitFileChange, GitStatus, PullSummary, Task, WorkspaceTasks } from '@shared/types'
 import { create } from 'zustand'
 import { indexStatus } from '../git/git.store'
 
@@ -10,8 +10,11 @@ interface TasksState {
   status: Record<string, GitStatus>
   byPath: Map<string, GitFileChange>
   changedDirs: Set<string>
+  // PR de cada worktree (null = sem PR), quando há GitHub e login.
+  prs: Record<string, PullSummary | null>
   set: (patch: Partial<Pick<TasksState, 'workspace' | 'activeTaskId'>>) => void
   setStatus: (path: string, status: GitStatus) => void
+  setPRs: (prs: Record<string, PullSummary | null>) => void
   reset: () => void
 }
 
@@ -21,7 +24,9 @@ export const useTasksStore = create<TasksState>((set) => ({
   status: {},
   byPath: new Map(),
   changedDirs: new Set(),
+  prs: {},
   set: (patch) => set(patch),
+  setPRs: (prs) => set((s) => ({ prs: { ...s.prs, ...prs } })),
   setStatus: (path, status) =>
     set((s) => {
       const all = { ...s.status, [path]: status }
@@ -41,6 +46,7 @@ export const useTasksStore = create<TasksState>((set) => ({
       status: {},
       byPath: new Map(),
       changedDirs: new Set(),
+      prs: {},
     }),
 }))
 

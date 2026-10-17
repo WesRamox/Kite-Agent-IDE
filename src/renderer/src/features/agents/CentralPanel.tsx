@@ -3,6 +3,7 @@ import { basename } from '../../lib/paths'
 import { isMac } from '../../lib/platform'
 import { openReview } from './agents.actions'
 import { touchedByRepo } from '../tasks/task-links'
+import { openTaskReview } from '../tasks/review.actions'
 import { openTask } from '../tasks/tasks.actions'
 import {
   ago,
@@ -88,11 +89,11 @@ export function CentralPanel() {
                       onClick={() =>
                         item.task
                           ? openReview(item.task.id)
-                          : item.wsTask && void openTask(item.wsTask.id)
+                          : item.wsTask && void openTaskReview(item.wsTask.id)
                       }
                       className="h-[30px] rounded-[7px] border border-border bg-surface-2 px-3 text-fg hover:bg-surface-3"
                     >
-                      {item.task ? 'Revisar' : 'Abrir tarefa'}
+                      Revisar
                     </button>
                   )}
                 </Row>
@@ -216,13 +217,17 @@ function WaitingCard({ item, now }: { item: AttentionItem; now: number }) {
             Retomar aqui
           </button>
         )}
+        {/* Como no desenho: agente no Kite → abrir a tarefa; fora dele → revisar as mudanças. */}
         {item.wsTask && (
           <button
             type="button"
-            onClick={() => item.wsTask && void openTask(item.wsTask.id)}
+            onClick={() =>
+              item.wsTask &&
+              void (item.inKite ? openTask(item.wsTask.id) : openTaskReview(item.wsTask.id))
+            }
             className={BTN_SECONDARY}
           >
-            Abrir tarefa
+            {item.inKite ? 'Abrir tarefa' : 'Revisar mudanças'}
           </button>
         )}
         {item.task && (

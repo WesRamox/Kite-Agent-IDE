@@ -131,6 +131,41 @@ export class GitHubService {
     return { number: data.number, url: data.html_url }
   }
 
+  // PR mais recente cuja branch de origem é `branch` (aberto, fechado ou mesclado).
+  async prForBranch(root: string, branch: string): Promise<PullSummary | null> {
+    const { ref, api } = await this.context(root)
+    const { data } = await call(() =>
+      api.rest.pulls.list({
+        owner: ref.owner,
+        repo: ref.repo,
+        head: `${ref.owner}:${branch}`,
+        state: 'all',
+        sort: 'created',
+        direction: 'desc',
+        per_page: 1,
+      }),
+    )
+    const first = data[0]
+    return first ? toPullSummary(first, ref) : null
+  }
+
+  async updatePRBody(root: string, number: number, body: string): Promise<void> {
+    const { ref, api } = await this.context(root)
+    await call(() =>
+      api.rest.pulls.update({ owner: ref.owner, repo: ref.repo, pull_number: number, body }),
+    )
+  }
+
+  // Envia a branch atual (PR já existente: só atualiza a branch remota).
+  async pushCurrent(root: string): Promise<void> {
+    const status = await this.deps.git.status(root)
+    if (!status.isRepo || !status.branch) {
+      throw new AppException('GIT_ERROR', 'HEAD destacado: crie uma branch antes do PR')
+    }
+    const ctx = await this.context(root)
+    await this.deps.git.push(root, status.branch, this.authEnv(ctx))
+  }
+
   // Baixa o PR numa branch local e abre uma worktree para ela (ou reaproveita a existente).
   async checkoutPR(root: string, number: number): Promise<{ path: string; branch: string }> {
     const ctx = await this.context(root)

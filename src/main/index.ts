@@ -27,6 +27,7 @@ import { registerGitHubIpc } from './ipc/github.ipc'
 import { registerSettingsIpc, themeSchema } from './ipc/settings.ipc'
 import { registerSystemIpc } from './ipc/system.ipc'
 import { registerTaskIpc } from './ipc/task.ipc'
+import { registerReviewIpc } from './ipc/review.ipc'
 import { registerTerminalIpc } from './ipc/terminal.ipc'
 import { registerWorkspaceIpc } from './ipc/workspace.ipc'
 import { JsonStore } from './lib/json-store'
@@ -52,6 +53,7 @@ import { fetchGitHubUser, GitHubService } from './services/github.service'
 import { PtyService } from './services/pty.service'
 import { SettingsService } from './services/settings.service'
 import { TaskService, taskStateSchema, type TaskState } from './services/task.service'
+import { TaskReviewService } from './services/task-review.service'
 import { TerminalSessionService } from './services/terminal-session.service'
 import { WatchService } from './services/watch.service'
 import { WorkspaceService, type WorkspaceState } from './services/workspace.service'
@@ -348,7 +350,14 @@ function createServices() {
     onAgentStatus: (id, status) => agentService.applyHookStatus(id, status),
     log: log.child('agent-events'),
   })
+  const reviewService = new TaskReviewService({
+    tasks: taskService,
+    git: gitService,
+    github: githubService,
+    log: log.child('review'),
+  })
   return {
+    reviewService,
     taskService,
     hooksService,
     agentEvents,
@@ -414,6 +423,7 @@ void app.whenReady().then(async () => {
   registerAgentIpc(services.agentService, ipcLog)
   registerAgentSessionIpc(services.agentEvents, services.hooksService, ipcLog)
   registerTaskIpc(services.taskService, ipcLog)
+  registerReviewIpc(services.reviewService, ipcLog)
   services.hooksService.ensureWrapper().catch((err: unknown) => {
     log.warn('não foi possível criar o kite-hook.sh', { error: (err as Error).message })
   })
