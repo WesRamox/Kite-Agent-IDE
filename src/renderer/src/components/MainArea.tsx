@@ -9,20 +9,6 @@ import {
   REVIEW_TAB_COMPONENT,
 } from '../features/agents/agents.actions'
 import { AgentTab } from '../features/agents/AgentTab'
-import {
-  ATTENTION_COMPONENT,
-  ATTENTION_TAB_COMPONENT,
-  isAttentionPanel,
-} from '../features/agents/attention.actions'
-import { AttentionTab } from '../features/agents/AttentionTab'
-import { CentralPanel } from '../features/agents/CentralPanel'
-import { ConnectAgentsPanel } from '../features/agents/ConnectAgentsPanel'
-import { ConnectAgentsTab } from '../features/agents/ConnectAgentsTab'
-import {
-  CONNECT_COMPONENT,
-  CONNECT_TAB_COMPONENT,
-  isConnectPanel,
-} from '../features/agents/sessions.actions'
 import { ReviewPanel } from '../features/agents/ReviewPanel'
 import { ReviewTab } from '../features/agents/ReviewTab'
 import { EDITOR_COMPONENT } from '../features/editor/editor.actions'
@@ -68,13 +54,6 @@ import { useTasksStore } from '../features/tasks/tasks.store'
 import { findPanel, registerDock, unregisterDock, WORKSPACE_CONTEXT } from '../lib/dock'
 import { isMac } from '../lib/platform'
 import { useContextStore } from '../stores/context.store'
-import { SettingsPanel } from '../features/settings/SettingsPanel'
-import { SettingsTab } from '../features/settings/SettingsTab'
-import {
-  isSettingsPanel,
-  SETTINGS_COMPONENT,
-  SETTINGS_TAB_COMPONENT,
-} from '../features/settings/settings.actions'
 
 const components = {
   [EDITOR_COMPONENT]: EditorPanel,
@@ -84,10 +63,7 @@ const components = {
   [ISSUE_COMPONENT]: IssuePanel,
   [CREATE_PR_COMPONENT]: CreatePullPanel,
   [REVIEW_COMPONENT]: ReviewPanel,
-  [CONNECT_COMPONENT]: ConnectAgentsPanel,
-  [ATTENTION_COMPONENT]: CentralPanel,
   [DISCOVER_COMPONENT]: DiscoverPanel,
-  [SETTINGS_COMPONENT]: SettingsPanel,
   [TASK_REVIEW_COMPONENT]: TaskReviewPanel,
 }
 const tabComponents = {
@@ -97,10 +73,7 @@ const tabComponents = {
   [GITHUB_TAB_COMPONENT]: GitHubTab,
   [AGENT_TAB_COMPONENT]: AgentTab,
   [REVIEW_TAB_COMPONENT]: ReviewTab,
-  [CONNECT_TAB_COMPONENT]: ConnectAgentsTab,
-  [ATTENTION_TAB_COMPONENT]: AttentionTab,
   [DISCOVER_TAB_COMPONENT]: DiscoverTab,
-  [SETTINGS_TAB_COMPONENT]: SettingsTab,
   [TASK_REVIEW_TAB_COMPONENT]: TaskReviewTab,
 }
 
@@ -112,10 +85,7 @@ function isEditorPanel(id: string): boolean {
     isDiffPanel,
     isGitHubPanel,
     isReviewPanel,
-    isConnectPanel,
-    isAttentionPanel,
     isDiscoverPanel,
-    isSettingsPanel,
     isTaskReviewPanel,
   ].some((is) => is(id))
 }

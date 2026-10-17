@@ -39,8 +39,9 @@ Kite is built around that workflow:
 
 ### Attention center
 
-The home screen groups every agent session into **Waiting for you**, **Working**, **To review**
-and **No agent**, ordered by how long each one has been waiting. Each card shows the command an
+The sidebar groups every agent session into **Waiting for you**, **Working**, **To review** and
+**No agent**, ordered by how long each one has been waiting. The attention center opens on top of
+the editor (from the status bar, the menu or `Ctrl/Cmd+J`), and each card shows the command an
 agent wants to run, or its last message. From there you can:
 
 - jump to the agent's terminal;
@@ -108,6 +109,8 @@ terminal output.
   opening PRs.
 - Six themes, from the default amber-on-graphite to light and paper ones, applied to the editor,
   the terminals and native dialogs.
+- A settings page (`Ctrl/Cmd+,`) for the theme, font sizes, terminal restore, notifications, task
+  grouping and the GitHub account.
 
 > [!NOTE]
 > The interface is currently in Portuguese (pt-BR). Translations are welcome, see

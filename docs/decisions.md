@@ -491,3 +491,14 @@ Decisões fáceis de desfazer, não cobertas pelo `AGENTS.md`. Mais recente no f
   vezes perde a captura sem `pointerup`, e a página ficava sem cliques), e o duplo clique é
   detectado no `pointerdown`. Nos e2e, mexer o mouse físico sobre a janela de teste atrapalha os
   testes de arrasto: a janela do Electron é real.
+
+## Janelas sobrepostas
+
+- A pedido do usuário, Configurações, Central de atenção e Conectar agentes deixaram de ser abas e
+  abrem numa janela sobreposta dentro do Kite (fundo escurecido; fecha com Esc, no X ou clicando
+  fora). Uma tela de cada vez. As ações que levam ao editor, a um terminal ou a uma tarefa (abrir
+  arquivo, terminal do agente, abrir tarefa, revisar, retomar aqui) fecham a janela.
+- Desvio do canvas (tela 1 mostrava a Central na área principal), combinado com o usuário.
+- O app não abre mais a Central sozinho ao iniciar: ela taparia tudo. Com um CLI conectado, abre na
+  sidebar da Central. `Ctrl/Cmd+J` vai direto ao terminal de quem espera quando ele roda no Kite;
+  senão, mostra o item na Central.

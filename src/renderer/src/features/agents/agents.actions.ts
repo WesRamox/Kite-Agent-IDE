@@ -11,6 +11,7 @@ import { closeTerminal, type TerminalParams } from '../terminal/terminal.actions
 import { agentPanelId, isAgentPanel, isTerminalPanel } from '../terminal/terminals'
 import { useAgentsStore } from './agents.store'
 import { useAttentionStore } from './attention.store'
+import { closeModal } from '../../stores/modal.store'
 
 export const REVIEW_COMPONENT = 'agent-review'
 export const AGENT_TAB_COMPONENT = 'agent-terminal'
@@ -63,6 +64,7 @@ export async function startAgent(input: StartAgentInput): Promise<boolean> {
 
 // Abre (ou foca) o terminal do agente, no grupo dos terminais.
 export function openAgentTerminal(taskId: string): void {
+  closeModal()
   const dock = getDockApi()
   const task = store().tasks.find((t) => t.id === taskId)
   if (!dock || !task) return
@@ -133,6 +135,7 @@ export async function removeAgent(taskId: string): Promise<void> {
 }
 
 export function openReview(taskId: string): void {
+  closeModal()
   const dock = getDockApi()
   const task = store().tasks.find((t) => t.id === taskId)
   if (!dock || !task) return

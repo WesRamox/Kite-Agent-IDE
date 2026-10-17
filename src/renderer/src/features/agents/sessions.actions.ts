@@ -1,5 +1,5 @@
 import { useEffect } from 'react'
-import { getDockApi } from '../../lib/dock'
+import { useModalStore } from '../../stores/modal.store'
 import { attempt } from '../../lib/ipc'
 import { toast } from '../../stores/toast.store'
 import { currentItems, focusItem, openCentral, showAttentionView } from './attention.actions'
@@ -7,17 +7,8 @@ import type { AgentCli, HooksStatus } from '@shared/types'
 import { CLI_LABEL, CLIS } from './cli'
 import { useSessionsStore } from './sessions.store'
 
-export const CONNECT_COMPONENT = 'connect-agents'
-export const CONNECT_TAB_COMPONENT = 'connect-agents-tab'
-const CONNECT_PANEL_ID = 'connect-agents'
-
-export function isConnectPanel(id: string): boolean {
-  return id === CONNECT_PANEL_ID
-}
-
 const store = () => useSessionsStore.getState()
 
-// Carrega as sessões e a integração de cada CLI; true se algum CLI está conectado.
 export async function loadSessions(): Promise<boolean> {
   const [sessions, ...statuses] = await Promise.all([
     window.api.agentSession.list(),
@@ -32,11 +23,10 @@ export async function loadSessions(): Promise<boolean> {
 // Mantém as sessões em dia com os hooks e reage ao clique nas notificações.
 export function useSessionsSync(): void {
   useEffect(() => {
-    // Com o Claude Code conectado, o app abre na Central de atenção (canvas, tela 1).
+    // Com o Claude Code conectado, o app abre na sidebar da Central (canvas, tela 1). A Central em si
+    // é uma janela sobreposta e só abre quando pedida.
     void loadSessions().then((connected) => {
-      if (!connected) return
-      showAttentionView()
-      openCentral()
+      if (connected) showAttentionView()
     })
     const offChanged = window.api.agentSession.onChanged((s) => store().upsert(s))
     const offFocus = window.api.agentSession.onFocus(({ id }) => {
@@ -54,20 +44,9 @@ export function useSessionsSync(): void {
   }, [])
 }
 
+// Abre "Conectar agentes" numa janela sobreposta.
 export function openConnectAgents(): void {
-  const dock = getDockApi()
-  if (!dock) return
-  const existing = dock.getPanel(CONNECT_PANEL_ID)
-  if (existing) {
-    existing.api.setActive()
-    return
-  }
-  dock.addPanel({
-    id: CONNECT_PANEL_ID,
-    component: CONNECT_COMPONENT,
-    tabComponent: CONNECT_TAB_COMPONENT,
-    title: 'Conectar agentes',
-  })
+  useModalStore.getState().show('connect')
 }
 
 export async function installHooks(cli: AgentCli = 'claude'): Promise<void> {

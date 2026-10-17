@@ -182,6 +182,8 @@ test('tarefas multi-repo: descobrir, abrir, editar dois repos, trocar e ligar se
         .getByRole('region', { name: 'Sessões detectadas' })
         .getByText('Vinculada a OPS-19 automaticamente'),
     ).toBeVisible()
+    // Fecha a janela sobreposta antes de mexer no resto da tela.
+    await page.keyboard.press('Escape')
     await page.locator('footer').getByRole('button', { name: '● 1 trabalhando' }).click()
     await expect(page.getByRole('region', { name: 'Trabalhando' })).toContainText('OPS-19')
     await expect(sidebar(page).getByRole('group', { name: 'Trabalhando' })).toContainText(

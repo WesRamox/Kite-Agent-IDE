@@ -7,6 +7,7 @@ import { currentItems, resumeHere } from '../agents/attention.actions'
 import { focusTerminalByPty } from '../terminal/terminal.actions'
 import { openTask, refreshTaskStatus } from './tasks.actions'
 import { useTasksStore } from './tasks.store'
+import { closeModal } from '../../stores/modal.store'
 
 export const TASK_REVIEW_COMPONENT = 'task-review'
 export const TASK_REVIEW_TAB_COMPONENT = 'task-review-tab'
@@ -22,6 +23,7 @@ export interface TaskReviewParams {
 
 // Abre a revisão da tarefa (canvas, tela 3) no contexto dela.
 export async function openTaskReview(taskId: string): Promise<void> {
+  closeModal()
   if (useTasksStore.getState().activeTaskId !== taskId) await openTask(taskId)
   const dock = getDockApi()
   const task = useTasksStore.getState().workspace?.tasks.find((t) => t.id === taskId)

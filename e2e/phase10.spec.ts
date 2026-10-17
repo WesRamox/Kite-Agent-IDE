@@ -93,6 +93,8 @@ test('Codex e Gemini avisam o Kite; nova tarefa com 2 repos abre o agente na pas
       tool_name: 'shell',
       tool_input: { command: ['pnpm', 'test'] },
     })
+    // Fecha a janela sobreposta antes de mexer no resto da tela.
+    await page.keyboard.press('Escape')
     await page.locator('footer').getByRole('button', { name: '● 1 esperando você' }).click()
     const waiting = page.getByRole('region', { name: 'Esperando você' })
     await expect(waiting.getByRole('article')).toContainText('Codex CLI · rodando fora do Kite')
@@ -120,6 +122,8 @@ test('Codex e Gemini avisam o Kite; nova tarefa com 2 repos abre o agente na pas
     await expect(waiting).toContainText('“Refatorei.”')
 
     // Nova tarefa com 2 repos pelo Kite.
+    // Fecha a janela sobreposta antes de mexer no resto da tela.
+    await page.keyboard.press('Escape')
     await page.getByRole('button', { name: '+ Nova' }).click()
     const form = page.getByRole('form', { name: 'Nova tarefa' })
     await form.getByLabel('Nome da tarefa').fill('PAY-415 Estorno parcial')

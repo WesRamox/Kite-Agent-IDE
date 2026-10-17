@@ -17,10 +17,12 @@ import {
   openPaths,
   replaceContent,
 } from './models'
+import { closeModal } from '../../stores/modal.store'
 
 export const EDITOR_COMPONENT = 'editor'
 
 export async function openFile(path: string): Promise<void> {
+  closeModal()
   const dock = getDockApi()
   if (!dock) return
   const existing = dock.getPanel(path)

@@ -12,6 +12,9 @@ async function connect(page: Page, userData: string): Promise<string> {
   await page.getByRole('button', { name: 'Conectar Claude Code' }).click()
   await page.getByRole('button', { name: 'Conectar', exact: true }).first().click()
   await expect(page.getByText('Conectado', { exact: true })).toBeVisible()
+  // "Conectar agentes" abre numa janela sobreposta: fecha antes de seguir.
+  await page.keyboard.press('Escape')
+  await expect(page.getByRole('dialog')).toHaveCount(0)
   const settings = JSON.parse(await readFile(path.join(userData, 'claude-settings.json'), 'utf8'))
   return settings.hooks.Stop[0].hooks[0].command as string
 }
@@ -112,12 +115,15 @@ test('central de atenção: quem espera, Ctrl+J, responder no terminal e retomar
       .poll(() => readFile(path.join(ws, 'resumed.txt'), 'utf8').catch(() => ''))
       .toBe('--resume sess-b\n')
 
-    // Ao reabrir com o Claude Code conectado, o app abre na Central.
+    // Ao reabrir com o Claude Code conectado, o app abre na sidebar da Central; a Central em si
+    // (janela sobreposta) só abre quando pedida.
     await closeWindow(app)
     const again = await launch(ws, { userData, keepWorkspace: true })
     try {
-      await expect(again.page.getByRole('heading', { name: 'Precisa de você' })).toBeVisible()
       await expect(again.page.getByRole('complementary')).toContainText('Tarefas')
+      await expect(again.page.getByRole('dialog')).toHaveCount(0)
+      await again.page.keyboard.press(`${mod}+j`)
+      await expect(again.page.getByRole('dialog', { name: 'Central de atenção' })).toBeVisible()
     } finally {
       await again.cleanup()
     }

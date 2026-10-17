@@ -88,9 +88,11 @@ lado a lado). Inclui o que ainda não foi commitado.
 ### Central de atenção
 
 O primeiro ícone da activity bar abre a **Central de atenção**: na sidebar, as tarefas e sessões
-agrupadas em Esperando você, Trabalhando, Para revisar e Sem agente; na área principal, o que
-cada agente parado pede (o comando que quer rodar ou a última mensagem), o que os outros estão
-fazendo e o que terminou. Com o Claude Code conectado, o app já abre nela.
+agrupadas em Esperando você, Trabalhando, Para revisar e Sem agente; numa janela sobreposta
+(status bar, menu Ver → "Abrir Central de atenção" ou `Ctrl/Cmd+J`), o que cada agente parado pede
+(o comando que quer rodar ou a última mensagem), o que os outros estão fazendo e o que terminou.
+Ela fecha com Esc, no X ou clicando fora, e as ações que levam a um terminal ou a uma tarefa a
+fecham sozinhas. Com o Claude Code conectado, o app já abre na sidebar dela.
 
 - `Ctrl/Cmd+K` troca de tarefa (no terminal, `Ctrl+Shift+K`).
 - `Ctrl/Cmd+J` vai para o próximo agente que espera, do que espera há mais tempo. Com o foco num

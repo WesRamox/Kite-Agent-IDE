@@ -122,7 +122,7 @@ export function buildMenus(): MenuDef[] {
           () => useLayoutStore.getState().toggleSidebar(),
           { shortcut: `${mod}B` },
         ),
-        item('Abrir Central na área principal', openCentral, { disabled: !root }),
+        item('Abrir Central de atenção', openCentral),
         sep,
         {
           kind: 'sub',

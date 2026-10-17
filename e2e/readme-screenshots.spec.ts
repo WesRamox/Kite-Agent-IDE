@@ -215,6 +215,7 @@ test('imagens do README', async () => {
       tool_input: { file_path: path.join(seo, 'web/src/app.tsx') },
     })
     await shot(page, 'connect')
+    await page.keyboard.press('Escape')
 
     // Tela 1: Central de atenção.
     await page
@@ -225,6 +226,7 @@ test('imagens do README', async () => {
       page.getByRole('region', { name: 'Esperando você' }).getByRole('article'),
     ).toHaveCount(2)
     await shot(page, 'central')
+    await page.keyboard.press('Escape')
 
     // Tela 2: tarefa com dois repos, em "Alterados", com um arquivo aberto.
     await page.keyboard.press('Control+k')

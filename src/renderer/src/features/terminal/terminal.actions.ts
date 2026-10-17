@@ -13,6 +13,7 @@ import {
   panelByPty,
   TERMINAL_PREFIX,
 } from './terminals'
+import { closeModal } from '../../stores/modal.store'
 
 export const TERMINAL_COMPONENT = 'terminal'
 const INITIAL_HEIGHT = 280
@@ -50,6 +51,7 @@ export interface OpenTerminalOptions {
 }
 
 export function openTerminal(opts: OpenTerminalOptions = {}): string | null {
+  closeModal()
   const dock = getDockApi()
   const root = useWorkspaceStore.getState().root
   if (!dock) return null
@@ -112,6 +114,7 @@ export function focusTerminalByPty(ptyId: string): boolean {
   const id = panelByPty(ptyId)
   const panel = id ? getDockApi()?.getPanel(id) : undefined
   if (!id || !panel) return false
+  closeModal()
   panel.api.setActive()
   getSession(id)?.focus()
   return true

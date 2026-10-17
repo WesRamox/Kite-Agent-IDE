@@ -15,6 +15,7 @@ import { login, logout } from '../github/github.actions'
 import { useGitHubStore } from '../github/github.store'
 import { GroupingFieldset } from '../tasks/GroupingFieldset'
 import { useTasksStore } from '../tasks/tasks.store'
+import { closeModal } from '../../stores/modal.store'
 
 // Página de configurações: aparência, idioma, editor e terminal, agentes, tarefas, GitHub e sobre.
 // Mesmo visual das telas de configuração do canvas (Hooks.dc.html): cards em surface-1.
@@ -275,6 +276,7 @@ function Agents() {
           type="button"
           className={BTN}
           onClick={() => {
+            closeModal()
             showAttentionView()
             useAttentionStore.getState().set({ mode: 'presets' })
           }}
@@ -376,6 +378,7 @@ function GitHub() {
             type="button"
             className={BTN}
             onClick={() => {
+              closeModal()
               const layout = useLayoutStore.getState()
               if (layout.activeView !== 'github' || !layout.sidebarVisible)
                 layout.selectView('github')

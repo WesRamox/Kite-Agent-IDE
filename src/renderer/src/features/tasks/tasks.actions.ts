@@ -11,6 +11,7 @@ import { useQuickOpenStore } from '../quick-open/quick-open.store'
 import { openAgentTerminal } from '../agents/agents.actions'
 import { useAgentsStore } from '../agents/agents.store'
 import { taskContext, useTasksStore } from './tasks.store'
+import { closeModal } from '../../stores/modal.store'
 
 export const DISCOVER_COMPONENT = 'discover'
 export const DISCOVER_TAB_COMPONENT = 'discover-tab'
@@ -100,6 +101,7 @@ async function prepareTask(id: string): Promise<boolean> {
 
 // Abre a tarefa no próprio contexto (abas e terminais separados) e mostra o explorer dela.
 export async function openTask(id: string): Promise<void> {
+  closeModal()
   if (!(await prepareTask(id))) return
   useQuickOpenStore.getState().invalidate()
   useContextStore.getState().activate(taskContext(id))
@@ -111,12 +113,14 @@ export async function openTask(id: string): Promise<void> {
 
 // Volta ao contexto do workspace (a pasta aberta, sem tarefa).
 export function showWorkspace(): void {
+  closeModal()
   useQuickOpenStore.getState().invalidate()
   useContextStore.getState().activate(WORKSPACE_CONTEXT)
   store().set({ activeTaskId: null })
 }
 
 export function openDiscover(): void {
+  closeModal()
   const dock = getDockApi()
   if (!dock) return
   const existing = dock.getPanel(DISCOVER_PANEL_ID)

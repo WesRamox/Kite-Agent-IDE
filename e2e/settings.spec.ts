@@ -63,6 +63,9 @@ test('configurações: fonte do editor e do terminal, notificações, idioma e p
       .toMatchObject({ editorFontSize: 15, terminalFontSize: 10, notifications: false })
 
     // O editor e o terminal abertos usam as fontes novas.
+    // Fecha a janela sobreposta antes de mexer no resto da tela.
+    await page.keyboard.press('Escape')
+    await expect(page.getByRole('dialog')).toHaveCount(0)
     await page.locator('.dv-tab', { hasText: 'a.ts' }).click()
     await expect
       .poll(() =>
@@ -96,6 +99,7 @@ test('configurações: fonte do editor e do terminal, notificações, idioma e p
     try {
       await again.page.getByRole('button', { name: 'Abrir pasta' }).first().click()
       await expect(again.page.locator('[role="tree"]').first()).toBeVisible()
+      await again.page.locator('[role="tree"]').first().click()
       await again.page.keyboard.press(`${mod}+Comma`)
       await expect(again.page.getByRole('group', { name: 'Fonte do editor' })).toContainText(
         '15 px',

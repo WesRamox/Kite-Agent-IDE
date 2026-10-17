@@ -1,4 +1,4 @@
-import { getDockApi } from '../../lib/dock'
+import { useModalStore } from '../../stores/modal.store'
 import { useLayoutStore } from '../../stores/layout.store'
 import { toast } from '../../stores/toast.store'
 import { useWorkspaceStore } from '../../stores/workspace.store'
@@ -12,14 +12,6 @@ import { useSessionsStore } from './sessions.store'
 import { useTasksStore } from '../tasks/tasks.store'
 import { buildItems } from './use-attention'
 
-export const ATTENTION_COMPONENT = 'attention'
-export const ATTENTION_TAB_COMPONENT = 'attention-tab'
-const ATTENTION_PANEL_ID = 'attention'
-
-export function isAttentionPanel(id: string): boolean {
-  return id === ATTENTION_PANEL_ID
-}
-
 export function currentItems(now = Date.now()): AttentionItem[] {
   return buildItems(
     useSessionsStore.getState().sessions,
@@ -29,23 +21,9 @@ export function currentItems(now = Date.now()): AttentionItem[] {
   )
 }
 
-// Abre (ou foca) a Central de atenção na área principal.
+// Abre a Central de atenção numa janela sobreposta.
 export function openCentral(): void {
-  const dock = getDockApi()
-  if (!dock) return
-  const existing = dock.getPanel(ATTENTION_PANEL_ID)
-  if (existing) {
-    existing.api.setActive()
-    return
-  }
-  const first = dock.panels[0]
-  dock.addPanel({
-    id: ATTENTION_PANEL_ID,
-    component: ATTENTION_COMPONENT,
-    tabComponent: ATTENTION_TAB_COMPONENT,
-    title: 'Central de atenção',
-    ...(first ? { position: { referencePanel: first.id, direction: 'within' as const } } : {}),
-  })
+  useModalStore.getState().show('central')
 }
 
 export function showAttentionView(): void {
@@ -53,14 +31,18 @@ export function showAttentionView(): void {
   if (layout.activeView !== 'attention' || !layout.sidebarVisible) layout.selectView('attention')
 }
 
-// Destaca o item na Central e abre o terminal em que ele roda: a aba de um agente do Kite
-// (mesmo encerrado, para ver o que ele fez) ou o terminal do Kite de uma sessão viva.
+// Destaca o item e abre o terminal em que ele roda: a aba de um agente do Kite (mesmo
+// encerrado, para ver o que ele fez) ou o terminal do Kite de uma sessão viva. Sem terminal no
+// Kite, mostra o item na Central.
 export function focusItem(item: AttentionItem): void {
   useAttentionStore.getState().set({ highlighted: item.id })
-  openCentral()
   if (item.task) openAgentTerminal(item.task.id)
-  else if (item.session?.ptyId && item.session.status !== 'ended')
-    focusTerminalByPty(item.session.ptyId)
+  else if (
+    !item.session?.ptyId ||
+    item.session.status === 'ended' ||
+    !focusTerminalByPty(item.session.ptyId)
+  )
+    openCentral()
 }
 
 // "Responder no terminal": a aba do agente ou o terminal do Kite em que ele roda.

@@ -39,9 +39,10 @@ O Kite foi feito em torno desse jeito de trabalhar:
 
 ### Central de atenção
 
-A tela inicial agrupa as sessões de agente em **Esperando você**, **Trabalhando**, **Para revisar**
-e **Sem agente**, em ordem de quem espera há mais tempo. Cada card mostra o comando que o agente
-quer rodar, ou a última mensagem dele. Dali você pode:
+A sidebar agrupa as sessões de agente em **Esperando você**, **Trabalhando**, **Para revisar** e
+**Sem agente**, em ordem de quem espera há mais tempo. A Central abre por cima do editor (pela status
+bar, pelo menu ou com `Ctrl/Cmd+J`), e cada card mostra o comando que o agente quer rodar, ou a
+última mensagem dele. Dali você pode:
 
 - ir até o terminal do agente;
 - retomar uma sessão externa dentro do Kite (`claude --resume`, `codex resume`, `gemini --resume`);
@@ -108,6 +109,8 @@ deduzido pela saída do terminal.
   de um PR e criação de PRs.
 - Seis temas, do padrão âmbar sobre grafite aos claros, aplicados ao editor, aos terminais e aos
   diálogos nativos.
+- Página de configurações (`Ctrl/Cmd+,`): tema, tamanho das fontes, restaurar terminais,
+  notificações, agrupamento das tarefas e conta do GitHub.
 
 > [!NOTE]
 > Por enquanto a interface está em português. Traduções são bem-vindas, veja
