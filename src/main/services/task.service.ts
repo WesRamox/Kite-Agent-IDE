@@ -1,8 +1,8 @@
 import { randomUUID } from 'node:crypto'
-import { readFile, realpath, stat } from 'node:fs/promises'
+import { mkdir, readFile, realpath, stat, writeFile } from 'node:fs/promises'
 import path from 'node:path'
 import { z } from 'zod'
-import type { Task, TaskGrouping, WorkspaceTasks } from '@shared/types'
+import type { CreateTaskInput, Task, TaskGrouping, WorkspaceTasks } from '@shared/types'
 import { AppException } from '../lib/errors'
 import { parseWorktrees, worktreeDirName } from '../lib/git-parse'
 import type { JsonStore } from '../lib/json-store'
@@ -305,6 +305,110 @@ export class TaskService {
     const next = await this.discover(root)
     this.deps.emit(next)
     return next
+  }
+
+  // Nova tarefa (Fase 10): uma worktree por repositório, no padrão de pasta do workspace
+  // (.worktrees/{tarefa}/{repo} por padrão). Quando a pasta aberta é ela mesma o repositório,
+  // a worktree vai para ../<repo>-worktrees/<branch>, como nas fases anteriores.
+  async create(root: string, input: CreateTaskInput): Promise<Task> {
+    const ws = await this.discover(root)
+    const cfg = await this.config(root)
+    const repos = input.repos.map((p) => ws.repos.find((r) => r.path === p))
+    if (repos.length === 0 || repos.some((r) => !r)) {
+      throw new AppException('INVALID_ARGS', 'Escolha os repositórios da tarefa')
+    }
+    const name = input.name.trim()
+    const branch = input.branch.trim()
+    if (!name || !branch) throw new AppException('INVALID_ARGS', 'Informe o nome e a branch')
+    const first = repos[0]?.path ?? root
+    await this.deps.run(first, ['check-ref-format', '--branch', branch]).catch(() => {
+      throw new AppException('INVALID_ARGS', `Nome de branch inválido: ${branch}`)
+    })
+    const key = worktreeDirName(branch)
+    const pattern =
+      cfg.grouping.mode === 'pattern' && cfg.grouping.pattern.includes('{repo}')
+        ? cfg.grouping.pattern
+        : DEFAULT_CONFIG.grouping.pattern
+    const single = repos.length === 1 && first === root
+    const plan = repos.map((r) => {
+      const repo = r as { path: string; name: string }
+      const dir = single
+        ? path.join(path.dirname(root), `${repo.name}-worktrees`, key)
+        : path.resolve(root, pattern.replaceAll('{tarefa}', key).replaceAll('{repo}', repo.name))
+      return { repo, dir }
+    })
+    for (const { dir } of plan) {
+      if (await exists(dir)) throw new AppException('ALREADY_EXISTS', `A pasta ${dir} já existe`)
+    }
+    const created: string[] = []
+    for (const { repo, dir } of plan) {
+      const hasBranch = await this.deps
+        .run(repo.path, ['rev-parse', '--verify', '-q', `refs/heads/${branch}^{commit}`])
+        .then(
+          (out) => out.trim() !== '',
+          () => false,
+        )
+      try {
+        await this.deps.run(
+          repo.path,
+          hasBranch
+            ? ['worktree', 'add', dir, branch]
+            : ['worktree', 'add', '-b', branch, dir, 'HEAD'],
+        )
+      } catch (err) {
+        throw new AppException('GIT_ERROR', `${repo.name}: ${(err as Error).message}`)
+      }
+      created.push(await realpath(dir))
+    }
+    // Pasta da tarefa (quando as worktrees ficam juntas): o título vai num TASK.md.
+    const folder = single ? null : path.dirname(plan[0]?.dir ?? root)
+    if (folder && plan.every((p) => path.dirname(p.dir) === folder)) {
+      await mkdir(folder, { recursive: true })
+      const file = path.join(folder, 'TASK.md')
+      if (!(await exists(file))) await writeFile(file, `# ${name}\n`)
+    }
+    let ws2 = await this.update(root, (c) => ({ ...c, imported: true }))
+    let task = ws2.tasks.find((t) => t.worktrees.some((w) => created.includes(w.path)))
+    // Agrupamento manual (ou algo que não juntou as worktrees): monta a tarefa à mão.
+    if (!task || !created.every((p) => task?.worktrees.some((w) => w.path === p))) {
+      const id = `manual:${randomUUID()}`
+      ws2 = await this.update(root, (c) => ({
+        ...c,
+        overrides: {
+          ...c.overrides,
+          manual: [...c.overrides.manual, { id, name }],
+          moves: { ...c.overrides.moves, ...Object.fromEntries(created.map((p) => [p, id])) },
+        },
+      }))
+      task = ws2.tasks.find((t) => t.id === id)
+    } else if (task.name !== name) {
+      const id = task.id
+      ws2 = await this.update(root, (c) => ({
+        ...c,
+        overrides: { ...c.overrides, names: { ...c.overrides.names, [id]: name } },
+      }))
+      task = ws2.tasks.find((t) => t.id === id)
+    }
+    if (!task) throw new AppException('INTERNAL', 'A tarefa criada não foi encontrada')
+    this.deps.emit(ws2)
+    return task
+  }
+
+  // Onde um agente da tarefa roda: a pasta da tarefa ou, sem ela, a primeira worktree.
+  async agentTarget(
+    root: string,
+    taskId: string,
+  ): Promise<{ cwd: string; repoPath: string; branch: string; name: string; id: string }> {
+    const task = await this.open(root, taskId)
+    const first = task.worktrees[0]
+    if (!first) throw new AppException('NOT_FOUND', 'A tarefa não tem worktrees')
+    return {
+      cwd: task.folder ?? first.path,
+      repoPath: first.repo,
+      branch: commonBranch(task) ?? task.key,
+      name: task.name,
+      id: task.id,
+    }
   }
 
   private checkRoot(root: string): void {

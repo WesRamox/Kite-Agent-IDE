@@ -70,8 +70,10 @@ const showCentral = (page: Page) =>
     .getByRole('navigation', { name: 'Atividades' })
     .getByRole('button', { name: /^Central de atenção/ })
     .click()
-const wtOf = (name: string) =>
-  path.join(`${ctx.workspace}-worktrees`, `agent-${name.toLowerCase().replace(/ /g, '-')}`)
+// Fase 10: a branch sugerida é o nome da tarefa ("Tarefa A" → "Tarefa-A"); num workspace que é
+// um repo só, a worktree fica em ../<repo>-worktrees/<branch>.
+const branchOf = (name: string) => name.replace(/ /g, '-')
+const wtOf = (name: string) => path.join(`${ctx.workspace}-worktrees`, branchOf(name))
 
 async function startTask(page: Page, name: string, prompt: string) {
   await page.getByRole('button', { name: '+ Nova' }).click()
@@ -80,6 +82,9 @@ async function startTask(page: Page, name: string, prompt: string) {
   await form.getByLabel('Agente').selectOption('custom')
   await form.getByLabel('Prompt inicial').fill(prompt)
   await form.getByRole('button', { name: 'Iniciar agente' }).click()
+  // Criar a tarefa abre o explorer dela; a lista fica na Central.
+  await expect(page.getByRole('button', { name: 'Trocar de tarefa' })).toContainText(name)
+  await showCentral(page)
   await expect(card(page, name)).toBeVisible()
 }
 
@@ -118,7 +123,7 @@ test('aceite: 3 agentes em paralelo em 3 worktrees, status de cada um e revisão
     await expect
       .poll(() => readFile(path.join(wt, `saida-${slug}.txt`), 'utf8').catch(() => ''))
       .toBe(`${prompt}\n`)
-    expect(git(wt, 'branch', '--show-current').trim()).toBe(`agent/${slug}`)
+    expect(git(wt, 'branch', '--show-current').trim()).toBe(branchOf(name))
   }
   // Parados esperando input → "esperando você", com notificação.
   for (const name of ['Tarefa A', 'Tarefa B', 'Tarefa C']) {
@@ -156,7 +161,7 @@ test('aceite: 3 agentes em paralelo em 3 worktrees, status de cada um e revisão
     .getByLabel('Tarefa Tarefa A')
     .getByRole('button', { name: 'Revisar' })
     .click()
-  const files = page.getByRole('list', { name: 'Arquivos alterados' })
+  const files = page.getByRole('complementary', { name: 'Arquivos alterados' })
   await expect(files).toContainText('README.md')
   await expect(files).toContainText('saida-tarefa-a.txt')
   await files.getByText('README.md').click()

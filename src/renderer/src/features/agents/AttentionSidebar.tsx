@@ -39,21 +39,32 @@ const GROUP_DOT: Record<AttentionGroup, string> = {
 
 function taskMenu(item: AttentionItem): MenuItem[] {
   const ws = item.wsTask
+  const task = item.task
+  // Ações do agente do Kite (quando há um, inclusive dentro de uma tarefa multi-repo).
+  const agent: MenuItem[] = task
+    ? [
+        { label: 'Terminal do agente', onSelect: () => openAgentTerminal(task.id) },
+        task.alive
+          ? { label: 'Parar agente', onSelect: () => void stopAgent(task.id) }
+          : { label: 'Reiniciar agente', onSelect: () => void restartAgent(task.id) },
+      ]
+    : []
   if (ws) {
     return [
       { label: 'Abrir tarefa', onSelect: () => void openTask(ws.id) },
       { label: 'Revisar mudanças', onSelect: () => void openTaskReview(ws.id) },
+      ...agent,
+      ...(task
+        ? [{ label: 'Remover agente', danger: true, onSelect: () => void removeAgent(task.id) }]
+        : []),
       { label: 'Esconder da Central', onSelect: () => void setTaskHidden(ws.id, true) },
     ]
   }
-  const task = item.task
   if (!task) return []
   return [
-    { label: 'Terminal do agente', onSelect: () => openAgentTerminal(task.id) },
+    agent[0] as MenuItem,
     { label: 'Revisar alterações', onSelect: () => openReview(task.id) },
-    task.alive
-      ? { label: 'Parar agente', onSelect: () => void stopAgent(task.id) }
-      : { label: 'Reiniciar agente', onSelect: () => void restartAgent(task.id) },
+    agent[1] as MenuItem,
     { label: 'Remover tarefa', danger: true, onSelect: () => void removeAgent(task.id) },
   ]
 }

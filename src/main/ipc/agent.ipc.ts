@@ -2,6 +2,7 @@ import { z } from 'zod'
 import { presetSchema } from '../lib/agent-schemas'
 import type { Logger } from '../lib/logger'
 import type { AgentService } from '../services/agent.service'
+import type { TaskService } from '../services/task.service'
 import { registerHandler } from './register'
 import { absPath } from './schemas'
 
@@ -13,7 +14,7 @@ const startInput = z.object({
   prompt: z.string().max(20_000),
 })
 
-export function registerAgentIpc(agents: AgentService, log: Logger): void {
+export function registerAgentIpc(agents: AgentService, tasks: TaskService, log: Logger): void {
   registerHandler('agent:presets', z.tuple([]), () => agents.presets(), log)
   registerHandler(
     'agent:savePresets',
@@ -23,6 +24,20 @@ export function registerAgentIpc(agents: AgentService, log: Logger): void {
   )
   registerHandler('agent:list', z.tuple([]), () => agents.list(), log)
   registerHandler('agent:start', z.tuple([startInput]), (i) => agents.start(i), log)
+  registerHandler(
+    'agent:startInTask',
+    z.tuple([
+      absPath,
+      z.string().min(1).max(4200),
+      z.string().min(1).max(40),
+      z.string().max(20_000),
+    ]),
+    async (root, taskId, presetId, prompt) => {
+      const target = await tasks.agentTarget(root, taskId)
+      return agents.startIn({ ...target, wsTaskId: target.id, presetId, prompt })
+    },
+    log,
+  )
   registerHandler('agent:stop', z.tuple([id]), (i) => agents.stop(i), log)
   registerHandler('agent:restart', z.tuple([id]), (i) => agents.restart(i), log)
   registerHandler('agent:remove', z.tuple([id, z.boolean()]), (i, w) => agents.remove(i, w), log)

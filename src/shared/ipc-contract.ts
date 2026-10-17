@@ -19,6 +19,7 @@ import type {
   GitWorktree,
   CreatePullInput,
   AgentAttach,
+  AgentCli,
   AgentPreset,
   AgentReview,
   AgentSession,
@@ -26,6 +27,7 @@ import type {
   HooksStatus,
   Task,
   TaskGrouping,
+  CreateTaskInput,
   TaskReview,
   DeliverInput,
   DeliverResult,
@@ -131,9 +133,9 @@ export interface InvokeChannels {
   'agent:reviewDiff': { args: [id: string, path: string]; result: GitDiff }
   // Sessões vistas pelos hooks dos CLIs (Fase 6).
   'agentSession:list': { args: []; result: AgentSession[] }
-  'hooks:status': { args: []; result: HooksStatus }
-  'hooks:install': { args: []; result: HooksStatus }
-  'hooks:uninstall': { args: []; result: HooksStatus }
+  'hooks:status': { args: [cli: AgentCli]; result: HooksStatus }
+  'hooks:install': { args: [cli: AgentCli]; result: HooksStatus }
+  'hooks:uninstall': { args: [cli: AgentCli]; result: HooksStatus }
   // Tarefas multi-repo (Fase 8). `root` é a pasta aberta.
   'task:discover': { args: [root: string]; result: WorkspaceTasks }
   'task:watch': { args: [root: string]; result: void }
@@ -154,6 +156,12 @@ export interface InvokeChannels {
   'task:addExternalRepo': { args: [root: string]; result: WorkspaceTasks }
   'task:open': { args: [root: string, taskId: string]; result: Task }
   'task:addRepo': { args: [root: string, taskId: string, repo: string]; result: WorkspaceTasks }
+  // Nova tarefa e agente na pasta dela (Fase 10).
+  'task:create': { args: [root: string, input: CreateTaskInput]; result: Task }
+  'agent:startInTask': {
+    args: [root: string, taskId: string, presetId: string, prompt: string]
+    result: AgentTask
+  }
   // Revisão e entrega da tarefa (Fase 9). `bases`: branch base escolhida por worktree.
   'review:task': {
     args: [root: string, taskId: string, bases: Record<string, string>]
@@ -226,6 +234,7 @@ export interface Api {
     attach: Fn<'agent:attach'>
     review: Fn<'agent:review'>
     reviewDiff: Fn<'agent:reviewDiff'>
+    startInTask: Fn<'agent:startInTask'>
     onStatus: (listener: (task: AgentTask & { removed?: boolean }) => void) => Unsubscribe
     onFocus: (listener: (event: { id: string }) => void) => Unsubscribe
   }
@@ -248,6 +257,7 @@ export interface Api {
     addExternalRepo: Fn<'task:addExternalRepo'>
     open: Fn<'task:open'>
     addRepo: Fn<'task:addRepo'>
+    create: Fn<'task:create'>
     onChanged: (listener: (tasks: WorkspaceTasks) => void) => Unsubscribe
   }
   review: {

@@ -1,10 +1,11 @@
-import type { AgentSession, HooksStatus } from '@shared/types'
+import type { AgentCli, AgentSession, HooksStatus } from '@shared/types'
 import { useState } from 'react'
 import { ContextMenu, type MenuItem } from '../../components/ContextMenu'
 import { linkSessions } from '../tasks/task-links'
 import { linkSession } from '../tasks/tasks.actions'
 import { useTasksStore } from '../tasks/tasks.store'
 import { openAgentTerminal } from './agents.actions'
+import { CLI_LABEL, CLI_SHORT, CLIS } from './cli'
 import { showAttentionView } from './attention.actions'
 import { useAttentionStore } from './attention.store'
 import { useAgentsStore } from './agents.store'
@@ -41,6 +42,8 @@ const TONE_DOT: Record<SessionTone, string> = {
 
 export function ConnectAgentsPanel() {
   const hooks = useSessionsStore((s) => s.hooks)
+  // CLI cujo arquivo aparece em "O que muda": o último em que você mexeu.
+  const [preview, setPreview] = useState<AgentCli>('claude')
   const all = useSessionsStore((s) => s.sessions)
   const sessions = all.filter((x) => x.status !== 'ended')
 
@@ -62,21 +65,14 @@ export function ConnectAgentsPanel() {
 
           <div className="flex flex-wrap items-start gap-6">
             <section aria-label="Integrações" className="flex flex-[1_1_420px] flex-col gap-2.5">
-              <ClaudeCard hooks={hooks} />
-              <CliCard
-                name="Codex CLI"
-                how="Comando de notificação do Codex: avisa quando termina o turno."
-                state="Em breve"
-                action="Conectar"
-                disabled
-              />
-              <CliCard
-                name="Gemini CLI"
-                how="Hooks do Gemini CLI, quando disponíveis na versão instalada."
-                state="Em breve"
-                action="Conectar"
-                disabled
-              />
+              {CLIS.map((cli) => (
+                <HookCard
+                  key={cli}
+                  cli={cli}
+                  hooks={hooks[cli] ?? null}
+                  onTouch={() => setPreview(cli)}
+                />
+              ))}
               <CliCard
                 name="Outros CLIs"
                 how="Heurística pelo terminal: só para agentes abertos dentro do Kite."
@@ -87,7 +83,9 @@ export function ConnectAgentsPanel() {
                   showAttentionView()
                 }}
               />
-              {hooks && <SettingsPreview hooks={hooks} />}
+              {hooks[preview] && (
+                <SettingsPreview hooks={hooks[preview]} cli={preview} onPick={setPreview} />
+              )}
             </section>
 
             <section
@@ -102,8 +100,8 @@ export function ConnectAgentsPanel() {
               </div>
               {sessions.length === 0 ? (
                 <p className="rounded-[10px] border border-dashed border-border px-4 py-3 text-xs leading-[1.45] text-fg-muted">
-                  Nenhuma sessão ainda. Depois de conectar, abra o Claude Code em qualquer terminal
-                  e ela aparece aqui.
+                  Nenhuma sessão ainda. Depois de conectar, abra o agente em qualquer terminal e ela
+                  aparece aqui.
                 </p>
               ) : (
                 sessions.map((s) => <SessionCard key={s.id} session={s} />)
@@ -129,6 +127,8 @@ function CliCard(props: {
 }) {
   return (
     <div
+      role="group"
+      aria-label={props.name}
       className={`flex flex-wrap items-center gap-3 rounded-[10px] border bg-surface-1 px-4 py-3.5 ${
         props.active ? 'border-accent/20' : 'border-border'
       }`}
@@ -151,46 +151,81 @@ function CliCard(props: {
   )
 }
 
-function ClaudeCard({ hooks }: { hooks: HooksStatus | null }) {
-  const how = 'Hooks: pede permissão, terminou o turno, voltou a trabalhar, arquivos tocados.'
+const HOW: Record<AgentCli, string> = {
+  claude: 'Hooks: pede permissão, terminou o turno, voltou a trabalhar, arquivos tocados.',
+  codex:
+    'Hooks do Codex: pede permissão, terminou o turno, arquivos do apply_patch. O Codex pede para confiar nos hooks na primeira vez.',
+  gemini: 'Hooks do Gemini CLI: pede permissão, terminou o turno, arquivos editados.',
+}
+
+function HookCard(props: { cli: AgentCli; hooks: HooksStatus | null; onTouch: () => void }) {
+  const { cli, hooks } = props
+  const name = CLI_LABEL[cli]
+  const act = (fn: () => Promise<void>) => {
+    props.onTouch()
+    void fn()
+  }
   if (hooks?.error) {
     return (
       <CliCard
-        name="Claude Code"
-        how={how}
-        state="settings.json inválido"
+        name={name}
+        how={HOW[cli]}
+        state="configuração inválida"
         stateClass="text-danger"
         action="Tentar de novo"
-        onAction={() => void installHooks()}
+        onAction={() => act(() => installHooks(cli))}
       />
     )
   }
   const installed = hooks?.installed ?? false
   return (
     <CliCard
-      name="Claude Code"
-      how={how}
+      name={name}
+      how={HOW[cli]}
       state={installed ? 'Conectado' : 'Não conectado'}
       stateClass={installed ? 'text-success' : 'text-fg-muted'}
       action={installed ? 'Remover' : 'Conectar'}
       primary={!installed}
       active={installed}
       disabled={!hooks}
-      onAction={() => void (installed ? uninstallHooks() : installHooks())}
+      onAction={() => act(() => (installed ? uninstallHooks(cli) : installHooks(cli)))}
     />
   )
 }
 
-function SettingsPreview({ hooks }: { hooks: HooksStatus }) {
+function SettingsPreview(props: {
+  hooks: HooksStatus
+  cli: AgentCli
+  onPick: (cli: AgentCli) => void
+}) {
+  const { hooks } = props
   return (
     <div className="flex flex-col gap-2.5 rounded-[10px] border border-border bg-surface-1 px-4 py-3.5">
-      <span className={LABEL}>O que muda no {hooks.settingsPath}</span>
+      <div className="flex flex-wrap items-center gap-2">
+        <span className={LABEL}>O que muda no {hooks.settingsPath}</span>
+        <span className="flex-1" />
+        <div role="group" aria-label="Ver arquivo de" className="flex gap-1">
+          {CLIS.map((c) => (
+            <button
+              key={c}
+              type="button"
+              aria-pressed={c === props.cli}
+              onClick={() => props.onPick(c)}
+              className={`h-6 rounded-md px-2 text-[11px] ${
+                c === props.cli ? 'bg-surface-3 text-fg' : 'text-fg-muted hover:text-fg'
+              }`}
+            >
+              {CLI_SHORT[c]}
+            </button>
+          ))}
+        </div>
+      </div>
       <pre className="m-0 whitespace-pre-wrap rounded-lg border border-border bg-surface-0 p-3 font-geist-mono text-xs leading-[1.55] text-fg/80">
         {hooks.snippet}
       </pre>
       <p className="text-xs leading-normal text-fg-muted">
         {hooks.error
-          ? `Não foi possível ler o arquivo: ${hooks.error}. O Kite não altera um settings.json inválido.`
+          ? `Não foi possível ler o arquivo: ${hooks.error}. O Kite não altera um arquivo inválido.`
           : 'Seus hooks atuais são mantidos. Os eventos ficam só na sua máquina: o Kite guarda caminhos de arquivo e a última mensagem do agente, nunca o conteúdo dos arquivos. Dá para remover em um clique.'}
       </p>
     </div>
@@ -243,7 +278,7 @@ function SessionCard({ session }: { session: AgentSession }) {
     <div className="flex flex-col gap-2 rounded-[10px] border border-border bg-surface-1 px-4 py-3">
       <div className="flex flex-wrap items-center gap-2.5">
         <span className={`size-2 rounded-full ${TONE_DOT[tone]}`} />
-        <span className="font-medium">Claude Code</span>
+        <span className="font-medium">{CLI_LABEL[session.cli]}</span>
         <span className="font-geist-mono text-xs text-fg-muted">{tildePath(session.cwd)}</span>
         <span className={`ml-auto text-xs ${TONE_TEXT[tone]}`}>{sessionStatusLabel(session)}</span>
       </div>

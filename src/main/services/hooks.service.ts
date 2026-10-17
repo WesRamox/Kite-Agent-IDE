@@ -4,16 +4,19 @@ import type { HooksStatus } from '@shared/types'
 import {
   addKiteHooks,
   hasKiteHooks,
+  HOOK_TARGETS,
   hookCommand,
   kiteSnippet,
   removeKiteHooks,
+  type HookTarget,
   type Json,
 } from '../lib/claude-settings'
 import { AppException } from '../lib/errors'
 import type { Logger } from '../lib/logger'
 
 export interface HooksServiceDeps {
-  // ~/.claude/settings.json
+  // CLI e o arquivo de configuração dele (ex.: ~/.claude/settings.json).
+  target?: HookTarget
   settingsPath: string
   // Script gerado pelo Kite que o hook chama (userData/kite-hook.sh).
   wrapperPath: string
@@ -24,9 +27,13 @@ export interface HooksServiceDeps {
 
 let tmpCounter = 0
 
-// Instala e remove os hooks do Kite no Claude Code, sem mexer no resto do settings.json.
+// Instala e remove os hooks do Kite num CLI de agente, sem mexer no resto da configuração.
 export class HooksService {
-  constructor(private readonly deps: HooksServiceDeps) {}
+  private readonly target: HookTarget
+
+  constructor(private readonly deps: HooksServiceDeps) {
+    this.target = deps.target ?? HOOK_TARGETS.claude
+  }
 
   // Recria o script a cada abertura: os caminhos do Electron mudam entre versões e em dev.
   async ensureWrapper(): Promise<void> {
@@ -41,14 +48,17 @@ export class HooksService {
 
   async status(): Promise<HooksStatus> {
     const base = {
-      cli: 'claude' as const,
+      cli: this.target.cli,
       settingsPath: this.display(this.deps.settingsPath),
       // Só o nome do script, como no desenho: o caminho completo quebraria as linhas.
-      snippet: kiteSnippet(path.basename(this.deps.wrapperPath)),
+      snippet: kiteSnippet(
+        `${path.basename(this.deps.wrapperPath)}${this.target.cli === 'claude' ? '' : ` ${this.target.cli}`}`,
+        this.target.events,
+      ),
     }
     try {
       const settings = await this.read()
-      return { ...base, installed: hasKiteHooks(settings), error: null }
+      return { ...base, installed: hasKiteHooks(settings, this.target.events), error: null }
     } catch (err) {
       return { ...base, installed: false, error: (err as Error).message }
     }
@@ -58,15 +68,16 @@ export class HooksService {
     await this.ensureWrapper()
     const settings = await this.readOrThrow()
     await this.backup()
-    await this.write(addKiteHooks(settings, hookCommand(this.deps.wrapperPath)))
-    this.deps.log.info('hooks do Claude Code instalados')
+    const command = hookCommand(this.deps.wrapperPath, this.target.cli)
+    await this.write(addKiteHooks(settings, command, this.target.events, this.target.timeout))
+    this.deps.log.info('hooks instalados', { cli: this.target.cli })
     return this.status()
   }
 
   async uninstall(): Promise<HooksStatus> {
     const settings = await this.readOrThrow()
     await this.write(removeKiteHooks(settings))
-    this.deps.log.info('hooks do Claude Code removidos')
+    this.deps.log.info('hooks removidos', { cli: this.target.cli })
     return this.status()
   }
 
@@ -123,7 +134,7 @@ export class HooksService {
     } catch (err) {
       throw new AppException(
         'INTERNAL',
-        `Não foi possível gravar o settings.json: ${(err as Error).message}`,
+        `Não foi possível gravar ${this.display(file)}: ${(err as Error).message}`,
       )
     }
   }

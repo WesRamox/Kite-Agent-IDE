@@ -1,6 +1,8 @@
-// Merge dos hooks do Kite no settings.json do Claude Code. Funções puras: preservam qualquer
-// outra chave e os hooks de outras ferramentas; os handlers do Kite são reconhecidos pelo
-// caminho do script (kite-hook.sh) no comando.
+// Merge dos hooks do Kite na configuração dos CLIs de agente (Claude Code, Codex, Gemini CLI).
+// Os três usam o mesmo formato: { "hooks": { "<Evento>": [{ "hooks": [{ "type": "command",
+// "command", "timeout" }] }] } }. Funções puras: preservam qualquer outra chave e os hooks de
+// outras ferramentas; os handlers do Kite são reconhecidos pelo caminho do script no comando.
+import type { AgentCli } from '@shared/types'
 
 export const KITE_HOOK_EVENTS = [
   'SessionStart',
@@ -14,7 +16,57 @@ export const KITE_HOOK_EVENTS = [
 ] as const
 
 export const KITE_HOOK_MARKER = 'kite-hook.sh'
-const TIMEOUT_SECONDS = 10
+
+// Onde e como cada CLI recebe os hooks (Fase 10).
+export interface HookTarget {
+  cli: AgentCli
+  label: string
+  // Relativo à pasta pessoal.
+  file: string[]
+  events: readonly string[]
+  // Unidade do CLI: segundos (Claude Code, Codex) ou milissegundos (Gemini CLI).
+  timeout: number
+}
+
+export const HOOK_TARGETS: Record<AgentCli, HookTarget> = {
+  claude: {
+    cli: 'claude',
+    label: 'Claude Code',
+    file: ['.claude', 'settings.json'],
+    events: KITE_HOOK_EVENTS,
+    timeout: 10,
+  },
+  codex: {
+    cli: 'codex',
+    label: 'Codex CLI',
+    file: ['.codex', 'hooks.json'],
+    events: [
+      'SessionStart',
+      'UserPromptSubmit',
+      'PreToolUse',
+      'PermissionRequest',
+      'PostToolUse',
+      'Stop',
+      'SessionEnd',
+    ],
+    timeout: 10,
+  },
+  gemini: {
+    cli: 'gemini',
+    label: 'Gemini CLI',
+    file: ['.gemini', 'settings.json'],
+    events: [
+      'SessionStart',
+      'SessionEnd',
+      'BeforeAgent',
+      'AfterAgent',
+      'BeforeTool',
+      'AfterTool',
+      'Notification',
+    ],
+    timeout: 10_000,
+  },
+}
 
 export type Json = Record<string, unknown>
 
@@ -53,9 +105,12 @@ function withoutKite(groups: unknown): unknown[] {
   return out
 }
 
-export function hasKiteHooks(settings: Json): boolean {
+export function hasKiteHooks(
+  settings: Json,
+  events: readonly string[] = KITE_HOOK_EVENTS,
+): boolean {
   const hooks = hooksOf(settings)
-  return KITE_HOOK_EVENTS.every((event) => {
+  return events.every((event) => {
     const groups = hooks[event]
     return (
       Array.isArray(groups) &&
@@ -64,20 +119,25 @@ export function hasKiteHooks(settings: Json): boolean {
   })
 }
 
-export function kiteHandler(command: string): Json {
-  return { type: 'command', command, timeout: TIMEOUT_SECONDS }
+export function kiteHandler(command: string, timeout = 10): Json {
+  return { type: 'command', command, timeout }
 }
 
 // Instala (ou atualiza) os hooks do Kite. Idempotente.
-export function addKiteHooks(settings: Json, command: string): Json {
+export function addKiteHooks(
+  settings: Json,
+  command: string,
+  events: readonly string[] = KITE_HOOK_EVENTS,
+  timeout = 10,
+): Json {
   const next = structuredClone(settings)
   const hooks = structuredClone(hooksOf(settings))
-  for (const event of KITE_HOOK_EVENTS) {
+  for (const event of events) {
     const current = hooks[event]
     if (current !== undefined && !Array.isArray(current)) {
       throw new Error(`"hooks.${event}" no settings.json não é uma lista`)
     }
-    hooks[event] = [...withoutKite(current), { hooks: [kiteHandler(command)] }]
+    hooks[event] = [...withoutKite(current), { hooks: [kiteHandler(command, timeout)] }]
   }
   next['hooks'] = hooks
   return next
@@ -101,11 +161,14 @@ export function removeKiteHooks(settings: Json): Json {
 }
 
 // Trecho mostrado na tela de conectar: o que o Kite adiciona, com o comando abreviado.
-export function kiteSnippet(displayCommand: string): string {
-  const width = Math.max(...KITE_HOOK_EVENTS.map((e) => e.length)) + 3
-  const lines = KITE_HOOK_EVENTS.map((event, i) => {
+export function kiteSnippet(
+  displayCommand: string,
+  events: readonly string[] = KITE_HOOK_EVENTS,
+): string {
+  const width = Math.max(...events.map((e) => e.length)) + 3
+  const lines = events.map((event, i) => {
     const key = `"${event}":`.padEnd(width)
-    const comma = i < KITE_HOOK_EVENTS.length - 1 ? ',' : ''
+    const comma = i < events.length - 1 ? ',' : ''
     return `  ${key} [{ "hooks": [{ "type": "command", "command": ${JSON.stringify(displayCommand)} }] }]${comma}`
   })
   return `"hooks": {\n${lines.join('\n')}\n}`
@@ -118,17 +181,21 @@ export function shQuote(s: string): string {
 
 // Comando gravado no settings.json: chama o script se ele existir e nunca falha, para que
 // desinstalar o Kite sem remover os hooks não gere erro no agente.
-export function hookCommand(wrapperPath: string): string {
+// O nome do CLI vai como argumento (Claude Code sem argumento, como nas versões anteriores).
+export function hookCommand(wrapperPath: string, cli: AgentCli = 'claude'): string {
   const q = shQuote(wrapperPath)
-  return `[ -x ${q} ] && ${q}; exit 0`
+  const arg = cli === 'claude' ? '' : ` ${cli}`
+  return `[ -x ${q} ] && ${q}${arg}; exit 0`
 }
 
 // Script que repassa o evento ao kite-hook.js usando o binário do Electron como Node.
+// $1 é o CLI; o Gemini CLI espera JSON na saída, então para ele responde um objeto vazio.
 export function wrapperScript(execPath: string, scriptPath: string, spoolDir: string): string {
   return [
     '#!/bin/sh',
-    '# Gerado pelo Kite: repassa eventos de hooks do Claude Code ao Kite. Nunca falha.',
-    `ELECTRON_RUN_AS_NODE=1 ${shQuote(execPath)} ${shQuote(scriptPath)} ${shQuote(spoolDir)} >/dev/null 2>&1`,
+    '# Gerado pelo Kite: repassa eventos de hooks dos agentes ao Kite. Nunca falha.',
+    `ELECTRON_RUN_AS_NODE=1 ${shQuote(execPath)} ${shQuote(scriptPath)} ${shQuote(spoolDir)} "$1" >/dev/null 2>&1`,
+    `[ "$1" = gemini ] && printf '{}'`,
     'exit 0',
     '',
   ].join('\n')

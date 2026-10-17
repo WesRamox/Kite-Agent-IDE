@@ -1,9 +1,18 @@
 import type { IDockviewHeaderActionsProps } from 'dockview-react'
-import { Columns2, Plus, Rows2 } from 'lucide-react'
+import { Bot, Columns2, Plus, Rows2 } from 'lucide-react'
+import { useState } from 'react'
+import { ContextMenu, type MenuItem } from '../../components/ContextMenu'
+import { useAgentsStore } from '../agents/agents.store'
+import { startAgentInTask } from '../tasks/tasks.actions'
+import { useTasksStore } from '../tasks/tasks.store'
 import { openTerminal, splitTerminal } from './terminal.actions'
-import { isTerminalPanel } from './terminals'
+import { isAgentPanel, isTerminalPanel } from './terminals'
 
-function Action(props: { label: string; onClick: () => void; children: React.ReactNode }) {
+function Action(props: {
+  label: string
+  onClick: (e: React.MouseEvent) => void
+  children: React.ReactNode
+}) {
   return (
     <button
       type="button"
@@ -17,12 +26,37 @@ function Action(props: { label: string; onClick: () => void; children: React.Rea
   )
 }
 
-// Botões no cabeçalho de grupos de terminal: novo, dividir à direita, dividir abaixo.
+// Botões no cabeçalho de grupos de terminal: novo, dividir à direita, dividir abaixo e, numa
+// tarefa aberta, "+ Agente" (canvas, tela 2) com o agente rodando na pasta da tarefa.
 export function TerminalGroupActions({ activePanel }: IDockviewHeaderActionsProps) {
-  if (!activePanel || !isTerminalPanel(activePanel.id)) return null
+  const taskId = useTasksStore((s) => s.activeTaskId)
+  const presets = useAgentsStore((s) => s.presets)
+  const [menu, setMenu] = useState<{ x: number; y: number; items: MenuItem[] } | null>(null)
+  if (!activePanel || !(isTerminalPanel(activePanel.id) || isAgentPanel(activePanel.id))) {
+    return null
+  }
   const ref = activePanel.id
   return (
     <div className="flex h-full items-center gap-0.5 px-2">
+      {taskId && (
+        <Action
+          label="Novo agente na tarefa"
+          onClick={(e) =>
+            setMenu({
+              x: e.clientX,
+              y: e.clientY,
+              items: presets
+                .filter((p) => p.command.trim())
+                .map((p) => ({
+                  label: p.name,
+                  onSelect: () => void startAgentInTask(taskId, p.id),
+                })),
+            })
+          }
+        >
+          <Bot size={14} />
+        </Action>
+      )}
       <Action label="Novo terminal" onClick={() => openTerminal({ reference: ref })}>
         <Plus size={14} />
       </Action>
@@ -32,6 +66,9 @@ export function TerminalGroupActions({ activePanel }: IDockviewHeaderActionsProp
       <Action label="Dividir abaixo" onClick={() => splitTerminal(ref, 'below')}>
         <Rows2 size={14} />
       </Action>
+      {menu && menu.items.length > 0 && (
+        <ContextMenu x={menu.x} y={menu.y} items={menu.items} onClose={() => setMenu(null)} />
+      )}
     </div>
   )
 }

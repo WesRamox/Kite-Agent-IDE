@@ -6,6 +6,7 @@ import { focusTerminalByPty, openTerminal } from '../terminal/terminal.actions'
 import { openAgentTerminal } from './agents.actions'
 import { useAgentsStore } from './agents.store'
 import { nextWaiting, type AttentionItem } from './attention'
+import { RESUME } from './cli'
 import { useAttentionStore } from './attention.store'
 import { useSessionsStore } from './sessions.store'
 import { useTasksStore } from '../tasks/tasks.store'
@@ -71,7 +72,7 @@ export function respond(item: AttentionItem): void {
 }
 
 function resumeCommand(item: AttentionItem): string | null {
-  return item.session ? `claude --resume ${item.session.id}` : null
+  return item.session ? `${RESUME[item.session.cli]} ${item.session.id}` : null
 }
 
 function inside(dir: string, root: string): boolean {

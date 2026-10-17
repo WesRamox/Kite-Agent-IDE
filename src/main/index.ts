@@ -16,7 +16,7 @@ import { spawn as spawnPty } from 'node-pty'
 import { z } from 'zod'
 import type { EventChannel, EventChannels } from '@shared/ipc-contract'
 import { DEFAULT_THEME, themeInfo, type ThemeId } from '@shared/themes'
-import type { AgentSession, AgentTask, AppSettings } from '@shared/types'
+import type { AgentCli, AgentSession, AgentTask, AppSettings } from '@shared/types'
 import { registerAgentIpc } from './ipc/agent.ipc'
 import { registerAgentSessionIpc } from './ipc/agent-session.ipc'
 import { registerAppIpc } from './ipc/app.ipc'
@@ -32,7 +32,7 @@ import { registerTerminalIpc } from './ipc/terminal.ipc'
 import { registerWorkspaceIpc } from './ipc/workspace.ipc'
 import { JsonStore } from './lib/json-store'
 import { agentStateSchema } from './lib/agent-schemas'
-import { wrapperScript } from './lib/claude-settings'
+import { HOOK_TARGETS, wrapperScript } from './lib/claude-settings'
 import { createGitRunner } from './lib/git-runner'
 import { migrateLegacyProfile } from './lib/legacy-profile'
 import { logger } from './lib/logger'
@@ -152,13 +152,15 @@ function notifyAgent(task: AgentTask): void {
   notification.show()
 }
 
+const CLI_NAME: Record<AgentCli, string> = { claude: 'Claude', codex: 'Codex', gemini: 'Gemini' }
+
 const SESSION_MESSAGES: Record<string, (s: AgentSession) => [string, string]> = {
   permission: (s) => [
-    'Claude pede permissão',
+    `${CLI_NAME[s.cli]} pede permissão`,
     s.pending ? `${s.pending.tool}: ${s.pending.detail}`.trim() : (s.lastMessage ?? ''),
   ],
-  turn: (s) => ['Claude terminou e espera você', s.lastMessage ?? ''],
-  input: (s) => ['Claude precisa de uma resposta', s.lastMessage ?? ''],
+  turn: (s) => [`${CLI_NAME[s.cli]} terminou e espera você`, s.lastMessage ?? ''],
+  input: (s) => [`${CLI_NAME[s.cli]} precisa de uma resposta`, s.lastMessage ?? ''],
 }
 
 // Notificação de uma sessão vista pelos hooks (agente dentro ou fora do Kite).
@@ -333,14 +335,28 @@ function createServices() {
   const agentService = agents
   // Hooks do Claude Code (Fase 6). KITE_CLAUDE_SETTINGS isola o settings.json nos testes.
   const spoolDir = join(app.getPath('userData'), 'agent-events')
-  const hooksService = new HooksService({
-    settingsPath:
-      process.env['KITE_CLAUDE_SETTINGS'] ?? join(homedir(), '.claude', 'settings.json'),
-    wrapperPath: join(app.getPath('userData'), 'kite-hook.sh'),
-    wrapperContent: wrapperScript(process.execPath, join(__dirname, 'kite-hook.js'), spoolDir),
-    home: homedir(),
-    log: log.child('hooks'),
-  })
+  // Um serviço por CLI (Claude Code, Codex, Gemini), todos com o mesmo kite-hook.sh.
+  // KITE_CLAUDE_SETTINGS / KITE_CODEX_HOOKS / KITE_GEMINI_SETTINGS isolam os arquivos nos testes.
+  const wrapperPath = join(app.getPath('userData'), 'kite-hook.sh')
+  const wrapperContent = wrapperScript(process.execPath, join(__dirname, 'kite-hook.js'), spoolDir)
+  const overrides: Record<AgentCli, string | undefined> = {
+    claude: process.env['KITE_CLAUDE_SETTINGS'],
+    codex: process.env['KITE_CODEX_HOOKS'],
+    gemini: process.env['KITE_GEMINI_SETTINGS'],
+  }
+  const hooksServices = Object.fromEntries(
+    (Object.keys(HOOK_TARGETS) as AgentCli[]).map((cli) => [
+      cli,
+      new HooksService({
+        target: HOOK_TARGETS[cli],
+        settingsPath: overrides[cli] ?? join(homedir(), ...HOOK_TARGETS[cli].file),
+        wrapperPath,
+        wrapperContent,
+        home: homedir(),
+        log: log.child('hooks'),
+      }),
+    ]),
+  ) as Record<AgentCli, HooksService>
   const agentEvents = new AgentEventService({
     spoolDir,
     subscribe,
@@ -359,7 +375,7 @@ function createServices() {
   return {
     reviewService,
     taskService,
-    hooksService,
+    hooksServices,
     agentEvents,
     settingsService,
     agentService,
@@ -420,11 +436,11 @@ void app.whenReady().then(async () => {
   registerTerminalIpc(services.ptyService, services.sessionService, ipcLog)
   registerGitIpc(services.gitService, services.gitWatchService, ipcLog)
   registerGitHubIpc(services.githubAuth, services.githubService, ipcLog)
-  registerAgentIpc(services.agentService, ipcLog)
-  registerAgentSessionIpc(services.agentEvents, services.hooksService, ipcLog)
+  registerAgentIpc(services.agentService, services.taskService, ipcLog)
+  registerAgentSessionIpc(services.agentEvents, services.hooksServices, ipcLog)
   registerTaskIpc(services.taskService, ipcLog)
   registerReviewIpc(services.reviewService, ipcLog)
-  services.hooksService.ensureWrapper().catch((err: unknown) => {
+  services.hooksServices.claude.ensureWrapper().catch((err: unknown) => {
     log.warn('não foi possível criar o kite-hook.sh', { error: (err as Error).message })
   })
   services.agentEvents.init().catch((err: unknown) => {

@@ -6,7 +6,7 @@ import { LIMITS, type HookRecord } from './hook-record'
 export const hookRecordSchema: z.ZodType<HookRecord> = z.object({
   v: z.literal(1),
   ts: z.number().int().nonnegative(),
-  cli: z.literal('claude'),
+  cli: z.enum(['claude', 'codex', 'gemini']),
   event: z.string().min(1).max(64),
   sessionId: z.string().regex(/^[A-Za-z0-9_-]{1,128}$/),
   cwd: z.string().max(4096),

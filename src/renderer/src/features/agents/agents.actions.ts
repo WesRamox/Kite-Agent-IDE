@@ -1,6 +1,8 @@
 import type { AgentPreset, StartAgentInput } from '@shared/types'
 import { useEffect } from 'react'
-import { getDockApi } from '../../lib/dock'
+import { activeContext, contextOfPanel, getDockApi } from '../../lib/dock'
+import { useContextStore } from '../../stores/context.store'
+import { useTasksStore } from '../tasks/tasks.store'
 import { attempt } from '../../lib/ipc'
 import { useLayoutStore } from '../../stores/layout.store'
 import { toast } from '../../stores/toast.store'
@@ -65,6 +67,16 @@ export function openAgentTerminal(taskId: string): void {
   const task = store().tasks.find((t) => t.id === taskId)
   if (!dock || !task) return
   const id = agentPanelId(taskId)
+  // O terminal do agente é um só: se ele já está aberto em outra tarefa, vai até ela.
+  const where = contextOfPanel(id)
+  if (where && where !== activeContext()) {
+    useContextStore.getState().activate(where)
+    useTasksStore
+      .getState()
+      .set({ activeTaskId: where.startsWith('task:') ? where.slice(5) : null })
+    getDockApi()?.getPanel(id)?.api.setActive()
+    return
+  }
   const existing = dock.getPanel(id)
   if (existing) {
     existing.api.setActive()

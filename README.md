@@ -169,10 +169,20 @@ fazendo e o que terminou. Com o Claude Code conectado, o app já abre nela.
 - Botão direito numa tarefa do Kite: terminal, revisar, parar/reiniciar e remover. Os presets dos
   agentes ficam em Conectar agentes → Outros CLIs → Ajustar.
 
-### Saber quando um agente espera você (Claude Code)
+### Nova tarefa pelo Kite
 
-Clicando em "Conectar Claude Code" na status bar, o Kite instala hooks no `~/.claude/settings.json`. A partir daí, toda sessão do
-Claude Code (aberta no Kite ou em qualquer outro terminal) avisa o Kite quando pede permissão,
+Na Central, "+ Nova": nome da tarefa, branch (sugerida a partir do nome), os repositórios, o agente
+e um prompt inicial opcional. O Kite cria uma worktree por repo na branch escolhida, seguindo o
+padrão de pasta do workspace (`.worktrees/{tarefa}/{repo}` por padrão, com um `TASK.md` com o
+título), abre a tarefa e inicia o agente na pasta dela. Quando a pasta aberta é um repositório só,
+a worktree vai para `../<repo>-worktrees/<branch>`. Escolher "Nenhum" no agente só cria a tarefa.
+Numa tarefa aberta, o ícone de robô no cabeçalho dos terminais abre mais um agente na pasta dela.
+
+### Saber quando um agente espera você (Claude Code, Codex, Gemini CLI)
+
+Em Conectar agentes (status bar → "Conectar Claude Code"), cada CLI tem o seu botão: o Kite
+instala hooks no `~/.claude/settings.json`, no `~/.codex/hooks.json` ou no
+`~/.gemini/settings.json`. A partir daí, toda sessão do CLI (aberta no Kite ou em qualquer outro terminal) avisa o Kite quando pede permissão,
 termina o turno ou edita arquivos. As sessões aparecem na mesma tela, o número de agentes
 esperando você fica na activity bar e na status bar, e chega uma notificação nativa.
 
@@ -182,7 +192,9 @@ esperando você fica na activity bar e na status bar, e chega uma notificação 
 - O hook chama `kite-hook.sh` (na pasta de perfil do Kite), que grava os eventos em
   `agent-events/` na mesma pasta. Ficam só caminhos de arquivo e trechos das mensagens do agente,
   nunca o conteúdo dos arquivos. Arquivos sem eventos há 7 dias são apagados.
-- `KITE_CLAUDE_SETTINGS`: troca o caminho do `settings.json` (usado nos testes).
+- O Codex pede para revisar e confiar nos hooks na primeira sessão depois de conectar.
+- `KITE_CLAUDE_SETTINGS`, `KITE_CODEX_HOOKS`, `KITE_GEMINI_SETTINGS`: trocam o caminho de cada
+  arquivo (usado nos testes).
 
 ## Estrutura
 

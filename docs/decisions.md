@@ -385,3 +385,47 @@ Decisões fáceis de desfazer, não cobertas pelo `AGENTS.md`. Mais recente no f
   canvas e seguem o estilo dos outros diálogos do app.
 - **Mock do GitHub nos e2e** passou a simular vários repos (`acme/<repo>`), busca de PR por
   branch e edição da descrição.
+
+## Fase 10 — Outros agentes e nova tarefa pelo Kite
+
+- **Codex pelos hooks, não pelo `notify`.** O `notify` do Codex só avisa o fim do turno; os hooks
+  (`~/.codex/hooks.json`) têm os mesmos nomes de evento do Claude Code, inclusive
+  `PermissionRequest` e `Stop` com `last_assistant_message`, então o Codex ganha "pede permissão"
+  como o Claude. O Codex exige revisar e confiar em hooks novos: o aviso aparece ao conectar.
+  Arquivos tocados vêm do texto do `apply_patch` (`*** Update/Add/Delete File:`); comandos podem
+  vir como lista e são juntados.
+- **Gemini CLI** (`~/.gemini/settings.json`): eventos traduzidos para os nomes do Claude
+  (`BeforeAgent` → pedido, `AfterAgent` → fim do turno com `prompt_response`, `BeforeTool`/
+  `AfterTool`, `Notification`/`ToolPermission` → pede permissão). Timeout em milissegundos. Como o
+  Gemini espera JSON na saída do hook, o `kite-hook.sh` responde `{}` para ele (para os outros, nada).
+  Sessão e cwd também vêm de `GEMINI_SESSION_ID`/`GEMINI_CWD`. O ambiente dos hooks do Gemini é
+  "sanitizado", então `KITE_PTY_ID` pode não chegar: sessões do Gemini abertas num terminal do Kite
+  podem aparecer como "fora do Kite".
+- **Um adaptador por CLI** (`HOOK_TARGETS`: arquivo, eventos, unidade do timeout), um
+  `HooksService` por CLI e o mesmo `kite-hook.sh`, que recebe o nome do CLI como argumento. O
+  comando gravado para o Claude continua sem argumento, compatível com o que já estava instalado.
+- **Retomar sessão** usa o comando de cada CLI: `claude --resume`, `codex resume`,
+  `gemini --resume`.
+- **Nova tarefa:** a branch sugerida é o nome sem acentos e espaços (sem prefixo `agent/`). As
+  worktrees seguem o padrão de pasta do workspace (no modo automático ou manual, o padrão
+  `.worktrees/{tarefa}/{repo}`); a pasta da tarefa ganha um `TASK.md` com o título. Workspace que é
+  um repo só: `../<repo>-worktrees/<branch>`, como antes. Criar uma tarefa marca o workspace como
+  importado (a tarefa aparece na Central na hora). No modo manual, a tarefa é montada à mão com as
+  worktrees criadas.
+- **Agente na pasta da tarefa:** `agent:startInTask` resolve a pasta no main (pasta da tarefa ou a
+  primeira worktree) e o `AgentService.startIn` só abre o processo ali; o agente guarda
+  `wsTaskId`. Remover o agente nunca apaga a pasta da tarefa. Na Central, esses agentes aparecem
+  dentro do item da tarefa (com hooks, vale a sessão; sem hooks, a heurística do terminal), e o
+  menu de contexto da tarefa ganha as ações do agente. "Revisar" de uma tarefa abre a revisão
+  multi-repo (Fase 9), não a do agente.
+- **O fluxo da Fase 5 virou caso particular:** o formulário "Nova tarefa" é o mesmo, com um repo
+  marcado.
+- **Terminal de agente é um só:** se a aba do agente já está aberta no dock de outra tarefa,
+  "Terminal do agente" vai até aquela tarefa em vez de abrir uma segunda aba presa ao mesmo
+  terminal (bug encontrado nos e2e desta fase).
+- **"+ Agente"** (canvas, tela 2) no cabeçalho dos grupos de terminal da tarefa aberta, com os
+  presets que têm comando.
+- **A verificar:** Codex e Gemini não estavam instalados na máquina de desenvolvimento; os
+  formatos seguem a documentação oficial e foram testados com eventos simulados pelo próprio
+  `kite-hook.sh`. Vale confirmar com os CLIs reais o formato do `hooks.json` do Codex e os campos
+  de `details` da notificação de permissão do Gemini.

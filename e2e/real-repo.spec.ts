@@ -18,7 +18,9 @@ test('abre este repositório e navega por ele', async () => {
     await page.keyboard.press(`${mod}+p`)
     await page.getByPlaceholder('Buscar arquivo pelo nome').fill('ipccontract')
     await page.keyboard.press('Enter')
-    await expect(page.locator('.monaco-editor:visible .view-lines')).toContainText('Fonte única de verdade de todos os canais IPC')
+    await expect(page.locator('.monaco-editor:visible .view-lines')).toContainText(
+      'Fonte única de verdade de todos os canais IPC',
+    )
     expect(Date.now() - start).toBeLessThan(10_000)
 
     await page.screenshot({ path: 'test-results/real-repo.png' })

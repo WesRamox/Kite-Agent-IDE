@@ -17,6 +17,7 @@ import {
 } from './attention'
 import { copyResume, respond, resumeHere } from './attention.actions'
 import { useAttentionStore } from './attention.store'
+import { RESUME } from './cli'
 import { useAttentionItems } from './use-attention'
 import { useNow } from './use-now'
 
@@ -87,9 +88,9 @@ export function CentralPanel() {
                     <button
                       type="button"
                       onClick={() =>
-                        item.task
-                          ? openReview(item.task.id)
-                          : item.wsTask && void openTaskReview(item.wsTask.id)
+                        item.wsTask
+                          ? void openTaskReview(item.wsTask.id)
+                          : item.task && openReview(item.task.id)
                       }
                       className="h-[30px] rounded-[7px] border border-border bg-surface-2 px-3 text-fg hover:bg-surface-3"
                     >
@@ -230,7 +231,7 @@ function WaitingCard({ item, now }: { item: AttentionItem; now: number }) {
             {item.inKite ? 'Abrir tarefa' : 'Revisar mudanças'}
           </button>
         )}
-        {item.task && (
+        {item.task && !item.wsTask && (
           <button
             type="button"
             onClick={() => item.task && openReview(item.task.id)}
@@ -242,11 +243,11 @@ function WaitingCard({ item, now }: { item: AttentionItem; now: number }) {
         {!item.inKite && (
           <button
             type="button"
-            aria-label="Copiar comando claude --resume"
+            aria-label={`Copiar comando ${RESUME[s?.cli ?? 'claude']}`}
             onClick={() => void copyResume(item)}
             className={`${BTN} border border-border bg-surface-2 px-3 font-geist-mono text-xs text-fg-muted hover:bg-surface-3`}
           >
-            claude --resume
+            {RESUME[s?.cli ?? 'claude']}
           </button>
         )}
       </div>

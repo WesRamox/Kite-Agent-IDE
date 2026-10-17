@@ -1,4 +1,4 @@
-import type { AgentSession, AgentTask } from '@shared/types'
+import type { AgentSession, AgentTask, Task } from '@shared/types'
 import { describe, expect, it } from 'vitest'
 import { ago, attentionItems, doing, elapsed, groupItems, nextWaiting } from './attention'
 
@@ -71,6 +71,53 @@ describe('attention', () => {
     expect(g.review.map((x) => x.id).sort()).toEqual(['session:d', 'task:t3'])
     expect(g.idle).toMatchObject([{ id: 'task:t2', meta: 'erro (código 3)' }])
     expect(items.some((x) => x.id === 'session:c' || x.id === 'session:e')).toBe(false)
+  })
+
+  it('agente do Kite na pasta de uma tarefa aparece dentro do item da tarefa', () => {
+    const ws: Task = {
+      id: 'folder:/w/PAY',
+      key: 'PAY-415',
+      name: 'Estorno',
+      cardUrl: null,
+      source: 'folder',
+      why: '',
+      folder: '/w/PAY',
+      worktrees: [
+        { repo: '/w/api', repoName: 'api', path: '/w/PAY/api', branch: 'PAY-415', head: '' },
+        { repo: '/w/web', repoName: 'web', path: '/w/PAY/web', branch: 'PAY-415', head: '' },
+      ],
+      hidden: false,
+      notes: '',
+    }
+    const agent = task({ id: 'ag', status: 'waiting', wsTaskId: ws.id })
+    const items = attentionItems([], [agent], 0, [ws])
+    expect(items).toHaveLength(1)
+    expect(items[0]).toMatchObject({
+      id: 'wstask:folder:/w/PAY',
+      group: 'waiting',
+      meta: 'api · web — esperando você',
+      inKite: true,
+    })
+    expect(items[0]?.task?.id).toBe('ag')
+    // Com hooks, a sessão do agente vale mais que a heurística.
+    const withHook = attentionItems(
+      [session({ id: 's', agentTaskId: 'ag', status: 'waiting', waitReason: 'permission' })],
+      [agent],
+      0,
+      [ws],
+    )
+    expect(withHook[0]).toMatchObject({
+      meta: 'api · web — pede permissão',
+      waitReason: 'permission',
+    })
+    // Agente com erro: "Sem agente" com o motivo.
+    const failed = attentionItems(
+      [],
+      [task({ id: 'ag', alive: false, status: 'error', exitCode: 3, wsTaskId: ws.id })],
+      0,
+      [ws],
+    )
+    expect(failed[0]).toMatchObject({ group: 'idle', meta: 'api · web — erro (código 3)' })
   })
 
   it('sessão num terminal do Kite pode ser respondida ali', () => {

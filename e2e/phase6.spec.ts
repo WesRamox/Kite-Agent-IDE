@@ -56,7 +56,9 @@ test('hooks do Claude Code: conectar, acompanhar uma sessão externa e remover',
     await expect(
       page.getByRole('heading', { name: 'Saber quando um agente precisa de você' }),
     ).toBeVisible()
-    await expect(page.getByText('Não conectado')).toBeVisible()
+    await expect(page.getByRole('group', { name: 'Claude Code', exact: true })).toContainText(
+      'Não conectado',
+    )
     await page.getByRole('button', { name: 'Conectar', exact: true }).first().click()
     await expect(page.getByText('Conectado', { exact: true })).toBeVisible()
     await expect(page.getByRole('button', { name: 'Claude Code conectado' })).toBeVisible()
@@ -116,7 +118,9 @@ test('hooks do Claude Code: conectar, acompanhar uma sessão externa e remover',
       await expect(again.page.getByText('● 1 esperando você')).toBeVisible()
 
       await again.page.getByRole('button', { name: 'Remover' }).click()
-      await expect(again.page.getByText('Não conectado')).toBeVisible()
+      await expect(
+        again.page.getByRole('group', { name: 'Claude Code', exact: true }),
+      ).toContainText('Não conectado')
       expect(JSON.parse(await readFile(settingsPath, 'utf8'))).toEqual(ORIGINAL)
     } finally {
       await again.cleanup()

@@ -46,6 +46,12 @@ export function findPanel(id: string): { dock: DockviewApi; panel: IDockviewPane
   return null
 }
 
+// Contexto (dock) em que um painel está aberto, se estiver.
+export function contextOfPanel(id: string): string | null {
+  for (const [context, dock] of docks) if (dock.getPanel(id)) return context
+  return null
+}
+
 // Testes e o MainArea antigo: registra no contexto ativo.
 export function setDockApi(api: DockviewApi | null): void {
   if (api) docks.set(active, api)

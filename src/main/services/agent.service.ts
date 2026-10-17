@@ -174,10 +174,49 @@ export class AgentService {
     return task
   }
 
+  // Agente na pasta de uma tarefa multi-repo (Fase 10): as worktrees já existem, criadas pela
+  // tarefa; o processo só roda ali. `cwd` vem do main (TaskService), nunca do renderer.
+  startIn(input: {
+    cwd: string
+    name: string
+    presetId: string
+    prompt: string
+    repoPath: string
+    branch: string
+    wsTaskId: string
+  }): AgentTask {
+    const preset = this.preset(input.presetId)
+    if (!preset.command.trim()) {
+      throw new AppException('INVALID_ARGS', `Defina o comando do preset "${preset.name}"`)
+    }
+    const task: AgentTask = {
+      id: randomUUID(),
+      name: input.name.trim(),
+      presetId: preset.id,
+      presetName: preset.name,
+      branch: input.branch,
+      baseBranch: '',
+      worktreePath: input.cwd,
+      repoPath: input.repoPath,
+      status: 'running',
+      alive: true,
+      interrupted: false,
+      startedAt: this.now(),
+      endedAt: null,
+      exitCode: null,
+      wsTaskId: input.wsTaskId,
+    }
+    this.state.tasks.unshift(task)
+    this.spawn(task, preset, input.prompt)
+    return task
+  }
+
   async remove(id: string, removeWorktree: boolean): Promise<void> {
     const task = this.task(id)
     if (task.alive) this.stop(id)
-    if (removeWorktree) await this.deps.git.removeWorktreeAt(task.repoPath, task.worktreePath)
+    // A pasta de uma tarefa multi-repo não é uma worktree do agente: fica.
+    if (removeWorktree && !task.wsTaskId)
+      await this.deps.git.removeWorktreeAt(task.repoPath, task.worktreePath)
     this.state.tasks = this.state.tasks.filter((t) => t.id !== id)
     this.runtimes.delete(id)
     this.deps.emit({ ...task, removed: true })

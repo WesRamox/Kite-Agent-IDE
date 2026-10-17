@@ -155,6 +155,28 @@ describe('AgentService', () => {
     expect(svc.isLive(task.id)).toBe(false)
   })
 
+  it('agente na pasta de uma tarefa multi-repo: sem worktree própria, e remover não apaga a pasta', async () => {
+    const folder = path.join(base, 'tarefa')
+    const task = svc.startIn({
+      cwd: folder,
+      name: 'Estorno',
+      presetId: 'claude',
+      prompt: 'comece',
+      repoPath: repo,
+      branch: 'PAY-415',
+      wsTaskId: 'folder:/x',
+    })
+    expect(task).toMatchObject({
+      worktreePath: folder,
+      branch: 'PAY-415',
+      wsTaskId: 'folder:/x',
+      alive: true,
+    })
+    expect(spawned[0]).toMatchObject({ cwd: folder })
+    await svc.remove(task.id, true)
+    expect(svc.list()).toEqual([])
+  })
+
   it('código de saída diferente de zero vira error', async () => {
     await svc.start({ root: repo, name: 't', presetId: 'claude', prompt: '' })
     svc.onPtyExit({ id: 'pty-1', exitCode: 2 })

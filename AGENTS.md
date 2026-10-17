@@ -292,6 +292,8 @@ Princípios:
 
 **Aceite:** uma sessão do Codex aparece na central com o status certo; criar uma tarefa com 2 repos pelo Kite gera as worktrees no padrão configurado e abre o agente na pasta da tarefa.
 
+Estado: fases 6 a 10 implementadas (ver `docs/decisions.md`).
+
 Pontos que dependem do SO e precisam de verificação depois: caminho e aspas do comando do hook no Windows, `ELECTRON_RUN_AS_NODE` no app empacotado do macOS e permissões do spool.
 
 ---

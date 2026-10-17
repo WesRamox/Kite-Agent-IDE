@@ -4,10 +4,13 @@
 // com código 0 e rápido, e nunca bloqueia o agente.
 import { appendFileSync, mkdirSync } from 'node:fs'
 import path from 'node:path'
-import { toHookRecord } from '../lib/hook-record'
+import { toHookRecord, type HookCli } from '../lib/hook-record'
 
 const MAX_INPUT = 2 * 1024 * 1024
 const spoolDir = process.argv[2]
+// CLI que chamou o hook (o script repassa; sem argumento, Claude Code).
+const cliArg = process.argv[3]
+const cli: HookCli = cliArg === 'codex' || cliArg === 'gemini' ? cliArg : 'claude'
 
 function finish(): never {
   process.exit(0)
@@ -26,7 +29,7 @@ process.stdin.on('error', finish)
 process.stdin.on('end', () => {
   try {
     if (!spoolDir) finish()
-    const rec = toHookRecord(JSON.parse(input), process.env, Date.now())
+    const rec = toHookRecord(JSON.parse(input), process.env, Date.now(), cli)
     if (rec) {
       mkdirSync(spoolDir, { recursive: true, mode: 0o700 })
       appendFileSync(path.join(spoolDir, `${rec.sessionId}.jsonl`), `${JSON.stringify(rec)}\n`, {

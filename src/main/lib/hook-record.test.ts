@@ -108,4 +108,82 @@ describe('toHookRecord', () => {
     )
     expect(p?.prompt).toBe('cria as worktrees')
   })
+
+  it('Codex: mesmos eventos do Claude, comando em lista e caminhos do apply_patch', () => {
+    const perm = toHookRecord(
+      {
+        ...base,
+        hook_event_name: 'PermissionRequest',
+        tool_name: 'shell',
+        tool_input: { command: ['pnpm', 'test'] },
+      },
+      {},
+      1,
+      'codex',
+    )
+    expect(perm).toMatchObject({
+      cli: 'codex',
+      event: 'PermissionRequest',
+      tool: 'shell',
+      toolDetail: 'pnpm test',
+    })
+    const patch = toHookRecord(
+      {
+        ...base,
+        hook_event_name: 'PostToolUse',
+        tool_name: 'apply_patch',
+        tool_input: {
+          input:
+            '*** Begin Patch\n*** Update File: src/a.ts\n@@\n*** Add File: /abs/b.ts\n*** End Patch',
+        },
+      },
+      {},
+      1,
+      'codex',
+    )
+    expect(patch?.paths).toEqual(['/w/src/a.ts', '/abs/b.ts'])
+  })
+
+  it('Gemini: traduz eventos, resposta final e pedido de permissão', () => {
+    const g = (p: Record<string, unknown>) => toHookRecord({ ...base, ...p }, {}, 1, 'gemini')
+    expect(g({ hook_event_name: 'BeforeAgent', prompt: 'faça X' })).toMatchObject({
+      cli: 'gemini',
+      event: 'UserPromptSubmit',
+      prompt: 'faça X',
+    })
+    expect(g({ hook_event_name: 'AfterAgent', prompt_response: 'Feito.' })).toMatchObject({
+      event: 'Stop',
+      lastMessage: 'Feito.',
+    })
+    expect(
+      g({
+        hook_event_name: 'Notification',
+        notification_type: 'ToolPermission',
+        message: 'Permitir run_shell_command?',
+        details: { tool_name: 'run_shell_command', tool_input: { command: 'rm -rf dist' } },
+      }),
+    ).toMatchObject({
+      event: 'PermissionRequest',
+      tool: 'run_shell_command',
+      toolDetail: 'rm -rf dist',
+    })
+    expect(
+      g({
+        hook_event_name: 'AfterTool',
+        tool_name: 'write_file',
+        tool_input: { file_path: '/w/a.ts' },
+      }),
+    ).toMatchObject({ event: 'PostToolUse', paths: ['/w/a.ts'] })
+    // Eventos sem equivalente (ex.: BeforeModel) são ignorados.
+    expect(g({ hook_event_name: 'BeforeModel' })).toBeNull()
+    // Sessão e cwd também chegam pelo ambiente.
+    expect(
+      toHookRecord(
+        { hook_event_name: 'SessionStart' },
+        { GEMINI_SESSION_ID: 'g-1', GEMINI_CWD: '/p' },
+        1,
+        'gemini',
+      ),
+    ).toMatchObject({ sessionId: 'g-1', cwd: '/p' })
+  })
 })

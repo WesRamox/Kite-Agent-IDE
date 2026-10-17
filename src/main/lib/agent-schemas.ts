@@ -25,6 +25,7 @@ const taskSchema: z.ZodType<AgentTask> = z.object({
   startedAt: z.number(),
   endedAt: z.number().nullable(),
   exitCode: z.number().nullable(),
+  wsTaskId: z.string().optional(),
 })
 
 export const agentStateSchema: z.ZodType<AgentState> = z.object({

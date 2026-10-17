@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest'
 import {
   addKiteHooks,
   hasKiteHooks,
+  HOOK_TARGETS,
   hookCommand,
   KITE_HOOK_EVENTS,
   kiteSnippet,
@@ -65,9 +66,24 @@ describe('claude-settings', () => {
     )
     const script = wrapperScript('/opt/Kite/kite', '/opt/Kite/kite-hook.js', '/data/agent-events')
     expect(script).toContain(
-      `ELECTRON_RUN_AS_NODE=1 '/opt/Kite/kite' '/opt/Kite/kite-hook.js' '/data/agent-events' >/dev/null 2>&1`,
+      `ELECTRON_RUN_AS_NODE=1 '/opt/Kite/kite' '/opt/Kite/kite-hook.js' '/data/agent-events' "$1" >/dev/null 2>&1`,
     )
     expect(script.trimEnd().endsWith('exit 0')).toBe(true)
+  })
+
+  it('Codex e Gemini: eventos, timeout e o CLI no comando', () => {
+    const gemini = HOOK_TARGETS.gemini
+    const cmd = hookCommand('/k/kite-hook.sh', 'gemini')
+    expect(cmd).toBe(`[ -x '/k/kite-hook.sh' ] && '/k/kite-hook.sh' gemini; exit 0`)
+    const next = addKiteHooks({}, cmd, gemini.events, gemini.timeout)
+    expect(hasKiteHooks(next, gemini.events)).toBe(true)
+    expect(hasKiteHooks(next)).toBe(false)
+    expect(
+      (next['hooks'] as Record<string, { hooks: { timeout: number }[] }[]>)['AfterAgent']?.[0]
+        ?.hooks[0]?.timeout,
+    ).toBe(10_000)
+    expect(removeKiteHooks(next)).toEqual({})
+    expect(hookCommand('/k/kite-hook.sh')).not.toContain('claude')
   })
 
   it('snippet lista todos os eventos', () => {

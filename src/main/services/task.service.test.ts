@@ -190,6 +190,54 @@ describe('TaskService', () => {
     )
   })
 
+  it('cria uma tarefa com 2 repos no padrão de pasta, com TASK.md, e já importada', async () => {
+    const task = await svc.create(root, {
+      name: 'Estorno parcial',
+      branch: 'PAY-415',
+      repos: [path.join(root, 'api'), path.join(root, 'web')],
+    })
+    expect(task).toMatchObject({
+      key: 'PAY-415',
+      name: 'Estorno parcial',
+      folder: path.join(root, '.worktrees/PAY-415'),
+    })
+    expect(task.worktrees.map((w) => [w.repoName, w.path, w.branch])).toEqual([
+      ['api', path.join(root, '.worktrees/PAY-415/api'), 'PAY-415'],
+      ['web', path.join(root, '.worktrees/PAY-415/web'), 'PAY-415'],
+    ])
+    const ws = await svc.discover(root)
+    expect(ws.imported).toBe(true)
+    expect(await svc.agentTarget(root, task.id)).toMatchObject({
+      cwd: path.join(root, '.worktrees/PAY-415'),
+      branch: 'PAY-415',
+      name: 'Estorno parcial',
+    })
+    await expect(
+      svc.create(root, { name: 'x', branch: 'PAY-415', repos: [path.join(root, 'api')] }),
+    ).rejects.toMatchObject({ code: 'ALREADY_EXISTS' })
+    await expect(
+      svc.create(root, { name: 'x', branch: 'a..b', repos: [path.join(root, 'api')] }),
+    ).rejects.toMatchObject({ code: 'INVALID_ARGS' })
+  })
+
+  it('padrão configurado e modo manual também valem para tarefas novas', async () => {
+    await svc.setGrouping(root, { mode: 'pattern', pattern: 'trabalho/{tarefa}/{repo}' })
+    const t1 = await svc.create(root, {
+      name: 'Infra',
+      branch: 'OPS-20',
+      repos: [path.join(root, 'infra')],
+    })
+    expect(t1.worktrees[0]?.path).toBe(path.join(root, 'trabalho/OPS-20/infra'))
+    await svc.setGrouping(root, { mode: 'manual', pattern: '' })
+    const t2 = await svc.create(root, {
+      name: 'Manual',
+      branch: 'M-1',
+      repos: [path.join(root, 'api'), path.join(root, 'web')],
+    })
+    expect(t2).toMatchObject({ source: 'manual', name: 'Manual' })
+    expect(t2.worktrees).toHaveLength(2)
+  })
+
   it('recusa raiz que não está aberta', async () => {
     await expect(svc.discover('/tmp')).rejects.toMatchObject({ code: 'FORBIDDEN_PATH' })
   })

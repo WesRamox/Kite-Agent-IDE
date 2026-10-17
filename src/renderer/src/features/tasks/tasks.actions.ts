@@ -8,6 +8,8 @@ import { toast } from '../../stores/toast.store'
 import { useWorkspaceStore } from '../../stores/workspace.store'
 import { useExplorerStore } from '../explorer/explorer.store'
 import { useQuickOpenStore } from '../quick-open/quick-open.store'
+import { openAgentTerminal } from '../agents/agents.actions'
+import { useAgentsStore } from '../agents/agents.store'
 import { taskContext, useTasksStore } from './tasks.store'
 
 export const DISCOVER_COMPONENT = 'discover'
@@ -179,4 +181,46 @@ export async function importTasks(hidden: string[]): Promise<void> {
   closeDiscover()
   const shown = ws.tasks.filter((t) => !t.hidden).length
   toast.info(`${shown} ${shown === 1 ? 'tarefa importada' : 'tarefas importadas'}.`)
+}
+
+// "Nova tarefa" (Fase 10): cria as worktrees, abre a tarefa e, se pedido, o agente na pasta dela.
+export async function createTaskWithAgent(input: {
+  name: string
+  branch: string
+  repos: string[]
+  presetId: string | null
+  prompt: string
+}): Promise<boolean> {
+  const dir = root()
+  if (!dir) return false
+  const task = await attempt(
+    window.api.task.create(dir, { name: input.name, branch: input.branch, repos: input.repos }),
+    'Erro ao criar a tarefa',
+  )
+  if (!task) return false
+  const ws = await attempt(window.api.task.discover(dir), 'Erro ao atualizar as tarefas')
+  if (ws) await applyWorkspace(ws)
+  await openTask(task.id)
+  if (!input.presetId) return true
+  const agent = await attempt(
+    window.api.agent.startInTask(dir, task.id, input.presetId, input.prompt),
+    'Erro ao iniciar o agente',
+  )
+  if (!agent) return true
+  useAgentsStore.getState().upsert(agent)
+  openAgentTerminal(agent.id)
+  return true
+}
+
+// "+ Agente" nos terminais da tarefa aberta.
+export async function startAgentInTask(taskId: string, presetId: string): Promise<void> {
+  const dir = root()
+  if (!dir) return
+  const agent = await attempt(
+    window.api.agent.startInTask(dir, taskId, presetId, ''),
+    'Erro ao iniciar o agente',
+  )
+  if (!agent) return
+  useAgentsStore.getState().upsert(agent)
+  openAgentTerminal(agent.id)
 }

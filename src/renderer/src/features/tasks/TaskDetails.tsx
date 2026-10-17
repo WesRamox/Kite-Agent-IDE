@@ -1,5 +1,6 @@
 import type { PullSummary } from '@shared/types'
 import { useState } from 'react'
+import { CLI_SHORT } from '../agents/cli'
 import { sessionStatusLabel, sessionTone, type SessionTone } from '../agents/session-format'
 import { useSessionsStore } from '../agents/sessions.store'
 import { linkSessions } from './task-links'
@@ -94,7 +95,7 @@ export function TaskDetails() {
             <div key={s.id} className="flex items-center gap-2 text-xs">
               <span className={`size-[7px] rounded-full ${DOT[tone]}`} />
               <span className={`flex-1 ${tone === 'muted' ? 'text-fg-muted' : ''}`}>
-                Claude · {clock(s.startedAt)}
+                {CLI_SHORT[s.cli]} · {clock(s.startedAt)}
               </span>
               <span className={TEXT[tone]}>{sessionStatusLabel(s)}</span>
             </div>

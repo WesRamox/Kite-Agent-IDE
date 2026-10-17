@@ -287,6 +287,8 @@ export interface AgentTask {
   startedAt: number
   endedAt: number | null
   exitCode: number | null
+  // Agente aberto na pasta de uma tarefa multi-repo (Fase 10), em vez de numa worktree própria.
+  wsTaskId?: string
 }
 
 export interface StartAgentInput {
@@ -310,7 +312,7 @@ export interface AgentReview {
 
 // Sessão de um agente vista pelos hooks do CLI (Fase 6). Pode estar rodando dentro ou fora do
 // Kite; `agentTaskId` liga a sessão a um agente aberto pelo Kite.
-export type AgentCli = 'claude'
+export type AgentCli = 'claude' | 'codex' | 'gemini'
 
 export type SessionStatus = 'idle' | 'running' | 'waiting' | 'ended'
 
@@ -455,4 +457,11 @@ export interface DeliverResult {
   committed: boolean
   pr: { number: number; url: string; created: boolean } | null
   error: string | null
+}
+
+// Nova tarefa criada pelo Kite (Fase 10): uma worktree por repositório escolhido.
+export interface CreateTaskInput {
+  name: string
+  branch: string
+  repos: string[]
 }

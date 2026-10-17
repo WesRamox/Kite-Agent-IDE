@@ -1,5 +1,6 @@
 import { FolderGit2, GitBranch, SquareTerminal } from 'lucide-react'
 import { openCentral, showAttentionView } from '../features/agents/attention.actions'
+import { CLI_LABEL, CLIS } from '../features/agents/cli'
 import { openConnectAgents } from '../features/agents/sessions.actions'
 import { useSessionsStore } from '../features/agents/sessions.store'
 import { useAttentionGroups } from '../features/agents/use-attention'
@@ -15,7 +16,11 @@ import { useWorkspaceStore } from '../stores/workspace.store'
 export function StatusBar() {
   const root = useWorkspaceStore((s) => s.root)
   const status = useGitStore((s) => s.status)
-  const hooksInstalled = useSessionsStore((s) => s.hooks?.installed ?? false)
+  // "Claude Code conectado" (ou o primeiro CLI conectado); nenhum: convite para conectar.
+  const connectedLabel = useSessionsStore((s) => {
+    const cli = CLIS.find((c) => s.hooks[c]?.installed)
+    return cli ? `${CLI_LABEL[cli]} conectado` : null
+  })
   const groups = useAttentionGroups()
   const task = useActiveTask()
   const taskBranch = task?.worktrees.find((w) => w.branch)?.branch ?? null
@@ -92,7 +97,7 @@ export function StatusBar() {
         )}
         {language && <span>{language}</span>}
         <button type="button" onClick={openConnectAgents} className="hover:text-fg">
-          {hooksInstalled ? 'Claude Code conectado' : 'Conectar Claude Code'}
+          {connectedLabel ?? 'Conectar Claude Code'}
         </button>
       </span>
     </footer>

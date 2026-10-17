@@ -52,6 +52,7 @@ const api: Api = {
     attach: invoke('agent:attach'),
     review: invoke('agent:review'),
     reviewDiff: invoke('agent:reviewDiff'),
+    startInTask: invoke('agent:startInTask'),
     onStatus: subscribe('agent:status'),
     onFocus: subscribe('agent:focus'),
   },
@@ -74,6 +75,7 @@ const api: Api = {
     addExternalRepo: invoke('task:addExternalRepo'),
     open: invoke('task:open'),
     addRepo: invoke('task:addRepo'),
+    create: invoke('task:create'),
     onChanged: subscribe('task:changed'),
   },
   review: {

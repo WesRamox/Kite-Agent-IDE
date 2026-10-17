@@ -1,5 +1,6 @@
 import type { AgentSession, AgentTask, Task, WaitReason } from '@shared/types'
 import { basename } from '../../lib/paths'
+import { CLI_LABEL } from './cli'
 import { tildePath } from './session-format'
 
 // Modelo da Central de atenção (Fase 7): junta as sessões vistas pelos hooks e os agentes
@@ -108,7 +109,7 @@ function sessionItem(s: AgentSession, now: number): AttentionItem | null {
   const base = {
     id: `session:${s.id}`,
     key: basename(s.cwd) || tildePath(s.cwd),
-    name: s.firstPrompt ?? 'Claude Code',
+    name: s.firstPrompt ?? CLI_LABEL[s.cli],
     session: s,
     task: null,
     wsTask: null,
@@ -146,67 +147,91 @@ function sessionItem(s: AgentSession, now: number): AttentionItem | null {
   return null
 }
 
-// Tarefa do workspace: o estado vem da sessão que mais pede atenção (espera > trabalha >
-// terminou com mudanças). Sem sessão, fica em "Sem agente".
-function wsTaskItem(t: Task, linked: AgentSession[], now: number): AttentionItem {
+function agentLabel(a: AgentTask): string {
+  if (a.interrupted) return 'interrompido'
+  if (a.status === 'error') return `erro${a.exitCode !== null ? ` (código ${a.exitCode})` : ''}`
+  return 'parado'
+}
+
+// Tarefa do workspace: o estado vem da sessão ou do agente do Kite que mais pede atenção
+// (espera > trabalha > terminou com mudanças). Sem nenhum, fica em "Sem agente".
+function wsTaskItem(
+  t: Task,
+  linked: AgentSession[],
+  agents: AgentTask[],
+  now: number,
+): AttentionItem {
   const repos = t.worktrees.map((w) => w.repoName).join(' · ')
+  const agentOf = (s: AgentSession | undefined) =>
+    s?.agentTaskId ? (agents.find((a) => a.id === s.agentTaskId) ?? null) : null
+  const base = { id: `wstask:${t.id}`, key: t.key, name: t.name, wsTask: t, sessions: linked }
+  const item = (
+    group: AttentionGroup,
+    label: string,
+    since: number,
+    session: AgentSession | null,
+    agent: AgentTask | null,
+    waitReason: WaitReason | null = null,
+  ): AttentionItem => ({
+    ...base,
+    group,
+    meta: label ? `${repos} — ${label}` : repos,
+    waitReason,
+    since,
+    session,
+    task: agent,
+    inKite: agent !== null ? agent.alive : session?.ptyId != null,
+  })
+
   const waiting = linked
     .filter((s) => s.status === 'waiting' && s.waitReason)
     .sort((a, b) => (a.waitingSince ?? 0) - (b.waitingSince ?? 0))[0]
+  if (waiting?.waitReason) {
+    return item(
+      'waiting',
+      WAIT_LABEL[waiting.waitReason],
+      waiting.waitingSince ?? waiting.lastEventAt,
+      waiting,
+      agentOf(waiting),
+      waiting.waitReason,
+    )
+  }
+  // Agente do Kite sem hooks: a heurística do terminal diz que ele espera.
+  const agentWaiting = agents.find((a) => a.alive && a.status === 'waiting')
+  if (agentWaiting)
+    return item('waiting', 'esperando você', agentWaiting.startedAt, null, agentWaiting)
   const running = linked.find((s) => s.status === 'running')
+  if (running) {
+    return item(
+      'running',
+      'trabalhando',
+      running.runningSince ?? running.lastEventAt,
+      running,
+      agentOf(running),
+    )
+  }
+  const agentRunning = agents.find((a) => a.alive)
+  if (agentRunning)
+    return item('running', 'trabalhando', agentRunning.startedAt, null, agentRunning)
   const ended = linked.find(
     (s) => s.status === 'ended' && s.touchedCount > 0 && now - (s.endedAt ?? 0) < REVIEW_WINDOW_MS,
   )
-  const base = {
-    id: `wstask:${t.id}`,
-    key: t.key,
-    name: t.name,
-    task: null,
-    wsTask: t,
-    sessions: linked,
+  if (ended)
+    return item('review', 'terminou', ended.endedAt ?? ended.lastEventAt, ended, agentOf(ended))
+  const lastAgent = [...agents].sort((a, b) => b.startedAt - a.startedAt)[0]
+  if (lastAgent?.status === 'done' && !lastAgent.interrupted) {
+    return item('review', 'terminou', lastAgent.endedAt ?? lastAgent.startedAt, null, lastAgent)
   }
-  if (waiting?.waitReason) {
-    return {
-      ...base,
-      group: 'waiting',
-      meta: `${repos} — ${WAIT_LABEL[waiting.waitReason]}`,
-      waitReason: waiting.waitReason,
-      since: waiting.waitingSince ?? waiting.lastEventAt,
-      session: waiting,
-      inKite: waiting.ptyId !== null,
-    }
+  if (lastAgent) {
+    return item(
+      'idle',
+      agentLabel(lastAgent),
+      lastAgent.endedAt ?? lastAgent.startedAt,
+      null,
+      lastAgent,
+    )
   }
-  if (running) {
-    return {
-      ...base,
-      group: 'running',
-      meta: `${repos} — trabalhando`,
-      waitReason: null,
-      since: running.runningSince ?? running.lastEventAt,
-      session: running,
-      inKite: running.ptyId !== null,
-    }
-  }
-  if (ended) {
-    return {
-      ...base,
-      group: 'review',
-      meta: `${repos} — terminou`,
-      waitReason: null,
-      since: ended.endedAt ?? ended.lastEventAt,
-      session: ended,
-      inKite: false,
-    }
-  }
-  return {
-    ...base,
-    group: 'idle',
-    meta: repos,
-    waitReason: null,
-    since: 0,
-    session: null,
-    inKite: false,
-  }
+  return item('idle', '', 0, null, null)
 }
 
 export function attentionItems(
@@ -216,25 +241,35 @@ export function attentionItems(
   wsTasks: Task[] = [],
   links: Map<string, string> = new Map(),
 ): AttentionItem[] {
+  const visible = new Set(wsTasks.map((t) => t.id))
+  // Agentes abertos na pasta de uma tarefa (Fase 10) aparecem dentro do item dela.
+  const inTask = (a: AgentTask) => a.wsTaskId !== undefined && visible.has(a.wsTaskId)
+  const standalone = tasks.filter((a) => !inTask(a))
+  const agentTask = new Map(tasks.filter(inTask).map((a) => [a.id, a.wsTaskId as string]))
+
   const byTask = new Map<string, AgentSession>()
   for (const s of sessions) {
     if (!s.agentTaskId) continue
     const prev = byTask.get(s.agentTaskId)
     if (!prev || s.lastEventAt > prev.lastEventAt) byTask.set(s.agentTaskId, s)
   }
-  const known = new Set(tasks.map((t) => t.id))
-  const items = tasks.map((t) => taskItem(t, byTask.get(t.id)))
+  const known = new Set(standalone.map((t) => t.id))
+  const items = standalone.map((t) => taskItem(t, byTask.get(t.id)))
   // Sessões de agentes do Kite ficam no item do agente; as demais vão para a tarefa ligada.
   const free = sessions.filter((s) => !(s.agentTaskId && known.has(s.agentTaskId)))
   const linkedTo = new Map<string, AgentSession[]>()
-  const visible = new Set(wsTasks.map((t) => t.id))
+  const taskOf = (s: AgentSession): string | undefined =>
+    (s.agentTaskId ? agentTask.get(s.agentTaskId) : undefined) ?? links.get(s.id)
   for (const s of free) {
-    const id = links.get(s.id)
+    const id = taskOf(s)
     if (id && visible.has(id)) linkedTo.set(id, [...(linkedTo.get(id) ?? []), s])
   }
-  for (const t of wsTasks) items.push(wsTaskItem(t, linkedTo.get(t.id) ?? [], now))
+  for (const t of wsTasks) {
+    const agents = tasks.filter((a) => a.wsTaskId === t.id)
+    items.push(wsTaskItem(t, linkedTo.get(t.id) ?? [], agents, now))
+  }
   for (const s of free) {
-    const id = links.get(s.id)
+    const id = taskOf(s)
     if (id && visible.has(id)) continue
     const item = sessionItem(s, now)
     if (item) items.push(item)
@@ -336,6 +371,6 @@ export function origin(item: AttentionItem): string {
   const s = item.session
   if (!s) return ''
   return item.inKite
-    ? `Claude Code · iniciado ${clock(s.startedAt)} em ${tildePath(s.cwd)}`
-    : 'Claude Code · rodando fora do Kite'
+    ? `${CLI_LABEL[s.cli]} · iniciado ${clock(s.startedAt)} em ${tildePath(s.cwd)}`
+    : `${CLI_LABEL[s.cli]} · rodando fora do Kite`
 }
