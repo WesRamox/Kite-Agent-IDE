@@ -8,6 +8,7 @@ import { focusOrCreateTerminal, openTerminal } from '../features/terminal/termin
 import { isMac } from '../lib/platform'
 import { useLayoutStore } from '../stores/layout.store'
 import { useWorkspaceStore } from '../stores/workspace.store'
+import { openSettings } from '../features/settings/settings.actions'
 
 function inTerminal(target: EventTarget | null): boolean {
   return target instanceof Element && target.closest('.xterm') !== null
@@ -36,6 +37,7 @@ export function useKeybindings(): void {
       else if (key === 'j' && (e.shiftKey || !shellOwns)) jumpToNextWaiting()
       // Ctrl+B no terminal é "voltar um caractere" (e o prefixo do tmux): lá dentro não age.
       else if (key === 'b' && !e.shiftKey && !shellOwns) useLayoutStore.getState().toggleSidebar()
+      else if (e.key === ',' && !e.shiftKey) openSettings()
       // Ctrl+K no terminal apaga até o fim da linha: lá dentro, Ctrl+Shift+K.
       else if (key === 'k' && (e.shiftKey || !shellOwns) && useTasksStore.getState().workspace)
         useTaskSwitcherStore.getState().show()

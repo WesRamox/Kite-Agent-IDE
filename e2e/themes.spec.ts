@@ -22,8 +22,11 @@ test('tema padrão Kite, troca para Claro e persiste ao reabrir', async () => {
     await page.keyboard.press('Control+Backquote')
     await expect(page.locator('.xterm:visible')).toHaveCount(1)
 
-    await page.getByRole('button', { name: 'Tema' }).click()
-    await page.getByRole('menuitemradio', { name: 'Claro' }).click()
+    await page.getByRole('button', { name: 'Configurações' }).click()
+    await page
+      .getByRole('radiogroup', { name: 'Tema' })
+      .getByRole('radio', { name: 'Claro' })
+      .click()
     await expect(page.locator('html')).toHaveAttribute('data-theme', 'light')
     await expect(page.locator('html')).toHaveAttribute('data-theme-kind', 'light')
     await expect.poll(() => bodyBg(page)).toBe('rgb(255, 255, 255)')

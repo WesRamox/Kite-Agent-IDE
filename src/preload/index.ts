@@ -36,6 +36,7 @@ const api: Api = {
   settings: {
     get: invoke('settings:get'),
     setTheme: invoke('settings:setTheme'),
+    update: invoke('settings:update'),
   },
   clipboard: {
     readText: invoke('clipboard:readText'),

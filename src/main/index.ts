@@ -24,13 +24,14 @@ import { registerDialogIpc } from './ipc/dialog.ipc'
 import { registerFsIpc } from './ipc/fs.ipc'
 import { registerGitIpc } from './ipc/git.ipc'
 import { registerGitHubIpc } from './ipc/github.ipc'
-import { registerSettingsIpc, themeSchema } from './ipc/settings.ipc'
+import { registerSettingsIpc } from './ipc/settings.ipc'
 import { registerSystemIpc } from './ipc/system.ipc'
 import { registerTaskIpc } from './ipc/task.ipc'
 import { registerReviewIpc } from './ipc/review.ipc'
 import { registerTerminalIpc } from './ipc/terminal.ipc'
 import { registerWorkspaceIpc } from './ipc/workspace.ipc'
 import { JsonStore } from './lib/json-store'
+import { DEFAULT_SETTINGS, settingsSchema } from './lib/settings-schema'
 import { loadEnvFiles } from './lib/env-file'
 import { agentStateSchema } from './lib/agent-schemas'
 import { HOOK_TARGETS, wrapperScript } from './lib/claude-settings'
@@ -137,10 +138,14 @@ const AGENT_MESSAGES: Record<string, (name: string, code: number | null) => [str
   ],
 }
 
+// Configurações em uso (para as notificações, que nascem fora dos serviços).
+let settingsRef: SettingsService | null = null
+const notificationsOn = () => settingsRef?.get().notifications ?? true
+
 // Notificação nativa; clicar traz a janela e foca a tarefa.
 function notifyAgent(task: AgentTask): void {
   const message = AGENT_MESSAGES[task.status]
-  if (!message || !Notification.isSupported()) return
+  if (!message || !notificationsOn() || !Notification.isSupported()) return
   const [title, body] = message(task.name, task.exitCode)
   const notification = new Notification({ title, body })
   notification.on('click', () => {
@@ -167,7 +172,7 @@ const SESSION_MESSAGES: Record<string, (s: AgentSession) => [string, string]> = 
 // Notificação de uma sessão vista pelos hooks (agente dentro ou fora do Kite).
 function notifySession(session: AgentSession): void {
   const message = session.waitReason ? SESSION_MESSAGES[session.waitReason] : undefined
-  if (!message || !Notification.isSupported()) return
+  if (!message || !notificationsOn() || !Notification.isSupported()) return
   const [title, body] = message(session)
   const notification = new Notification({ title, body: body.slice(0, 180) })
   notification.on('click', () => {
@@ -185,11 +190,12 @@ function createServices() {
   const settingsService = new SettingsService({
     store: new JsonStore<AppSettings>(
       join(app.getPath('userData'), 'settings.json'),
-      z.object({ theme: themeSchema }),
-      { theme: DEFAULT_THEME },
+      settingsSchema,
+      DEFAULT_SETTINGS,
     ),
     applyTheme: applyNativeTheme,
   })
+  settingsRef = settingsService
   const appService = new AppService({
     name: app.getName(),
     version: app.getVersion(),

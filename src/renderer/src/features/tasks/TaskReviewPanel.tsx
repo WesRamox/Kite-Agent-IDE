@@ -12,6 +12,7 @@ import { AskAgentDialog } from './AskAgentDialog'
 import { DeliverDialog } from './DeliverDialog'
 import type { TaskReviewParams } from './review.actions'
 import { useTasksStore } from './tasks.store'
+import { useSettingsStore } from '../../stores/settings.store'
 
 // Tela 3 do canvas "Kite — Tarefas multi-repo" (Review.dc.html).
 
@@ -259,6 +260,7 @@ type DiffState =
   { kind: 'loading' } | { kind: 'error'; message: string } | { kind: 'ready'; diff: GitDiff }
 
 function FileDiff({ repo, rel, taskId }: { repo: ReviewRepo; rel: string; taskId: string }) {
+  const fontSize = useSettingsStore((s) => s.settings.editorFontSize)
   const root = useWorkspaceStore((s) => s.root)
   const monacoTheme = useMonacoTheme()
   const [state, setState] = useState<DiffState>({ kind: 'loading' })
@@ -319,7 +321,7 @@ function FileDiff({ repo, rel, taskId }: { repo: ReviewRepo; rel: string; taskId
               originalEditable: false,
               automaticLayout: true,
               renderSideBySide: sideBySide,
-              fontSize: 13,
+              fontSize,
               fontFamily: CODE_FONT,
               scrollBeyondLastLine: false,
               minimap: { enabled: false },

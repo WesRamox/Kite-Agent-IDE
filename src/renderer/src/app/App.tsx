@@ -17,6 +17,7 @@ import { useCloseFlow } from './use-close-flow'
 import { useFsEvents } from './use-fs-events'
 import { useKeybindings } from './use-keybindings'
 import { MenuBar } from '../components/menu-bar/MenuBar'
+import { useSettingsSync } from '../features/settings/settings.actions'
 
 export function App() {
   const sidebarVisible = useLayoutStore((s) => s.sidebarVisible)
@@ -27,6 +28,7 @@ export function App() {
   useAgentsSync()
   useSessionsSync()
   useTasksSync()
+  useSettingsSync()
   useEffect(() => {
     void useWorkspaceStore.getState().loadRecent()
     void useThemeStore.getState().syncFromMain()

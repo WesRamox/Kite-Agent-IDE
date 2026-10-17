@@ -1,11 +1,10 @@
+import { writeFile } from 'node:fs/promises'
 import path from 'node:path'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import { z } from 'zod'
 import { JsonStore } from '../lib/json-store'
+import { DEFAULT_SETTINGS, settingsPatchSchema, settingsSchema } from '../lib/settings-schema'
 import { makeTree } from '../test/tmp'
 import { SettingsService } from './settings.service'
-
-const schema = z.object({ theme: z.enum(['kite', 'dark', 'midnight', 'dimmed', 'light', 'paper']) })
 
 describe('SettingsService', () => {
   let dir: string
@@ -13,16 +12,39 @@ describe('SettingsService', () => {
   beforeEach(async () => ({ dir, cleanup } = await makeTree({})))
   afterEach(() => cleanup())
 
-  it('começa no tema padrão, aplica e persiste a troca', async () => {
+  const store = () => new JsonStore(path.join(dir, 's.json'), settingsSchema, DEFAULT_SETTINGS)
+
+  it('começa no padrão, aplica o tema e persiste as trocas', async () => {
     const applyTheme = vi.fn()
-    const store = new JsonStore(path.join(dir, 's.json'), schema, { theme: 'kite' as const })
-    const svc = new SettingsService({ store, applyTheme })
-    await expect(svc.init()).resolves.toEqual({ theme: 'kite' })
+    const svc = new SettingsService({ store: store(), applyTheme })
+    await expect(svc.init()).resolves.toEqual(DEFAULT_SETTINGS)
     expect(applyTheme).toHaveBeenLastCalledWith('kite')
 
     await svc.setTheme('light')
     expect(applyTheme).toHaveBeenLastCalledWith('light')
-    const reopened = new SettingsService({ store, applyTheme })
-    await expect(reopened.init()).resolves.toEqual({ theme: 'light' })
+    await svc.update({ editorFontSize: 15, notifications: false })
+    const reopened = new SettingsService({ store: store(), applyTheme })
+    await expect(reopened.init()).resolves.toEqual({
+      ...DEFAULT_SETTINGS,
+      theme: 'light',
+      editorFontSize: 15,
+      notifications: false,
+    })
+  })
+
+  it('arquivo antigo (só o tema) ou com um campo inválido mantém o resto', async () => {
+    await writeFile(
+      path.join(dir, 's.json'),
+      JSON.stringify({ theme: 'paper', terminalFontSize: 99 }),
+    )
+    const svc = new SettingsService({ store: store(), applyTheme: vi.fn() })
+    await expect(svc.init()).resolves.toEqual({ ...DEFAULT_SETTINGS, theme: 'paper' })
+  })
+
+  it('atualização do renderer só aceita campos conhecidos e válidos', () => {
+    expect(settingsPatchSchema.safeParse({ terminalFontSize: 16 }).success).toBe(true)
+    expect(settingsPatchSchema.safeParse({ terminalFontSize: 40 }).success).toBe(false)
+    expect(settingsPatchSchema.safeParse({ theme: 'light' }).success).toBe(false)
+    expect(settingsPatchSchema.safeParse({ language: 'en' }).success).toBe(false)
   })
 })

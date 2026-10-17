@@ -10,6 +10,7 @@ import { CODE_FONT, codeFontReady } from '../../lib/code-font'
 import { routePty, unseenPart } from './pty-router'
 import { useThemeStore } from '../../stores/theme.store'
 import { terminalTheme } from './terminal-theme'
+import { useSettingsStore } from '../../stores/settings.store'
 
 export const SCROLLBACK_LINES = 5000
 const SAVED_LINES = 1000
@@ -38,12 +39,13 @@ export class TerminalSession {
   private lastSize = { cols: 0, rows: 0 }
   // Agentes: o PTY pertence ao main e continua vivo quando o terminal fecha.
   private ownsPty = true
+  private fontSize = useSettingsStore.getState().settings.terminalFontSize
 
   constructor(private readonly options: SessionOptions) {
     this.term = new Terminal({
       theme: terminalTheme(useThemeStore.getState().theme),
       fontFamily: CODE_FONT,
-      fontSize: 13,
+      fontSize: this.fontSize,
       scrollback: SCROLLBACK_LINES,
       cursorBlink: true,
       allowProposedApi: true,
@@ -55,6 +57,13 @@ export class TerminalSession {
     // window.open é interceptado no main e abre o link no navegador do sistema.
     this.term.loadAddon(new WebLinksAddon((_event, uri) => window.open(uri, '_blank')))
     this.term.attachCustomKeyEventHandler((e) => this.handleKey(e))
+  }
+
+  // Tamanho da fonte trocado nas configurações. Só é aplicado com o terminal visível (no fit):
+  // escondido, o xterm não consegue medir a fonte nova e ficaria com as células antigas.
+  setFontSize(size: number): void {
+    this.fontSize = size
+    if (this.opened) this.fit()
   }
 
   // Abre o xterm no elemento e inicia (ou conecta) o PTY, só na primeira vez.
@@ -178,6 +187,7 @@ export class TerminalSession {
   fit(): void {
     const el = this.term.element
     if (!el || this.disposed || el.clientWidth === 0 || el.clientHeight === 0) return
+    if (this.term.options.fontSize !== this.fontSize) this.term.options.fontSize = this.fontSize
     try {
       this.fitAddon.fit()
     } catch {

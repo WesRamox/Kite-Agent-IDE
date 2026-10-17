@@ -17,6 +17,7 @@ import { useLayoutStore } from '../../stores/layout.store'
 import { useThemeStore } from '../../stores/theme.store'
 import { useWorkspaceStore } from '../../stores/workspace.store'
 import { tildePath } from '../../features/agents/session-format'
+import { openSettings } from '../../features/settings/settings.actions'
 
 // Menus da barra superior: só ações do Kite (pastas, tarefas, agentes, terminais e visual).
 // Os atalhos mostrados são os que o app já trata (use-keybindings.ts).
@@ -100,6 +101,8 @@ export function buildMenus(): MenuDef[] {
         }),
         item('Salvar', () => void saveActive(), { shortcut: `${mod}S`, disabled: !root }),
         item('Fechar aba', () => void closeActive(), { shortcut: `${mod}W`, disabled: !root }),
+        sep,
+        item('Configurações…', openSettings, { shortcut: `${mod},` }),
         sep,
         item('Sair', () => window.close(), { shortcut: isMac ? '⌘Q' : undefined }),
       ],

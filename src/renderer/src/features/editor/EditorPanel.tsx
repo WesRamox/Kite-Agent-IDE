@@ -5,11 +5,11 @@ import { useEditorStore } from './editor.store'
 import { uriFor } from './models'
 import { type monaco, useMonacoTheme } from './monaco-setup'
 import { CODE_FONT } from '../../lib/code-font'
+import { useSettingsStore } from '../../stores/settings.store'
 
 const OPTIONS: monaco.editor.IStandaloneEditorConstructionOptions = {
   automaticLayout: true,
   fontFamily: CODE_FONT,
-  fontSize: 13,
   minimap: { enabled: true },
   scrollBeyondLastLine: false,
   smoothScrolling: true,
@@ -20,6 +20,7 @@ const OPTIONS: monaco.editor.IStandaloneEditorConstructionOptions = {
 
 export function EditorPanel({ params, api }: IDockviewPanelProps<{ path: string }>) {
   const monacoTheme = useMonacoTheme()
+  const fontSize = useSettingsStore((s) => s.settings.editorFontSize)
   const editorRef = useRef<monaco.editor.IStandaloneCodeEditor | null>(null)
   const { path } = params
 
@@ -44,7 +45,7 @@ export function EditorPanel({ params, api }: IDockviewPanelProps<{ path: string 
         path={uriFor(path).toString()}
         theme={monacoTheme}
         keepCurrentModel
-        options={OPTIONS}
+        options={{ ...OPTIONS, fontSize }}
         onMount={(editor) => {
           editorRef.current = editor
           if (api.isActive) {

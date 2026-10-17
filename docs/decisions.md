@@ -471,3 +471,23 @@ Decisões fáceis de desfazer, não cobertas pelo `AGENTS.md`. Mais recente no f
   centro, a pasta e a tarefa abertas. Edição (copiar, colar) fica fora: os atalhos já funcionam
   no editor, nos campos e no terminal.
 - Novo atalho `Ctrl/Cmd+B` mostra/oculta a barra lateral (fora do terminal, onde é do shell).
+
+## Página de configurações
+
+- O botão de tema da activity bar virou o botão de **Configurações** (também `Ctrl/Cmd+,` e
+  Arquivo → Configurações…), que abre uma página com: Aparência (tema), Idioma, Editor e
+  terminal (fonte de cada um, restaurar terminais), Agentes e notificações, Tarefas (agrupamento,
+  o mesmo bloco da tela Descobrir), GitHub e Sobre.
+- Tudo fica no `settings.json`. Cada campo tem padrão e é validado sozinho (`.catch`): o arquivo
+  antigo, só com o tema, continua valendo. O renderer só altera campos conhecidos
+  (`settings:update`, schema `strict`); o tema mantém o canal próprio.
+- **Idioma:** só português por enquanto. A seção mostra English como "em breve": traduzir exige
+  extrair os textos da interface, uma tarefa à parte.
+- **Fonte do terminal:** aplicada só com o terminal visível. Escondido, o xterm não mede a fonte nova
+  e ficaria com as células antigas. Com DPI 1 o xterm arredonda a célula para pixels inteiros, então
+  fontes vizinhas (13 e 12 px) podem dar o mesmo número de colunas.
+- **Notificações desligadas** valem para as dos agentes do Kite e as das sessões vistas pelos hooks.
+- **Arrasto da sidebar:** segue os eventos da janela em vez da captura do ponteiro (o Chromium às
+  vezes perde a captura sem `pointerup`, e a página ficava sem cliques), e o duplo clique é
+  detectado no `pointerdown`. Nos e2e, mexer o mouse físico sobre a janela de teste atrapalha os
+  testes de arrasto: a janela do Electron é real.

@@ -2,7 +2,8 @@ import { useAttentionGroups } from '../features/agents/use-attention'
 import { VIEWS } from '../lib/views'
 import { useLayoutStore } from '../stores/layout.store'
 import { KiteLogo } from './KiteLogo'
-import { ThemePicker } from './ThemePicker'
+import { Settings } from 'lucide-react'
+import { openSettings } from '../features/settings/settings.actions'
 
 // Moldura do canvas (Main.dc.html): logo no topo, botões de 36 px, badge de quem espera.
 export function ActivityBar() {
@@ -41,9 +42,15 @@ export function ActivityBar() {
           </button>
         )
       })}
-      <div className="mt-auto">
-        <ThemePicker />
-      </div>
+      <button
+        type="button"
+        title="Configurações"
+        aria-label="Configurações"
+        onClick={openSettings}
+        className="mt-auto flex size-9 items-center justify-center rounded-lg text-fg-muted transition-colors hover:bg-surface-2 hover:text-fg"
+      >
+        <Settings size={18} strokeWidth={1.8} />
+      </button>
     </nav>
   )
 }

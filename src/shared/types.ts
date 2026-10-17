@@ -26,9 +26,21 @@ export interface AppError {
 
 export type Result<T> = { ok: true; data: T } | { ok: false; error: AppError }
 
+export type AppLanguage = 'pt-BR'
+
 export interface AppSettings {
   theme: ThemeId
+  // Só português por enquanto; o inglês entra com a tradução da interface.
+  language: AppLanguage
+  editorFontSize: number
+  terminalFontSize: number
+  // Salvar o histórico dos terminais ao fechar e restaurar ao reabrir.
+  restoreTerminals: boolean
+  // Notificações nativas quando um agente espera ou termina.
+  notifications: boolean
 }
+
+export type SettingsPatch = Partial<Omit<AppSettings, 'theme'>>
 
 export interface AppInfo {
   name: string

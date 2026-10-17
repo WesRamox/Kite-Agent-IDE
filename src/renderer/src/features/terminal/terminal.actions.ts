@@ -1,6 +1,7 @@
 import type { PtyExitEvent, TerminalSession as SavedSession } from '@shared/types'
 import { allDocks, findPanel, getDock, getDockApi, WORKSPACE_CONTEXT } from '../../lib/dock'
 import { attempt } from '../../lib/ipc'
+import { useSettingsStore } from '../../stores/settings.store'
 import { toast } from '../../stores/toast.store'
 import { useWorkspaceStore } from '../../stores/workspace.store'
 import { taskBaseDir } from '../tasks/tasks.store'
@@ -146,9 +147,11 @@ export function collectSessions(): SavedSession[] {
   })
 }
 
+// Com "restaurar terminais" desligado, grava uma lista vazia (apaga o que havia).
 export async function saveTerminalSessions(root: string): Promise<void> {
+  const keep = useSettingsStore.getState().settings.restoreTerminals
   await attempt(
-    window.api.terminal.saveSessions(root, collectSessions()),
+    window.api.terminal.saveSessions(root, keep ? collectSessions() : []),
     'Erro ao salvar terminais',
   )
 }
@@ -160,6 +163,7 @@ export function closeAllTerminals(): void {
 }
 
 export async function restoreTerminalSessions(root: string): Promise<void> {
+  if (!useSettingsStore.getState().settings.restoreTerminals) return
   const saved = await attempt(window.api.terminal.loadSessions(root), 'Erro ao restaurar terminais')
   for (const session of saved ?? []) openTerminal({ restore: session })
 }

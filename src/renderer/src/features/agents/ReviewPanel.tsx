@@ -9,9 +9,11 @@ import { monaco, useMonacoTheme } from '../editor/monaco-setup'
 import { FileIcon } from '../explorer/FileIcon'
 import { KIND_COLOR, KIND_LETTER } from '../git/git-format'
 import { useAgentsStore } from './agents.store'
+import { useSettingsStore } from '../../stores/settings.store'
 
 // Revisão de uma tarefa: o que mudou na worktree do agente desde a branch de origem.
 export function ReviewPanel({ api, params }: IDockviewPanelProps<{ taskId: string }>) {
+  const fontSize = useSettingsStore((s) => s.settings.editorFontSize)
   const monacoTheme = useMonacoTheme()
   const task = useAgentsStore((s) => s.tasks.find((t) => t.id === params.taskId))
   const [review, setReview] = useState<AgentReview | null>(null)
@@ -133,7 +135,7 @@ export function ReviewPanel({ api, params }: IDockviewPanelProps<{ taskId: strin
                   originalEditable: false,
                   automaticLayout: true,
                   renderSideBySide: true,
-                  fontSize: 13,
+                  fontSize,
                   scrollBeyondLastLine: false,
                   minimap: { enabled: false },
                 }}

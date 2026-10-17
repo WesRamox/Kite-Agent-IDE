@@ -10,11 +10,13 @@ import { monaco, useMonacoTheme } from '../editor/monaco-setup'
 import type { DiffParams } from './git.actions'
 import { useGitStore } from './git.store'
 import { CODE_FONT } from '../../lib/code-font'
+import { useSettingsStore } from '../../stores/settings.store'
 
 type State =
   { kind: 'loading' } | { kind: 'error'; message: string } | { kind: 'ready'; diff: GitDiff }
 
 export function DiffPanel({ api, params }: IDockviewPanelProps<DiffParams>) {
+  const fontSize = useSettingsStore((s) => s.settings.editorFontSize)
   const monacoTheme = useMonacoTheme()
   const { path, staged } = params
   const root = useGitStore((s) => s.root)
@@ -72,7 +74,7 @@ export function DiffPanel({ api, params }: IDockviewPanelProps<DiffParams>) {
               originalEditable: false,
               automaticLayout: true,
               renderSideBySide: true,
-              fontSize: 13,
+              fontSize,
               fontFamily: CODE_FONT,
               scrollBeyondLastLine: false,
               minimap: { enabled: false },

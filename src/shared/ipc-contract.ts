@@ -7,6 +7,7 @@ import type { ThemeId } from './themes'
 import type {
   AppInfo,
   AppSettings,
+  SettingsPatch,
   ConfirmOptions,
   DirEntry,
   FileContent,
@@ -55,6 +56,7 @@ export interface InvokeChannels {
 
   'settings:get': { args: []; result: AppSettings }
   'settings:setTheme': { args: [theme: ThemeId]; result: AppSettings }
+  'settings:update': { args: [patch: SettingsPatch]; result: AppSettings }
 
   'dialog:confirm': { args: [options: ConfirmOptions]; result: number }
 
@@ -220,6 +222,7 @@ export interface Api {
   settings: {
     get: Fn<'settings:get'>
     setTheme: Fn<'settings:setTheme'>
+    update: Fn<'settings:update'>
   }
   clipboard: {
     readText: Fn<'clipboard:readText'>

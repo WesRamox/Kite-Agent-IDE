@@ -68,6 +68,13 @@ import { useTasksStore } from '../features/tasks/tasks.store'
 import { findPanel, registerDock, unregisterDock, WORKSPACE_CONTEXT } from '../lib/dock'
 import { isMac } from '../lib/platform'
 import { useContextStore } from '../stores/context.store'
+import { SettingsPanel } from '../features/settings/SettingsPanel'
+import { SettingsTab } from '../features/settings/SettingsTab'
+import {
+  isSettingsPanel,
+  SETTINGS_COMPONENT,
+  SETTINGS_TAB_COMPONENT,
+} from '../features/settings/settings.actions'
 
 const components = {
   [EDITOR_COMPONENT]: EditorPanel,
@@ -80,6 +87,7 @@ const components = {
   [CONNECT_COMPONENT]: ConnectAgentsPanel,
   [ATTENTION_COMPONENT]: CentralPanel,
   [DISCOVER_COMPONENT]: DiscoverPanel,
+  [SETTINGS_COMPONENT]: SettingsPanel,
   [TASK_REVIEW_COMPONENT]: TaskReviewPanel,
 }
 const tabComponents = {
@@ -92,6 +100,7 @@ const tabComponents = {
   [CONNECT_TAB_COMPONENT]: ConnectAgentsTab,
   [ATTENTION_TAB_COMPONENT]: AttentionTab,
   [DISCOVER_TAB_COMPONENT]: DiscoverTab,
+  [SETTINGS_TAB_COMPONENT]: SettingsTab,
   [TASK_REVIEW_TAB_COMPONENT]: TaskReviewTab,
 }
 
@@ -106,6 +115,7 @@ function isEditorPanel(id: string): boolean {
     isConnectPanel,
     isAttentionPanel,
     isDiscoverPanel,
+    isSettingsPanel,
     isTaskReviewPanel,
   ].some((is) => is(id))
 }
