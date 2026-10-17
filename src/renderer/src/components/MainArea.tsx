@@ -157,7 +157,12 @@ function DockContext({ id, visible }: { id: string; visible: boolean }) {
     [id],
   )
 
-  useEffect(() => () => unregisterDock(id), [id])
+  // Registra de novo ao remontar: no StrictMode (dev) o efeito roda, limpa e roda outra vez,
+  // mas o onReady do dockview só é chamado uma vez.
+  useEffect(() => {
+    if (apiRef.current) registerDock(id, apiRef.current)
+    return () => unregisterDock(id)
+  }, [id])
   // Ao virar o contexto ativo, o editor e o terminal "atuais" passam a ser os deste dock.
   useEffect(() => {
     if (visible) syncActive(apiRef.current?.activePanel?.id ?? null)
