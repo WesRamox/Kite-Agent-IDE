@@ -429,3 +429,13 @@ Decisões fáceis de desfazer, não cobertas pelo `AGENTS.md`. Mais recente no f
   formatos seguem a documentação oficial e foram testados com eventos simulados pelo próprio
   `kite-hook.sh`. Vale confirmar com os CLIs reais o formato do `hooks.json` do Codex e os campos
   de `details` da notificação de permissão do Gemini.
+
+## Configuração por `.env`
+
+- **`.env` sem dependência nova.** Um parser pequeno em `src/main/lib/env-file.ts` lê o `.env` da
+  pasta do projeto (só em `pnpm dev`) e o da pasta de perfil (`userData/.env`, vale no app
+  empacotado). O primeiro arquivo que define uma chave vence, e o ambiente vence os dois, mesmo
+  com valor vazio (os e2e usam `GITHUB_CLIENT_ID=''` para testar o caso sem login).
+- **Só chaves conhecidas** (`GITHUB_CLIENT_ID`, `GITHUB_API_URL`, `GITHUB_OAUTH_URL`,
+  `GITHUB_HOST`, `KITE_DEVTOOLS`) entram no `process.env`, para o resto do arquivo não vazar para os
+  terminais. `LOG_LEVEL` fica de fora porque o logger já leu o nível antes do `.env` ser carregado.

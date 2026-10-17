@@ -65,7 +65,7 @@ pnpm dev       # abre o app em modo desenvolvimento (com HMR)
 | `pnpm test`      | Testes unitários (Vitest)                    |
 | `pnpm format`    | Prettier                                     |
 
-Variáveis de ambiente:
+Variáveis de ambiente (também podem ficar num arquivo `.env`, veja `.env.example`):
 
 - `GITHUB_CLIENT_ID`: Client ID do OAuth App usado no login com GitHub (veja abaixo).
 - `GITHUB_API_URL`, `GITHUB_OAUTH_URL`, `GITHUB_HOST`: para GitHub Enterprise (padrões:
@@ -84,11 +84,15 @@ O login usa o OAuth **Device Flow**, então o app não precisa de client secret.
    - _Authorization callback URL_: obrigatório no formulário, mas não é usado pelo Device
      Flow (ex.: `http://127.0.0.1/callback`).
 2. Na página do app, marque **Enable Device Flow** e salve.
-3. Copie o **Client ID** e rode o app com ele:
+3. Copie o **Client ID** e coloque num `.env` na pasta do projeto (fica fora do git):
 
    ```bash
-   GITHUB_CLIENT_ID=Ov23li... pnpm dev
+   cp .env.example .env   # e preencha GITHUB_CLIENT_ID=Ov23li...
+   pnpm dev
    ```
+
+   No app instalado, o `.env` fica na pasta de perfil (Linux: `~/.config/Kite/.env`). Também
+   dá para passar na linha de comando, que vence o arquivo: `GITHUB_CLIENT_ID=Ov23li... pnpm dev`.
 
 4. Na aba GitHub, clique em **Entrar com GitHub**. O código é copiado para a área de
    transferência e o navegador abre a página para colá-lo.

@@ -31,6 +31,7 @@ import { registerReviewIpc } from './ipc/review.ipc'
 import { registerTerminalIpc } from './ipc/terminal.ipc'
 import { registerWorkspaceIpc } from './ipc/workspace.ipc'
 import { JsonStore } from './lib/json-store'
+import { loadEnvFiles } from './lib/env-file'
 import { agentStateSchema } from './lib/agent-schemas'
 import { HOOK_TARGETS, wrapperScript } from './lib/claude-settings'
 import { createGitRunner } from './lib/git-runner'
@@ -399,6 +400,15 @@ if (userDataOverride) app.setPath('userData', userDataOverride)
 else {
   const copied = migrateLegacyProfile(app.getPath('appData'), app.getPath('userData'))
   if (copied.length > 0) log.info('perfil do AiController migrado', { files: copied })
+}
+
+// .env com a configuração do app: o da pasta do projeto em `pnpm dev` e o da pasta de perfil
+// (vale também no app empacotado). Loga só os nomes das chaves, nunca os valores.
+{
+  const envFiles = [join(app.getPath('userData'), '.env')]
+  if (!app.isPackaged) envFiles.unshift(join(app.getAppPath(), '.env'))
+  const env = loadEnvFiles(envFiles, process.env)
+  if (env.keys.length > 0) log.info('configuração lida do .env', env)
 }
 
 // Tema fora do renderer: fundo das janelas e diálogos/menus nativos claros ou escuros.
