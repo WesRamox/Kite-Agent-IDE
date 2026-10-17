@@ -18,6 +18,7 @@ test('sidebar ajustável: arrastar, limites, teclado, duplo clique e largura man
     const page = ctx.page
     await page.getByRole('button', { name: 'Abrir pasta' }).first().click()
     await page.locator(`[data-node-id="${path.join(ws, 'a.ts')}"]`).click()
+    await expect(page.locator('.monaco-editor').first()).toBeVisible()
     expect(await sidebarWidth(page)).toBe(288)
 
     const handle = page.getByRole('separator', { name: 'Largura da barra lateral' })
@@ -32,7 +33,7 @@ test('sidebar ajustável: arrastar, limites, teclado, duplo clique e largura man
     }
     const x = box.x + box.width / 2
     await drag(x, x + 112)
-    expect(await sidebarWidth(page)).toBe(400)
+    await expect.poll(() => sidebarWidth(page)).toBe(400)
     // O editor acompanha a nova largura.
     await expect
       .poll(() =>
@@ -44,7 +45,7 @@ test('sidebar ajustável: arrastar, limites, teclado, duplo clique e largura man
 
     // Limites: não passa de 200 px nem de 640 px.
     await drag(x + 112, 20)
-    expect(await sidebarWidth(page)).toBe(200)
+    await expect.poll(() => sidebarWidth(page)).toBe(200)
 
     // Teclado e duplo clique.
     await handle.focus()
@@ -69,5 +70,72 @@ test('sidebar ajustável: arrastar, limites, teclado, duplo clique e largura man
   } finally {
     await ctx.cleanup()
     await rm(userData, { recursive: true, force: true })
+  }
+})
+
+test('barra de menus: abrir, trocar com o mouse, teclado, tema, barra lateral e sobre', async () => {
+  const ws = await makeWorkspace({ 'a.ts': 'export const a = 1\n' })
+  const ctx = await launch(ws)
+  try {
+    const page = ctx.page
+    const bar = page.getByRole('menubar', { name: 'Menu do Kite' })
+    const top = (name: string) => bar.getByRole('menuitem', { name, exact: true })
+    await expect(
+      bar.getByRole('menuitem', { name: /^(Arquivo|Ver|Tarefa|Terminal|Ajuda)$/ }),
+    ).toHaveCount(5)
+
+    // Sem pasta, as ações que precisam dela ficam desabilitadas.
+    await top('Arquivo').click()
+    await expect(bar.getByRole('menuitem', { name: 'Salvar' })).toBeDisabled()
+    // Com um menu aberto, passar o mouse troca de menu.
+    await top('Tarefa').hover()
+    await expect(bar.getByRole('menuitem', { name: 'Nova tarefa…' })).toBeVisible()
+    await expect(bar.getByRole('menuitem', { name: 'Salvar' })).toBeHidden()
+    await page.keyboard.press('Escape')
+    await expect(bar.getByRole('menu')).toHaveCount(0)
+
+    await top('Arquivo').click()
+    await bar.getByRole('menuitem', { name: 'Abrir pasta…' }).click()
+    await expect(page.locator(`[data-node-id="${path.join(ws, 'a.ts')}"]`)).toBeVisible()
+    await expect(bar).toContainText(path.basename(ws))
+
+    // Tema pelo submenu de Ver.
+    await top('Ver').click()
+    await bar.getByRole('menuitem', { name: 'Tema' }).hover()
+    await bar.getByRole('menuitem', { name: 'Claro' }).click()
+    await expect(page.locator('html')).toHaveAttribute('data-theme', 'light')
+
+    // Teclado: seta para a direita troca de menu, Enter executa.
+    await top('Ver').click()
+    await page.keyboard.press('ArrowRight')
+    await expect(bar.getByRole('menuitem', { name: 'Nova tarefa…' })).toBeVisible()
+    await page.keyboard.press('ArrowLeft')
+    await page.keyboard.press('ArrowDown')
+    await page.keyboard.press('ArrowDown')
+    await page.keyboard.press('Enter')
+    await expect(page.getByRole('button', { name: 'Abrir pasta' }).first()).toBeHidden()
+    await expect(page.locator('[role="tree"]').first()).toBeVisible()
+
+    // Ocultar a barra lateral pelo menu e pelo Ctrl+B.
+    await top('Ver').click()
+    await bar.getByRole('menuitem', { name: 'Ocultar barra lateral' }).click()
+    await expect(page.locator(`[data-node-id="${path.join(ws, 'a.ts')}"]`)).toBeHidden()
+    await page.keyboard.press('Control+b')
+    await expect(page.locator(`[data-node-id="${path.join(ws, 'a.ts')}"]`)).toBeVisible()
+
+    // Sobre: diálogo nativo com a versão.
+    await top('Ajuda').click()
+    await bar.getByRole('menuitem', { name: 'Sobre o Kite' }).click()
+    await expect
+      .poll(() =>
+        ctx.app.evaluate(
+          () =>
+            (globalThis as unknown as { __lastDialog?: { message: string } }).__lastDialog
+              ?.message ?? '',
+        ),
+      )
+      .toMatch(/^Kite \d+\.\d+\.\d+/)
+  } finally {
+    await ctx.cleanup()
   }
 })

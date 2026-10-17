@@ -461,3 +461,13 @@ Decisões fáceis de desfazer, não cobertas pelo `AGENTS.md`. Mais recente no f
 - A tela 4 só abria sozinha na primeira vez ou pelo Ctrl+K. A pedido do usuário, o cabeçalho da
   Central ganhou um botão "Descobrir" ao lado do "+ Nova" (só com uma pasta aberta), um desvio
   combinado do canvas.
+
+## Barra de menus
+
+- Sem o menu nativo (removido no Linux/Windows), o Kite ganhou uma barra de menus própria no topo,
+  como a do VS Code, só com ações do app: Arquivo (pastas, recentes, salvar, sair), Ver (views,
+  barra lateral, tema), Tarefa (nova, trocar, descobrir, revisar, próximo que espera), Terminal
+  (novo terminal, novo agente na tarefa, conectar agentes) e Ajuda (documentação, sobre). No
+  centro, a pasta e a tarefa abertas. Edição (copiar, colar) fica fora: os atalhos já funcionam
+  no editor, nos campos e no terminal.
+- Novo atalho `Ctrl/Cmd+B` mostra/oculta a barra lateral (fora do terminal, onde é do shell).

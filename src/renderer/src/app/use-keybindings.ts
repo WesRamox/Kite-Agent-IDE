@@ -6,6 +6,7 @@ import { useTasksStore } from '../features/tasks/tasks.store'
 import { useQuickOpenStore } from '../features/quick-open/quick-open.store'
 import { focusOrCreateTerminal, openTerminal } from '../features/terminal/terminal.actions'
 import { isMac } from '../lib/platform'
+import { useLayoutStore } from '../stores/layout.store'
 import { useWorkspaceStore } from '../stores/workspace.store'
 
 function inTerminal(target: EventTarget | null): boolean {
@@ -33,6 +34,8 @@ export function useKeybindings(): void {
       // Ctrl+J no terminal é quebra de linha (inclusive no prompt do Claude Code): lá dentro,
       // use Ctrl+Shift+J.
       else if (key === 'j' && (e.shiftKey || !shellOwns)) jumpToNextWaiting()
+      // Ctrl+B no terminal é "voltar um caractere" (e o prefixo do tmux): lá dentro não age.
+      else if (key === 'b' && !e.shiftKey && !shellOwns) useLayoutStore.getState().toggleSidebar()
       // Ctrl+K no terminal apaga até o fim da linha: lá dentro, Ctrl+Shift+K.
       else if (key === 'k' && (e.shiftKey || !shellOwns) && useTasksStore.getState().workspace)
         useTaskSwitcherStore.getState().show()

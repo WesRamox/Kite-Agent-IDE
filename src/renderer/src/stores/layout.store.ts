@@ -28,6 +28,7 @@ interface LayoutState {
   sidebarWidth: number
   // Clicar no ícone da view ativa recolhe/expande a sidebar, como no VS Code.
   selectView: (view: SidebarView) => void
+  toggleSidebar: () => void
   setSidebarWidth: (width: number, persist?: boolean) => void
 }
 
@@ -41,6 +42,7 @@ export const useLayoutStore = create<LayoutState>((set) => ({
         ? { sidebarVisible: !s.sidebarVisible }
         : { activeView: view, sidebarVisible: true },
     ),
+  toggleSidebar: () => set((s) => ({ sidebarVisible: !s.sidebarVisible })),
   setSidebarWidth: (width, persist = true) => {
     const value = clampSidebar(width)
     set({ sidebarWidth: value })

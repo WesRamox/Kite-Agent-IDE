@@ -16,6 +16,7 @@ import { useWorkspaceStore } from '../stores/workspace.store'
 import { useCloseFlow } from './use-close-flow'
 import { useFsEvents } from './use-fs-events'
 import { useKeybindings } from './use-keybindings'
+import { MenuBar } from '../components/menu-bar/MenuBar'
 
 export function App() {
   const sidebarVisible = useLayoutStore((s) => s.sidebarVisible)
@@ -33,6 +34,7 @@ export function App() {
 
   return (
     <div className="flex h-full flex-col">
+      <MenuBar />
       <div className="flex min-h-0 flex-1">
         <ActivityBar />
         <div className={sidebarVisible ? 'flex' : 'hidden'}>

@@ -77,10 +77,11 @@ export async function launch(workspace: string, opts: LaunchOptions = {}): Promi
       g.__opened.push(url)
     }
     dialog.showOpenDialog = (async () => ({ canceled: false, filePaths: [dir] })) as never
-    dialog.showMessageBox = (async () => ({
-      response: g.__confirmAnswer,
-      checkboxChecked: false,
-    })) as never
+    // Guarda o último diálogo (aceita a forma com e sem janela) para os testes conferirem.
+    dialog.showMessageBox = (async (...args: unknown[]) => {
+      ;(g as unknown as { __lastDialog: unknown }).__lastDialog = args[args.length - 1]
+      return { response: g.__confirmAnswer, checkboxChecked: false }
+    }) as never
     shell.trashItem = async (p: string) => {
       g.__trashed.push(p)
     }
