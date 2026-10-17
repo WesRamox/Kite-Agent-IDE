@@ -38,7 +38,23 @@ const INTERNAL_VARS = [
   'ELECTRON_RUN_AS_NODE',
   'ELECTRON_NO_ATTACH_CONSOLE',
   'KITE_USER_DATA_DIR',
+  'KITE_CLAUDE_SETTINGS',
   'LOG_LEVEL',
+  // Marcadores de sessão do Claude Code: se o Kite for aberto de dentro de uma sessão do Claude
+  // Code, um `claude` rodado no terminal do Kite se acharia uma sessão filha (sem salvar a
+  // transcrição) e herdaria o token de mensagens da sessão de fora. Configurações do usuário
+  // (ex.: CLAUDE_CODE_USE_BEDROCK) não estão na lista e continuam passando.
+  'CLAUDECODE',
+  'CLAUDE_PID',
+  'CLAUDE_EFFORT',
+  'CLAUDE_CODE_CHILD_SESSION',
+  'CLAUDE_CODE_SESSION_ID',
+  'CLAUDE_CODE_SESSION_ATTENDED',
+  'CLAUDE_CODE_ENTRYPOINT',
+  'CLAUDE_CODE_EXECPATH',
+  'CLAUDE_CODE_MESSAGING_SOCKET',
+  'CLAUDE_CODE_MESSAGING_TOKEN',
+  'CLAUDE_CODE_SSE_PORT',
 ]
 
 export function terminalEnv(

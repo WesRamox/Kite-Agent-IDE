@@ -48,4 +48,17 @@ describe('terminalEnv', () => {
     expect(env).not.toHaveProperty('KITE_USER_DATA_DIR')
     expect(env).not.toHaveProperty('EMPTY')
   })
+
+  it('não repassa os marcadores de uma sessão do Claude Code que abriu o Kite', () => {
+    const env = terminalEnv({
+      CLAUDECODE: '1',
+      CLAUDE_CODE_CHILD_SESSION: '1',
+      CLAUDE_CODE_MESSAGING_TOKEN: 'segredo',
+      CLAUDE_CODE_USE_BEDROCK: '1',
+    })
+    expect(env).not.toHaveProperty('CLAUDECODE')
+    expect(env).not.toHaveProperty('CLAUDE_CODE_CHILD_SESSION')
+    expect(env).not.toHaveProperty('CLAUDE_CODE_MESSAGING_TOKEN')
+    expect(env['CLAUDE_CODE_USE_BEDROCK']).toBe('1')
+  })
 })
