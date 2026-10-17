@@ -529,3 +529,18 @@ Decisões fáceis de desfazer, não cobertas pelo `AGENTS.md`. Mais recente no f
   `.AppImage` (variável `APPIMAGE`). Verificado: eventos gerados com o Kite fechado aparecem ao
   reabrir.
 - **Windows:** gerado pelo CI, ainda não testado numa máquina real. Sem assinatura de código.
+
+## Login no app instalado e recuperação de erros (0.1.1)
+
+- **Client ID embutido no build.** O Device Flow não usa client secret, então o Client ID do OAuth
+  App não é segredo. O build o lê de `KITE_GITHUB_CLIENT_ID` (no CI, uma variável do repositório)
+  ou do `.env` local e o grava como padrão (`define` do electron-vite). `GITHUB_CLIENT_ID` no
+  ambiente ou no `.env` da pasta de perfil vence; definida vazia, desliga o login (os e2e usam).
+  Sem backend: o login continua direto entre o app e o GitHub.
+- **Erros da interface não deixam mais a janela vazia.** Um `ErrorBoundary` mostra o erro com
+  "Recarregar"; se o processo da interface cair, o main registra e recarrega a janela.
+- **Log em arquivo** em `logs/main.log` na pasta de perfil (vira `main.log.1` ao passar de 1 MB),
+  com os erros da interface também no app instalado. Nunca registra conteúdo de arquivos ou tokens.
+- Tela preta ao trocar de pasta na 0.1.0 (Linux, NVIDIA + Wayland/COSMIC): não reproduzida nos
+  testes, que simulam o diálogo nativo. Suspeita: composição gráfica do Electron em Wayland com
+  NVIDIA depois do diálogo nativo. A 0.1.1 traz o log e a recuperação para confirmar a causa.

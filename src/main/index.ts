@@ -40,7 +40,7 @@ import { agentStateSchema } from './lib/agent-schemas'
 import { HOOK_TARGETS, wrapperScript } from './lib/claude-settings'
 import { createGitRunner } from './lib/git-runner'
 import { migrateLegacyProfile } from './lib/legacy-profile'
-import { logger } from './lib/logger'
+import { addLogFile, logger } from './lib/logger'
 import { TokenStore } from './lib/token-store'
 import { defaultShell, type ShellSpec } from './lib/shell'
 import { listShells, which } from './lib/which'
@@ -113,11 +113,19 @@ function createWindow(): BrowserWindow {
     event.preventDefault()
   })
 
-  if (!app.isPackaged) {
-    win.webContents.on('console-message', (details) => {
-      log.child('renderer').debug(details.message, { level: details.level })
-    })
-  }
+  // Erros da interface vão para o log (e o arquivo de log) também no app instalado; o resto do
+  // console só em desenvolvimento.
+  win.webContents.on('console-message', (details) => {
+    if (details.level === 'error') log.child('renderer').error(details.message)
+    else if (!app.isPackaged) log.child('renderer').debug(details.message, { level: details.level })
+  })
+  // A interface caiu ou travou: registra e recarrega, em vez de deixar a janela preta.
+  win.webContents.on('render-process-gone', (_event, details) => {
+    log.error('a interface caiu', { reason: details.reason, exitCode: details.exitCode })
+    if (details.reason !== 'clean-exit' && !win.isDestroyed()) win.webContents.reload()
+  })
+  win.on('unresponsive', () => log.warn('a janela parou de responder'))
+  win.on('responsive', () => log.info('a janela voltou a responder'))
 
   const devUrl = process.env['ELECTRON_RENDERER_URL']
   if (!app.isPackaged && devUrl) {
@@ -205,6 +213,14 @@ function hookBundle(): { exec: string; script: string } {
   }
 }
 
+// GITHUB_CLIENT_ID (ambiente ou .env) vence o embutido no build; definida vazia, desliga o login
+// (os e2e testam assim o caso sem configuração).
+function githubClientId(): string | undefined {
+  const fromEnv = process.env['GITHUB_CLIENT_ID']
+  if (fromEnv !== undefined) return fromEnv || undefined
+  return __KITE_GITHUB_CLIENT_ID__ || undefined
+}
+
 function createServices() {
   const guard = new WorkspaceGuard()
   // Idioma padrão: o do sistema (português para pt-*, inglês para o resto).
@@ -257,7 +273,7 @@ function createServices() {
       userAgent: `Kite/${app.getVersion()}`,
     })
   const githubAuth = new GitHubAuthService({
-    clientId: process.env['GITHUB_CLIENT_ID'] || undefined,
+    clientId: githubClientId(),
     oauthUrl: process.env['GITHUB_OAUTH_URL'] ?? 'https://github.com',
     fetch: (input, init) => fetch(input, init),
     tokens: new TokenStore(join(app.getPath('userData'), 'github-token.bin'), {
@@ -435,6 +451,12 @@ else {
   const copied = migrateLegacyProfile(app.getPath('appData'), app.getPath('userData'))
   if (copied.length > 0) log.info('perfil do AiController migrado', { files: copied })
 }
+addLogFile(join(app.getPath('userData'), 'logs', 'main.log'))
+log.info('Kite iniciando', {
+  version: app.getVersion(),
+  platform: process.platform,
+  session: process.env['XDG_SESSION_TYPE'] ?? null,
+})
 
 // .env com a configuração do app: o da pasta do projeto em `pnpm dev` e o da pasta de perfil
 // (vale também no app empacotado). Loga só os nomes das chaves, nunca os valores.

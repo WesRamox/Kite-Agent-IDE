@@ -37,6 +37,9 @@ jobs:
 
       - name: Typecheck e build
         run: pnpm build
+        env:
+          # Client ID do OAuth App (variável do repositório), embutido no app.
+          KITE_GITHUB_CLIENT_ID: ${{ vars.KITE_GITHUB_CLIENT_ID }}
 
       - name: Empacotar e anexar à release
         run: pnpm exec electron-builder ${{ matrix.target }} --publish always

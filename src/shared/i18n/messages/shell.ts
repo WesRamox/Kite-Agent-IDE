@@ -99,6 +99,11 @@ export default messages(
       `IDE para trabalhar com agentes de IA.\n\nElectron ${electron}\nChromium ${chrome}\nNode ${node}`,
     'menu.ok': 'OK',
 
+    'crash.title': 'A interface do Kite encontrou um erro',
+    'crash.body':
+      'Seus arquivos e terminais não foram afetados. Recarregue a interface para continuar; o erro foi registrado em logs/main.log, na pasta de perfil.',
+    'crash.reload': 'Recarregar',
+    'crash.copy': 'Copiar erro',
     'theme.kite': 'Kite (padrão)',
     'theme.dark': 'Escuro',
     'theme.midnight': 'Meia-noite',
@@ -203,6 +208,11 @@ export default messages(
       `An IDE for working with AI agents.\n\nElectron ${electron}\nChromium ${chrome}\nNode ${node}`,
     'menu.ok': 'OK',
 
+    'crash.title': 'The Kite interface ran into an error',
+    'crash.body':
+      'Your files and terminals were not affected. Reload the interface to continue; the error was recorded in logs/main.log, in the profile folder.',
+    'crash.reload': 'Reload',
+    'crash.copy': 'Copy error',
     'theme.kite': 'Kite (default)',
     'theme.dark': 'Dark',
     'theme.midnight': 'Midnight',
