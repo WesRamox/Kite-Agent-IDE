@@ -76,8 +76,13 @@ function createWindow(): BrowserWindow {
       nodeIntegration: false,
       sandbox: true,
       webSecurity: true,
+      // DevTools desligado; só em dev, com KITE_DEVTOOLS=1, para depurar o renderer.
+      devTools: !app.isPackaged && process.env['KITE_DEVTOOLS'] === '1',
     },
+    autoHideMenuBar: true,
   })
+
+  if (process.platform !== 'darwin') win.removeMenu()
 
   win.once('ready-to-show', () => win.show())
 

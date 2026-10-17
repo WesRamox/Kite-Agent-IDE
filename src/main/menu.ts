@@ -1,26 +1,28 @@
 import { app, Menu, type MenuItemConstructorOptions } from 'electron'
 
-// Menu próprio: o menu padrão do Electron liga Ctrl/Cmd+W a "fechar janela", e aqui esse
-// atalho fecha a aba ativa (tratado no renderer). Edit fica para copiar/colar no macOS.
+// Sem barra de menu: o Kite é um app, não um site. No Windows/Linux o menu some por completo
+// (e com ele os atalhos de recarregar, zoom e DevTools). Ctrl/Cmd+W fecha a aba ativa,
+// tratado no renderer.
+// O macOS sempre mostra uma barra de menu do sistema e só repassa Cmd+C/V/X/A/Z aos campos de
+// texto pelos papéis do menu Edit, então lá fica um menu mínimo, sem View/DevTools.
 export function installMenu(): void {
-  const isMac = process.platform === 'darwin'
+  if (process.platform !== 'darwin') {
+    Menu.setApplicationMenu(null)
+    return
+  }
   const template: MenuItemConstructorOptions[] = [
-    ...(isMac
-      ? [
-          {
-            label: app.name,
-            submenu: [
-              { role: 'about' },
-              { type: 'separator' },
-              { role: 'hide' },
-              { role: 'hideOthers' },
-              { role: 'unhide' },
-              { type: 'separator' },
-              { role: 'quit' },
-            ],
-          } satisfies MenuItemConstructorOptions,
-        ]
-      : []),
+    {
+      label: app.name,
+      submenu: [
+        { role: 'about' },
+        { type: 'separator' },
+        { role: 'hide' },
+        { role: 'hideOthers' },
+        { role: 'unhide' },
+        { type: 'separator' },
+        { role: 'quit' },
+      ],
+    },
     {
       label: 'Edit',
       submenu: [
@@ -31,19 +33,6 @@ export function installMenu(): void {
         { role: 'copy' },
         { role: 'paste' },
         { role: 'selectAll' },
-      ],
-    },
-    {
-      label: 'View',
-      submenu: [
-        { role: 'reload' },
-        { role: 'toggleDevTools' },
-        { type: 'separator' },
-        { role: 'resetZoom' },
-        { role: 'zoomIn' },
-        { role: 'zoomOut' },
-        { type: 'separator' },
-        { role: 'togglefullscreen' },
       ],
     },
   ]
