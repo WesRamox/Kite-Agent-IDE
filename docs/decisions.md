@@ -439,3 +439,13 @@ Decisões fáceis de desfazer, não cobertas pelo `AGENTS.md`. Mais recente no f
 - **Só chaves conhecidas** (`GITHUB_CLIENT_ID`, `GITHUB_API_URL`, `GITHUB_OAUTH_URL`,
   `GITHUB_HOST`, `KITE_DEVTOOLS`) entram no `process.env`, para o resto do arquivo não vazar para os
   terminais. `LOG_LEVEL` fica de fora porque o logger já leu o nível antes do `.env` ser carregado.
+
+## Explorer da tarefa em "Alterados"
+
+- **Desvio combinado do canvas (tela 2).** O canvas mostra a árvore inteira de cada worktree,
+  destacando os alterados. A pedido do usuário, o explorer da tarefa abre em **Alterados**: por
+  repo, só os arquivos que mudaram contra a branch base (commitados na branch ou não, a mesma conta
+  da revisão), agrupados por pasta. Um seletor "Alterados | Todos" volta para a árvore completa.
+- **Canal leve `review:changes`.** O `review:task` calcula +/- e consulta o PR no GitHub; para
+  atualizar a lista a cada mudança no git das worktrees, o novo canal só lista os arquivos.
+- **Arquivo removido** não abre no editor: o clique leva para a revisão da tarefa, onde está o diff.

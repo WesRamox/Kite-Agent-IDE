@@ -12,7 +12,9 @@ interface TasksState {
   changedDirs: Set<string>
   // PR de cada worktree (null = sem PR), quando há GitHub e login.
   prs: Record<string, PullSummary | null>
-  set: (patch: Partial<Pick<TasksState, 'workspace' | 'activeTaskId'>>) => void
+  // Explorer da tarefa: só os arquivos alterados contra a base, ou a árvore inteira.
+  explorerMode: 'changed' | 'all'
+  set: (patch: Partial<Pick<TasksState, 'workspace' | 'activeTaskId' | 'explorerMode'>>) => void
   setStatus: (path: string, status: GitStatus) => void
   setPRs: (prs: Record<string, PullSummary | null>) => void
   reset: () => void
@@ -25,6 +27,7 @@ export const useTasksStore = create<TasksState>((set) => ({
   byPath: new Map(),
   changedDirs: new Set(),
   prs: {},
+  explorerMode: 'changed',
   set: (patch) => set(patch),
   setPRs: (prs) => set((s) => ({ prs: { ...s.prs, ...prs } })),
   setStatus: (path, status) =>

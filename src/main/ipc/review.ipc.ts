@@ -21,6 +21,12 @@ export function registerReviewIpc(review: TaskReviewService, log: Logger): void 
     (r, id, wt, base, rel) => review.diff(r, id, wt, base, rel),
     log,
   )
+  registerHandler(
+    'review:changes',
+    z.tuple([absPath, taskId]),
+    (r, id) => review.changes(r, id),
+    log,
+  )
   registerHandler('review:prs', z.tuple([absPath, taskId]), (r, id) => review.prs(r, id), log)
   registerHandler(
     'review:deliver',

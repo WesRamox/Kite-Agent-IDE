@@ -28,6 +28,7 @@ import type {
   Task,
   TaskGrouping,
   CreateTaskInput,
+  TaskChangesRepo,
   TaskReview,
   DeliverInput,
   DeliverResult,
@@ -171,6 +172,7 @@ export interface InvokeChannels {
     args: [root: string, taskId: string, worktree: string, base: string, rel: string]
     result: GitDiff
   }
+  'review:changes': { args: [root: string, taskId: string]; result: TaskChangesRepo[] }
   'review:prs': { args: [root: string, taskId: string]; result: Record<string, PullSummary | null> }
   'review:deliver': {
     args: [root: string, taskId: string, input: DeliverInput]
@@ -262,6 +264,7 @@ export interface Api {
   }
   review: {
     task: Fn<'review:task'>
+    changes: Fn<'review:changes'>
     diff: Fn<'review:diff'>
     prs: Fn<'review:prs'>
     deliver: Fn<'review:deliver'>

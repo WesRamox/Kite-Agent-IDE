@@ -4,6 +4,7 @@ import type {
   GitDiff,
   PullSummary,
   ReviewRepo,
+  TaskChangesRepo,
   TaskReview,
   TaskWorktree,
 } from '@shared/types'
@@ -61,6 +62,24 @@ export class TaskReviewService {
       ),
     )
     return { taskId, repos }
+  }
+
+  // Só a lista de alterados por worktree (explorer da tarefa em "Alterados").
+  async changes(root: string, taskId: string): Promise<TaskChangesRepo[]> {
+    const task = await this.deps.tasks.open(root, taskId)
+    return Promise.all(
+      task.worktrees.map(async (w) => {
+        const out: TaskChangesRepo = { worktree: w.path, base: 'main', files: [], error: null }
+        try {
+          out.base = (await this.deps.git.defaultBase(w.path)) ?? 'main'
+          const { files } = await this.deps.git.changesSince(w.path, out.base)
+          out.files = files.map((f) => ({ rel: f.path, status: f.status }))
+        } catch (err) {
+          out.error = message(err)
+        }
+        return out
+      }),
+    )
   }
 
   async diff(

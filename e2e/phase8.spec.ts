@@ -83,6 +83,14 @@ test('tarefas multi-repo: descobrir, abrir, editar dois repos, trocar e ligar se
     await expect(details).toContainText('web')
     const apiRoot = path.join(root, '.worktrees/PAY-412/api')
     const webRoot = path.join(root, '.worktrees/PAY-412/web')
+    // Abre em "Alterados": por repo, só o que mudou contra a base (nada, por enquanto).
+    const changed = page.getByRole('tree', { name: 'Arquivos alterados' })
+    await expect(changed.getByRole('group', { name: 'api' })).toContainText('PAY-412')
+    await expect(changed.getByRole('group', { name: 'api' })).toContainText(
+      'Nada alterado contra main',
+    )
+    const shown = page.getByRole('radiogroup', { name: 'Arquivos mostrados' })
+    await shown.getByRole('radio', { name: 'Todos' }).click()
     await expect(page.locator(`[data-node-id="${apiRoot}"]`)).toContainText('PAY-412')
 
     // Editar arquivos dos dois repos na mesma janela.
@@ -101,6 +109,18 @@ test('tarefas multi-repo: descobrir, abrir, editar dois repos, trocar e ligar se
     }
     await expect(page.locator('.dv-tab', { hasText: 'server.ts' })).toContainText('api')
     await expect(details).toContainText('1 alterado')
+
+    // Em "Alterados", só os dois arquivos editados, cada um no seu repo; clicar abre o arquivo.
+    await shown.getByRole('radio', { name: 'Alterados' }).click()
+    await expect(changed.getByRole('group', { name: 'api' })).toContainText('server.ts')
+    await expect(changed.getByRole('group', { name: 'web' })).toContainText('page.tsx')
+    await expect(changed.getByRole('button', { name: /\.ts|\.tsx/ })).toHaveCount(2)
+    await changed
+      .getByRole('group', { name: 'web' })
+      .getByRole('button', { name: 'page.tsx' })
+      .click()
+    await expect(page.locator('.dv-tab.dv-active-tab', { hasText: 'page.tsx' })).toBeVisible()
+    await shown.getByRole('radio', { name: 'Todos' }).click()
 
     // Ctrl+K: troca para OPS-19 (worktrees fora do workspace) e volta, com as abas no lugar.
     await page.keyboard.press(`${mod}+k`)

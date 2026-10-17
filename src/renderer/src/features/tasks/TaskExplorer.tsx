@@ -7,6 +7,7 @@ import { useExplorerStore } from '../explorer/explorer.store'
 import { FileTree } from '../explorer/FileTree'
 import type { TreeNodeData } from '../explorer/tree-data'
 import { openTerminal } from '../terminal/terminal.actions'
+import { ChangedFiles } from './ChangedFiles'
 import { TaskDot } from './TaskDot'
 import { addRepoToTask } from './tasks.actions'
 import { taskBaseDir, useActiveTask, useTasksStore } from './tasks.store'
@@ -24,6 +25,7 @@ export function TaskExplorer() {
   const status = useTasksStore((s) => s.status)
   const repos = useTasksStore((s) => s.workspace?.repos ?? [])
   const children = useExplorerStore((s) => s.children)
+  const mode = useTasksStore((s) => s.explorerMode)
   const treeRef = useRef<TreeApi<TreeNodeData> | null>(null)
   const [menu, setMenu] = useState<{ x: number; y: number; items: MenuItem[] } | null>(null)
 
@@ -89,16 +91,49 @@ export function TaskExplorer() {
             {mod}P busca {nRepos === 1 ? 'no repo' : `nos ${nRepos} repos`}
           </span>
         </div>
+        <div
+          role="radiogroup"
+          aria-label="Arquivos mostrados"
+          className="flex rounded-md border border-border bg-surface-0 p-0.5 text-xs"
+        >
+          {(
+            [
+              ['changed', 'Alterados'],
+              ['all', 'Todos'],
+            ] as const
+          ).map(([value, label]) => (
+            <button
+              key={value}
+              type="button"
+              role="radio"
+              aria-checked={mode === value}
+              onClick={() => useTasksStore.getState().set({ explorerMode: value })}
+              className={`h-6 flex-1 rounded ${
+                mode === value ? 'bg-surface-3 font-medium text-fg' : 'text-fg-muted hover:text-fg'
+              }`}
+            >
+              {label}
+            </button>
+          ))}
+        </div>
       </div>
       <div className="flex min-h-0 flex-1 flex-col px-1 pt-1.5">
-        <FileTree
-          root={taskBaseDir(task) ?? task.worktrees[0]?.path ?? ''}
-          treeRef={treeRef}
-          forest={forest}
-          rootMenu={(path) => [
-            { label: 'Abrir terminal aqui', onSelect: () => openTerminal({ cwd: path }) },
-          ]}
-        />
+        {mode === 'changed' ? (
+          <ChangedFiles
+            task={task}
+            loose={loose}
+            badges={Object.fromEntries(forest.roots.map((r) => [r.path, r.badge]))}
+          />
+        ) : (
+          <FileTree
+            root={taskBaseDir(task) ?? task.worktrees[0]?.path ?? ''}
+            treeRef={treeRef}
+            forest={forest}
+            rootMenu={(path) => [
+              { label: 'Abrir terminal aqui', onSelect: () => openTerminal({ cwd: path }) },
+            ]}
+          />
+        )}
         <button
           type="button"
           disabled={missing.length === 0}

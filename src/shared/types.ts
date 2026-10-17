@@ -433,6 +433,15 @@ export interface ReviewRepo {
   error: string | null
 }
 
+// Arquivos alterados de cada worktree da tarefa contra a base (explorer em "Alterados"): a
+// mesma conta da revisão, sem +/- e sem consultar PRs, para poder atualizar a cada mudança.
+export interface TaskChangesRepo {
+  worktree: string
+  base: string
+  files: { rel: string; status: GitChangeKind }[]
+  error: string | null
+}
+
 export interface TaskReview {
   taskId: string
   repos: ReviewRepo[]

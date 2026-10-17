@@ -106,6 +106,26 @@ describe('TaskReviewService', () => {
     })
   })
 
+  it('alterados por worktree: só a lista, sem +/- nem PR; erro fica no repo', async () => {
+    const { svc, git, github } = setup()
+    git.changesSince.mockRejectedValueOnce(new Error('sem base'))
+    const changes = await svc.changes('/w', task.id)
+    expect(changes).toEqual([
+      { worktree: '/w/PAY/api', base: 'main', files: [], error: 'sem base' },
+      {
+        worktree: '/w/PAY/web',
+        base: 'main',
+        files: [
+          { rel: 'src/a.ts', status: 'modified' },
+          { rel: 'novo.ts', status: 'untracked' },
+        ],
+        error: null,
+      },
+    ])
+    expect(git.numstatSince).not.toHaveBeenCalled()
+    expect(github.prForBranch).not.toHaveBeenCalled()
+  })
+
   it('entrega: commita só quem tem alterações, abre os PRs e cruza os links', async () => {
     const { svc, git, github } = setup({ dirty: { '/w/PAY/api': 1 } })
     const results = await svc.deliver('/w', task.id, input)

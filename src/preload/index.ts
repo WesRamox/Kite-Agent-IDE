@@ -80,6 +80,7 @@ const api: Api = {
   },
   review: {
     task: invoke('review:task'),
+    changes: invoke('review:changes'),
     diff: invoke('review:diff'),
     prs: invoke('review:prs'),
     deliver: invoke('review:deliver'),
