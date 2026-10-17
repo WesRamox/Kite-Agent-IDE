@@ -3,13 +3,14 @@ import type { AppError, ErrorCode } from '@shared/types'
 import type { InvokeArgs, InvokeChannel, InvokeData, InvokeResult } from '@shared/ipc-contract'
 import { AppException } from '../lib/errors'
 import type { Logger } from '../lib/logger'
+import { t } from '../lib/i18n'
 
 const ERRNO_TO_ERROR: Record<string, AppError> = {
-  ENOENT: { code: 'NOT_FOUND', message: 'Arquivo ou pasta não encontrado' },
-  EEXIST: { code: 'ALREADY_EXISTS', message: 'Já existe' },
-  ENOTEMPTY: { code: 'ALREADY_EXISTS', message: 'O destino já existe e não está vazio' },
+  ENOENT: { code: 'NOT_FOUND', message: t('error.notFound') },
+  EEXIST: { code: 'ALREADY_EXISTS', message: t('error.alreadyExists') },
+  ENOTEMPTY: { code: 'ALREADY_EXISTS', message: t('error.destNotEmpty') },
   EACCES: { code: 'PERMISSION_DENIED', message: 'Sem permissão' },
-  EPERM: { code: 'PERMISSION_DENIED', message: 'Operação não permitida' },
+  EPERM: { code: 'PERMISSION_DENIED', message: t('error.notPermitted') },
 }
 
 function errnoError(err: unknown): AppError | undefined {
@@ -38,7 +39,7 @@ export function createHandler<C extends InvokeChannel>(
     const parsed = schema.safeParse(rawArgs)
     if (!parsed.success) {
       log.warn('argumentos inválidos', { channel, issues: parsed.error.issues.length })
-      return fail('INVALID_ARGS', 'Argumentos inválidos')
+      return fail('INVALID_ARGS', t('error.invalidArgs'))
     }
     try {
       return { ok: true, data: await fn(...parsed.data) }
@@ -50,7 +51,7 @@ export function createHandler<C extends InvokeChannel>(
         channel,
         error: err instanceof Error ? err.message : String(err),
       })
-      return fail('INTERNAL', 'Erro interno')
+      return fail('INTERNAL', t('error.internal'))
     }
   }
 }

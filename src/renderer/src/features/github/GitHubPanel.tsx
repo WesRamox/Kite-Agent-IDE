@@ -12,18 +12,15 @@ import {
 } from './github.actions'
 import { useGitHubStore, type GitHubTab } from './github.store'
 import { LoginBox } from './LoginBox'
+import { t as tr, useT } from '../../lib/i18n'
 
-const FILTERS = [
-  ['open', 'Abertos'],
-  ['closed', 'Fechados'],
-  ['all', 'Todos'],
-] as const
+const FILTERS = ['open', 'closed', 'all'] as const
 
 function relativeTime(iso: string): string {
   const diff = Date.now() - new Date(iso).getTime()
   const min = Math.round(diff / 60_000)
   if (!Number.isFinite(min)) return ''
-  if (min < 60) return `${Math.max(min, 1)} min`
+  if (min < 60) return tr('agents.elapsed.min', { n: Math.max(min, 1) })
   const h = Math.round(min / 60)
   if (h < 48) return `${h} h`
   return `${Math.round(h / 24)} d`
@@ -38,19 +35,17 @@ export function GitHubPanel() {
   }, [])
 
   const loggedIn = !!auth?.user
+  const t = useT()
   useEffect(() => {
     if (loggedIn) void loadRepo()
   }, [root, loggedIn])
 
-  if (!auth) return <p className="px-4 py-6 text-center text-fg-muted">Carregando…</p>
+  if (!auth) return <p className="px-4 py-6 text-center text-fg-muted">{t('common.loading')}</p>
   if (!auth.configured) {
     return (
       <div className="px-4 py-6 text-fg-muted">
-        <p>O login com GitHub não está configurado.</p>
-        <p className="mt-2">
-          Defina a variável de ambiente <code className="text-fg">GITHUB_CLIENT_ID</code> com o
-          Client ID de um OAuth App com Device Flow habilitado e reinicie o app. Veja o README.
-        </p>
+        <p>{t('github.notConfigured')}</p>
+        <p className="mt-2">{t('github.notConfiguredHint')}</p>
       </div>
     )
   }
@@ -67,6 +62,7 @@ function Connected() {
   const set = useGitHubStore((s) => s.set)
   const filter = useGitHubStore((s) => s.filter)
   const user = auth?.user
+  const t = useT()
 
   return (
     <div className="flex min-h-0 flex-1 flex-col">
@@ -75,8 +71,8 @@ function Connected() {
         <span className="flex-1 truncate">{user?.login}</span>
         <button
           type="button"
-          title="Sair"
-          aria-label="Sair do GitHub"
+          title={t('github.signOut')}
+          aria-label={t('github.signOutLabel')}
           onClick={() => void logout()}
           className="rounded p-1 text-fg-muted hover:bg-surface-3 hover:text-fg"
         >
@@ -84,25 +80,19 @@ function Connected() {
         </button>
       </div>
 
-      {!root && (
-        <p className="px-4 py-4 text-center text-fg-muted">
-          Abra uma pasta para ver o repositório.
-        </p>
-      )}
+      {!root && <p className="px-4 py-4 text-center text-fg-muted">{t('github.openFolder')}</p>}
       {root && repo === undefined && !repoError && (
-        <p className="px-4 py-4 text-center text-fg-muted">Carregando…</p>
+        <p className="px-4 py-4 text-center text-fg-muted">{t('common.loading')}</p>
       )}
       {root && repo === null && (
-        <p className="px-4 py-4 text-center text-fg-muted">
-          {repoError ?? 'O remote origin desta pasta não é um repositório do GitHub.'}
-        </p>
+        <p className="px-4 py-4 text-center text-fg-muted">{repoError ?? t('github.notGitHub')}</p>
       )}
 
       {repo && (
         <>
           <button
             type="button"
-            title="Abrir no GitHub"
+            title={t('github.openOnGitHub')}
             onClick={() => window.open(repo.url, '_blank')}
             className="mx-3 truncate text-left text-[11px] text-accent hover:underline"
           >
@@ -112,23 +102,23 @@ function Connected() {
             className="mt-2 flex items-center gap-1 border-b border-border px-3 pb-1"
             role="tablist"
           >
-            {(['prs', 'issues'] as GitHubTab[]).map((t) => (
+            {(['prs', 'issues'] as GitHubTab[]).map((tabId) => (
               <button
-                key={t}
+                key={tabId}
                 type="button"
                 role="tab"
-                aria-selected={tab === t}
+                aria-selected={tab === tabId}
                 onClick={() => {
-                  set({ tab: t })
+                  set({ tab: tabId })
                   void loadList()
                 }}
-                className={`rounded px-2 py-0.5 ${tab === t ? 'bg-surface-3 text-fg' : 'text-fg-muted hover:text-fg'}`}
+                className={`rounded px-2 py-0.5 ${tab === tabId ? 'bg-surface-3 text-fg' : 'text-fg-muted hover:text-fg'}`}
               >
-                {t === 'prs' ? 'PRs' : 'Issues'}
+                {tabId === 'prs' ? t('github.prs') : t('github.issues')}
               </button>
             ))}
             <select
-              aria-label="Filtrar por estado"
+              aria-label={t('github.filter')}
               value={filter}
               onChange={(e) => {
                 set({ filter: e.target.value as typeof filter })
@@ -136,16 +126,16 @@ function Connected() {
               }}
               className="ml-auto rounded border border-border bg-surface-0 px-1 py-0.5 text-[11px] text-fg"
             >
-              {FILTERS.map(([value, label]) => (
+              {FILTERS.map((value) => (
                 <option key={value} value={value}>
-                  {label}
+                  {t(`github.filter.${value}`)}
                 </option>
               ))}
             </select>
             <button
               type="button"
-              title="Atualizar"
-              aria-label="Atualizar lista"
+              title={t('github.refresh')}
+              aria-label={t('github.refreshList')}
               onClick={() => void loadList()}
               className="rounded p-1 text-fg-muted hover:bg-surface-3 hover:text-fg"
             >
@@ -158,7 +148,7 @@ function Connected() {
               onClick={openCreatePull}
               className="mx-3 mt-2 flex items-center justify-center gap-1 rounded-md border border-border py-1 hover:bg-surface-2"
             >
-              <Plus size={14} /> Criar PR da branch atual
+              <Plus size={14} /> {t('github.createPR')}
             </button>
           )}
           <div className="mt-1 min-h-0 flex-1 overflow-y-auto pb-4">
@@ -183,8 +173,8 @@ function PullList() {
   const prs = useGitHubStore((s) => s.prs)
   const error = useGitHubStore((s) => s.listError)
   if (error) return <ListState empty="" />
-  if (!prs) return <ListState empty="Carregando…" />
-  if (prs.length === 0) return <ListState empty="Nenhum pull request." />
+  if (!prs) return <ListState empty={tr('common.loading')} />
+  if (prs.length === 0) return <ListState empty={tr('github.noPRs')} />
   return (
     <ul aria-label="Pull requests">
       {prs.map((p) => {
@@ -224,8 +214,8 @@ function IssueList() {
   const issues = useGitHubStore((s) => s.issues)
   const error = useGitHubStore((s) => s.listError)
   if (error) return <ListState empty="" />
-  if (!issues) return <ListState empty="Carregando…" />
-  if (issues.length === 0) return <ListState empty="Nenhuma issue." />
+  if (!issues) return <ListState empty={tr('common.loading')} />
+  if (issues.length === 0) return <ListState empty={tr('github.noIssues')} />
   return (
     <ul aria-label="Issues">
       {issues.map((i) => (

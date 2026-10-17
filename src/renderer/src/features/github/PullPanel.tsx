@@ -6,14 +6,14 @@ import { useWorkspaceStore } from '../../stores/workspace.store'
 import { runState } from './checks'
 import { CheckIcon } from './CheckIcon'
 import { checkoutPull } from './github.actions'
-
-const STATE_LABEL = { open: 'Aberto', closed: 'Fechado', merged: 'Mesclado' } as const
+import { useT } from '../../lib/i18n'
 
 export function PullPanel({ params }: IDockviewPanelProps<{ number: number }>) {
   const root = useWorkspaceStore((s) => s.root)
   const [pr, setPr] = useState<PullDetail | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [busy, setBusy] = useState(false)
+  const t = useT()
 
   const load = useCallback(async () => {
     if (!root) return
@@ -41,7 +41,8 @@ export function PullPanel({ params }: IDockviewPanelProps<{ number: number }>) {
   }, [root, params.number])
 
   if (error) return <p className="p-6 text-danger">{error}</p>
-  if (!pr) return <p className="p-6 text-fg-muted">Carregando PR #{params.number}…</p>
+  if (!pr)
+    return <p className="p-6 text-fg-muted">{t('github.loadingPR', { number: params.number })}</p>
 
   return (
     <div className="h-full overflow-y-auto">
@@ -51,14 +52,15 @@ export function PullPanel({ params }: IDockviewPanelProps<{ number: number }>) {
         </h1>
         <p className="mt-1 flex flex-wrap items-center gap-2 text-fg-muted">
           <span className="rounded-full bg-surface-3 px-2 text-[11px] text-fg">
-            {pr.draft ? 'Rascunho' : STATE_LABEL[pr.state]}
+            {pr.draft ? t('github.draft') : t(`github.state.${pr.state}`)}
           </span>
-          {pr.author} quer mesclar <code className="text-fg">{pr.headRef}</code> em{' '}
-          <code className="text-fg">{pr.baseRef}</code>
+          {pr.author} {t('github.wantsToMerge')} <code className="text-fg">{pr.headRef}</code>{' '}
+          {t('github.into')} <code className="text-fg">{pr.baseRef}</code>
           {pr.fromFork && <span className="text-[11px]">(fork)</span>}
         </p>
         <p className="mt-1 text-[11px] text-fg-muted">
-          {pr.changedFiles} arquivo(s) · <span className="text-success">+{pr.additions}</span>{' '}
+          {t('github.files', { n: pr.changedFiles })} ·{' '}
+          <span className="text-success">+{pr.additions}</span>{' '}
           <span className="text-danger">−{pr.deletions}</span>
         </p>
 
@@ -72,14 +74,14 @@ export function PullPanel({ params }: IDockviewPanelProps<{ number: number }>) {
             }}
             className="flex items-center gap-1.5 rounded-md bg-accent px-3 py-1 text-accent-fg hover:bg-accent/85 disabled:opacity-50"
           >
-            <FolderGit2 size={14} /> {busy ? 'Preparando worktree…' : 'Abrir em worktree'}
+            <FolderGit2 size={14} /> {busy ? t('github.preparing') : t('github.openInWorktree')}
           </button>
           <button
             type="button"
             onClick={() => window.open(pr.url, '_blank')}
             className="flex items-center gap-1.5 rounded-md border border-border px-3 py-1 hover:bg-surface-2"
           >
-            <ExternalLink size={14} /> Abrir no GitHub
+            <ExternalLink size={14} /> {t('github.openOnGitHub')}
           </button>
         </div>
 
@@ -88,7 +90,7 @@ export function PullPanel({ params }: IDockviewPanelProps<{ number: number }>) {
             <CheckIcon state={pr.checks.state} /> Checks
             <button
               type="button"
-              aria-label="Atualizar checks"
+              aria-label={t('github.refreshChecks')}
               onClick={() => void load()}
               className="hover:text-fg"
             >
@@ -96,7 +98,7 @@ export function PullPanel({ params }: IDockviewPanelProps<{ number: number }>) {
             </button>
           </h2>
           {pr.checks.runs.length === 0 ? (
-            <p className="text-fg-muted">Nenhum check neste commit.</p>
+            <p className="text-fg-muted">{t('github.noChecks')}</p>
           ) : (
             <ul className="rounded-md border border-border">
               {pr.checks.runs.map((run, i) => (
@@ -110,7 +112,7 @@ export function PullPanel({ params }: IDockviewPanelProps<{ number: number }>) {
                   {run.url && (
                     <button
                       type="button"
-                      aria-label={`Abrir ${run.name}`}
+                      aria-label={t('github.openRun', { name: run.name })}
                       onClick={() => window.open(run.url ?? '', '_blank')}
                       className="text-fg-muted hover:text-fg"
                     >
@@ -123,12 +125,12 @@ export function PullPanel({ params }: IDockviewPanelProps<{ number: number }>) {
           )}
         </section>
 
-        <section className="mt-6" aria-label="Descrição">
+        <section className="mt-6" aria-label={t('github.description')}>
           <h2 className="mb-2 text-[11px] font-semibold tracking-wider text-fg-muted uppercase">
-            Descrição
+            {t('github.description')}
           </h2>
           <div className="rounded-md border border-border bg-surface-1 p-4 whitespace-pre-wrap text-fg select-text">
-            {pr.body.trim() || <span className="text-fg-muted">Sem descrição.</span>}
+            {pr.body.trim() || <span className="text-fg-muted">{t('github.noDescription')}</span>}
           </div>
         </section>
       </article>

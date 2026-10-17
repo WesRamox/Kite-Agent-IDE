@@ -3,6 +3,7 @@ import { useState } from 'react'
 import { useGitStore } from '../git/git.store'
 import { createPull } from './github.actions'
 import { useGitHubStore } from './github.store'
+import { useT } from '../../lib/i18n'
 
 export function CreatePullPanel() {
   const status = useGitStore((s) => s.status)
@@ -14,15 +15,11 @@ export function CreatePullPanel() {
   const [base, setBase] = useState(repo?.defaultBranch ?? 'main')
   const [draft, setDraft] = useState(false)
   const [busy, setBusy] = useState(false)
+  const t = useT()
 
-  if (!status?.isRepo)
-    return <p className="p-6 text-fg-muted">Esta pasta não é um repositório Git.</p>
-  if (!head)
-    return (
-      <p className="p-6 text-fg-muted">HEAD destacado: crie uma branch antes de abrir um PR.</p>
-    )
-  if (!repo)
-    return <p className="p-6 text-fg-muted">Entre no GitHub (aba GitHub) para criar o PR.</p>
+  if (!status?.isRepo) return <p className="p-6 text-fg-muted">{t('github.notRepo')}</p>
+  if (!head) return <p className="p-6 text-fg-muted">{t('github.detached')}</p>
+  if (!repo) return <p className="p-6 text-fg-muted">{t('github.signInForPR')}</p>
 
   const uncommitted = status.files.length > 0
   const sameAsBase = head === base
@@ -45,22 +42,22 @@ export function CreatePullPanel() {
         }}
       >
         <h1 className="flex items-center gap-2 text-lg text-fg">
-          <GitPullRequest size={18} /> Novo pull request
+          <GitPullRequest size={18} /> {t('github.newPR')}
         </h1>
         <p className="text-fg-muted">
-          De <code className="text-fg">{head}</code> para{' '}
+          {t('github.from')} <code className="text-fg">{head}</code> {t('github.to')}{' '}
           <code className="text-fg">
             {repo.owner}/{repo.repo}:{base}
           </code>
-          . A branch será enviada (push) para o <code>origin</code>.
+          . {t('github.pushNote')} <code>origin</code>.
         </p>
         {uncommitted && (
           <p className="rounded-md border border-warning/50 px-3 py-2 text-warning">
-            Há {status.files.length} alteração(ões) não commitadas; elas não entram no PR.
+            {t('github.uncommitted', { n: status.files.length })}
           </p>
         )}
         <label className="flex flex-col gap-1">
-          <span className="text-fg-muted">Título</span>
+          <span className="text-fg-muted">{t('github.title')}</span>
           <input
             value={title}
             onChange={(e) => setTitle(e.target.value)}
@@ -68,7 +65,7 @@ export function CreatePullPanel() {
           />
         </label>
         <label className="flex flex-col gap-1">
-          <span className="text-fg-muted">Descrição</span>
+          <span className="text-fg-muted">{t('github.description')}</span>
           <textarea
             value={body}
             rows={10}
@@ -77,7 +74,7 @@ export function CreatePullPanel() {
           />
         </label>
         <label className="flex flex-col gap-1">
-          <span className="text-fg-muted">Base</span>
+          <span className="text-fg-muted">{t('github.base')}</span>
           <input
             value={base}
             list="pr-base-branches"
@@ -90,19 +87,19 @@ export function CreatePullPanel() {
             ))}
           </datalist>
           {sameAsBase && (
-            <span className="text-[11px] text-danger">A base precisa ser outra branch.</span>
+            <span className="text-[11px] text-danger">{t('github.baseMustDiffer')}</span>
           )}
         </label>
         <label className="flex items-center gap-2">
           <input type="checkbox" checked={draft} onChange={(e) => setDraft(e.target.checked)} />
-          Criar como rascunho
+          {t('github.createDraft')}
         </label>
         <button
           type="submit"
           disabled={!canSubmit}
           className="self-start rounded-md bg-accent px-4 py-1.5 text-accent-fg enabled:hover:bg-accent/85 disabled:opacity-40"
         >
-          {busy ? 'Enviando…' : 'Criar pull request'}
+          {busy ? t('github.sending') : t('github.createPullRequest')}
         </button>
       </form>
     </div>

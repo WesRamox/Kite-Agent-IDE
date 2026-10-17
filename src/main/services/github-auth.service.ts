@@ -2,6 +2,7 @@ import { randomUUID } from 'node:crypto'
 import type { DeviceFlowPoll, DeviceFlowStart, GitHubAuthState, GitHubUser } from '@shared/types'
 import { AppException } from '../lib/errors'
 import type { TokenStore } from '../lib/token-store'
+import { t } from '../lib/i18n'
 
 export const OAUTH_SCOPE = 'repo'
 
@@ -55,7 +56,7 @@ export class GitHubAuthService {
     if (!deviceCode || !userCode || !verificationUri) {
       throw new AppException(
         'GITHUB_ERROR',
-        describeOAuthError(data, 'Resposta inválida do GitHub'),
+        describeOAuthError(data, t('error.github.invalidResponse')),
       )
     }
     const expiresIn = num(data['expires_in'], 900)
@@ -96,7 +97,10 @@ export class GitHubAuthService {
         return { status: 'denied' }
       default:
         this.flows.delete(flowId)
-        throw new AppException('GITHUB_ERROR', describeOAuthError(data, 'Falha no login'))
+        throw new AppException(
+          'GITHUB_ERROR',
+          describeOAuthError(data, t('error.github.loginFailed')),
+        )
     }
   }
 
@@ -107,13 +111,13 @@ export class GitHubAuthService {
 
   async getToken(): Promise<string> {
     const token = await this.deps.tokens.load()
-    if (!token) throw new AppException('NOT_AUTHENTICATED', 'Entre com sua conta do GitHub')
+    if (!token) throw new AppException('NOT_AUTHENTICATED', t('error.github.signIn'))
     return token
   }
 
   private requireClientId(): string {
     if (!this.deps.clientId) {
-      throw new AppException('NOT_CONFIGURED', 'Defina a variável de ambiente GITHUB_CLIENT_ID')
+      throw new AppException('NOT_CONFIGURED', t('error.github.notConfigured'))
     }
     return this.deps.clientId
   }
@@ -130,11 +134,11 @@ export class GitHubAuthService {
         body: JSON.stringify(body),
       })
     } catch {
-      throw new AppException('GITHUB_ERROR', 'Sem conexão com o GitHub')
+      throw new AppException('GITHUB_ERROR', t('error.github.offline'))
     }
     const data: unknown = await res.json().catch(() => null)
     if (!data || typeof data !== 'object') {
-      throw new AppException('GITHUB_ERROR', `Resposta inesperada do GitHub (${res.status})`)
+      throw new AppException('GITHUB_ERROR', t('error.github.unexpected', { status: res.status }))
     }
     return data as Record<string, unknown>
   }
@@ -151,8 +155,8 @@ function num(v: unknown, fallback: number): number {
 function describeOAuthError(data: Record<string, unknown>, fallback: string): string {
   const desc = str(data['error_description']) ?? str(data['error'])
   if (data['error'] === 'device_flow_disabled') {
-    return 'O Device Flow não está habilitado no OAuth App (Settings → Developer settings).'
+    return t('error.github.deviceFlowDisabled')
   }
-  if (data['error'] === 'incorrect_client_credentials') return 'GITHUB_CLIENT_ID inválido.'
+  if (data['error'] === 'incorrect_client_credentials') return t('error.github.badClientId')
   return desc ?? fallback
 }

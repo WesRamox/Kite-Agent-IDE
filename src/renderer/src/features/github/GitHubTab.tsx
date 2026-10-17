@@ -2,8 +2,10 @@ import type { IDockviewPanelHeaderProps } from 'dockview-react'
 import { X } from 'lucide-react'
 import { GitHubMark } from '../../components/GitHubMark'
 import { closeGitHubPanel } from './github.actions'
+import { useT } from '../../lib/i18n'
 
 export function GitHubTab({ api }: IDockviewPanelHeaderProps) {
+  const t = useT()
   return (
     <div
       onMouseDown={(e) => {
@@ -18,7 +20,7 @@ export function GitHubTab({ api }: IDockviewPanelHeaderProps) {
       <span className="truncate">{api.title}</span>
       <button
         type="button"
-        aria-label="Fechar"
+        aria-label={t('github.close')}
         onClick={(e) => {
           e.stopPropagation()
           closeGitHubPanel(api.id)

@@ -5,6 +5,7 @@ import { AppException } from '../lib/errors'
 import type { Logger } from '../lib/logger'
 import { terminalEnv, type ShellSpec } from '../lib/shell'
 import type { WorkspaceGuard } from '../lib/workspace-guard'
+import { t } from '../lib/i18n'
 
 // Subconjunto do IPty do node-pty usado aqui (injetado para testes).
 export interface PtyProcess {
@@ -60,12 +61,13 @@ export class PtyService {
 
   async create(options: PtyCreateOptions): Promise<{ id: string; pid: number }> {
     const cwd = await this.deps.guard.resolveExisting(options.cwd)
-    if (!(await stat(cwd)).isDirectory()) throw new AppException('NOT_FOUND', 'cwd não é uma pasta')
+    if (!(await stat(cwd)).isDirectory())
+      throw new AppException('NOT_FOUND', t('error.cwdNotFolder'))
 
     let shell = this.deps.shell
     if (options.shell && options.shell !== shell.file) {
       if (!(await this.deps.allowedShells()).includes(options.shell)) {
-        throw new AppException('FORBIDDEN_PATH', 'Shell não permitido')
+        throw new AppException('FORBIDDEN_PATH', t('error.shellNotAllowed'))
       }
       shell = { file: options.shell, args: [] }
     }
@@ -135,7 +137,7 @@ export class PtyService {
 
   private get(id: string): Session {
     const session = this.sessions.get(id)
-    if (!session) throw new AppException('NOT_FOUND', 'Terminal não encontrado')
+    if (!session) throw new AppException('NOT_FOUND', t('error.terminalNotFound'))
     return session
   }
 

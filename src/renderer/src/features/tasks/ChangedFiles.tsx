@@ -6,10 +6,11 @@ import { useWorkspaceStore } from '../../stores/workspace.store'
 import { openFile } from '../editor/editor.actions'
 import { useEditorStore } from '../editor/editor.store'
 import { FileIcon } from '../explorer/FileIcon'
-import { KIND_COLOR, KIND_LABEL, KIND_LETTER } from '../git/git-format'
+import { KIND_COLOR, kindLabel, KIND_LETTER } from '../git/git-format'
 import { groupChanges } from './changed-files'
 import { openTaskReview } from './review.actions'
 import { useTasksStore } from './tasks.store'
+import { useT } from '../../lib/i18n'
 
 // Explorer da tarefa em "Alterados": por worktree, só os arquivos que mudaram contra a branch
 // base (commitados na branch ou não), agrupados por pasta.
@@ -56,6 +57,7 @@ export function ChangedFiles({
 }) {
   const repos = useTaskChanges(task)
   const activePath = useEditorStore((s) => s.activePath)
+  const t = useT()
   const [closed, setClosed] = useState<Set<string>>(() => new Set())
   const byWorktree = useMemo(() => new Map((repos ?? []).map((r) => [r.worktree, r])), [repos])
 
@@ -88,7 +90,7 @@ export function ChangedFiles({
         {name}
       </span>
       {kind && (
-        <span title={KIND_LABEL[kind]} className={`font-mono text-[11px] ${KIND_COLOR[kind]}`}>
+        <span title={kindLabel(kind)} className={`font-mono text-[11px] ${KIND_COLOR[kind]}`}>
           {KIND_LETTER[kind]}
         </span>
       )}
@@ -98,7 +100,7 @@ export function ChangedFiles({
   return (
     <div
       role="tree"
-      aria-label="Arquivos alterados"
+      aria-label={t('changed.tree')}
       className="flex min-h-0 flex-1 flex-col overflow-auto text-[13px]"
     >
       {loose.map((e) => fileRow(e.path, e.name, 8))}
@@ -125,16 +127,16 @@ export function ChangedFiles({
               </span>
             </button>
             {open && !repo && (
-              <span className="py-1 pl-[22px] text-xs text-fg-muted">Carregando…</span>
+              <span className="py-1 pl-[22px] text-xs text-fg-muted">{t('common.loading')}</span>
             )}
             {open && repo?.error && (
               <span className="py-1 pl-[22px] text-xs text-fg-muted" title={repo.error}>
-                Não foi possível comparar com {repo.base}.
+                {t('changed.cannotCompare', { base: repo.base })}
               </span>
             )}
             {open && repo && !repo.error && repo.files.length === 0 && (
               <span className="py-1 pl-[22px] text-xs text-fg-muted">
-                Nada alterado contra {repo.base}.
+                {t('changed.nothing', { base: repo.base })}
               </span>
             )}
             {open &&

@@ -2,15 +2,17 @@ import { ChevronDown, GitBranch } from 'lucide-react'
 import { useState } from 'react'
 import { checkout } from './git.actions'
 import { useGitStore } from './git.store'
+import { useT } from '../../lib/i18n'
 
 export function BranchPicker() {
   const status = useGitStore((s) => s.status)
   const branches = useGitStore((s) => s.branches)
   const [open, setOpen] = useState(false)
   const [name, setName] = useState('')
+  const t = useT()
   if (!status?.isRepo) return null
 
-  const label = status.branch ?? `(${status.head ?? 'sem commits'})`
+  const label = status.branch ?? `(${status.head ?? t('git.noCommits')})`
   const create = async () => {
     const branch = name.trim()
     if (!branch) return
@@ -23,7 +25,7 @@ export function BranchPicker() {
     <div className="relative px-3">
       <button
         type="button"
-        aria-label="Trocar de branch"
+        aria-label={t('git.switchBranch')}
         aria-expanded={open}
         onClick={() => setOpen((o) => !o)}
         className="flex w-full items-center gap-1.5 rounded-md border border-border px-2 py-1 text-left hover:bg-surface-2"
@@ -42,7 +44,7 @@ export function BranchPicker() {
           <input
             autoFocus
             value={name}
-            placeholder="Nova branch a partir daqui…"
+            placeholder={t('git.newBranch')}
             spellCheck={false}
             onChange={(e) => setName(e.target.value)}
             onKeyDown={(e) => {
@@ -59,7 +61,7 @@ export function BranchPicker() {
                 type="button"
                 role="menuitem"
                 disabled={b.current || busyElsewhere}
-                title={busyElsewhere ? `Em uso na worktree ${b.worktreePath}` : undefined}
+                title={busyElsewhere ? t('git.inUse', { path: b.worktreePath ?? '' }) : undefined}
                 onClick={() => {
                   setOpen(false)
                   void checkout(b.name)
@@ -67,8 +69,10 @@ export function BranchPicker() {
                 className="flex w-full items-center gap-2 px-3 py-0.5 text-left enabled:hover:bg-accent/25 disabled:opacity-50"
               >
                 <span className="flex-1 truncate">{b.name}</span>
-                {b.current && <span className="text-[11px] text-accent">atual</span>}
-                {busyElsewhere && <span className="text-[11px] text-fg-muted">worktree</span>}
+                {b.current && <span className="text-[11px] text-accent">{t('git.current')}</span>}
+                {busyElsewhere && (
+                  <span className="text-[11px] text-fg-muted">{t('git.worktree')}</span>
+                )}
               </button>
             )
           })}

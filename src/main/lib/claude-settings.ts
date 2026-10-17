@@ -3,6 +3,7 @@
 // "command", "timeout" }] }] } }. Funções puras: preservam qualquer outra chave e os hooks de
 // outras ferramentas; os handlers do Kite são reconhecidos pelo caminho do script no comando.
 import type { AgentCli } from '@shared/types'
+import { t } from './i18n'
 
 export const KITE_HOOK_EVENTS = [
   'SessionStart',
@@ -85,7 +86,7 @@ export function isKiteHandler(handler: unknown): boolean {
 function hooksOf(settings: Json): Json {
   const hooks = settings['hooks']
   if (hooks === undefined) return {}
-  if (!isObj(hooks)) throw new Error('"hooks" no settings.json não é um objeto')
+  if (!isObj(hooks)) throw new Error(t('error.hooksNotObject'))
   return hooks
 }
 
@@ -135,7 +136,7 @@ export function addKiteHooks(
   for (const event of events) {
     const current = hooks[event]
     if (current !== undefined && !Array.isArray(current)) {
-      throw new Error(`"hooks.${event}" no settings.json não é uma lista`)
+      throw new Error(t('error.hooksEventNotList', { event }))
     }
     hooks[event] = [...withoutKite(current), { hooks: [kiteHandler(command, timeout)] }]
   }

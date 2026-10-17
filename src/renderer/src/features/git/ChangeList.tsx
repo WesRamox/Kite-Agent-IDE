@@ -2,8 +2,9 @@ import type { GitFileChange } from '@shared/types'
 import { Minus, Plus } from 'lucide-react'
 import { basename, dirname, relative } from '../../lib/paths'
 import { FileIcon } from '../explorer/FileIcon'
-import { KIND_COLOR, KIND_LABEL, KIND_LETTER } from './git-format'
+import { KIND_COLOR, kindLabel, KIND_LETTER } from './git-format'
 import { openDiff, stage, unstage } from './git.actions'
+import { useT } from '../../lib/i18n'
 
 interface Props {
   title: string
@@ -14,6 +15,7 @@ interface Props {
 }
 
 export function ChangeList({ title, root, files, staged, onAll }: Props) {
+  const t = useT()
   if (files.length === 0) return null
   const AllIcon = staged ? Minus : Plus
   return (
@@ -25,8 +27,8 @@ export function ChangeList({ title, root, files, staged, onAll }: Props) {
         </span>
         <button
           type="button"
-          title={staged ? 'Remover tudo do stage' : 'Adicionar tudo ao stage'}
-          aria-label={staged ? 'Remover tudo do stage' : 'Adicionar tudo ao stage'}
+          title={staged ? t('git.unstageAll') : t('git.stageAll')}
+          aria-label={staged ? t('git.unstageAll') : t('git.stageAll')}
           onClick={onAll}
           className="rounded p-0.5 hover:bg-surface-3 hover:text-fg"
         >
@@ -42,7 +44,7 @@ export function ChangeList({ title, root, files, staged, onAll }: Props) {
           return (
             <li
               key={f.path}
-              title={`${rel} — ${KIND_LABEL[kind]}`}
+              title={`${rel} — ${kindLabel(kind)}`}
               onClick={() => openDiff(f.path, staged)}
               className="group flex h-6 cursor-pointer items-center gap-1.5 px-3 hover:bg-surface-2"
             >
@@ -55,8 +57,8 @@ export function ChangeList({ title, root, files, staged, onAll }: Props) {
                 type="button"
                 aria-label={
                   staged
-                    ? `Remover ${basename(f.path)} do stage`
-                    : `Adicionar ${basename(f.path)} ao stage`
+                    ? t('git.unstageFile', { name: basename(f.path) })
+                    : t('git.stageFile', { name: basename(f.path) })
                 }
                 onClick={(e) => {
                   e.stopPropagation()

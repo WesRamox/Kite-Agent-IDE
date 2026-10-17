@@ -3,11 +3,13 @@ import { useState } from 'react'
 import { basename } from '../../lib/paths'
 import { createWorktree, openWorktree, removeWorktree } from './git.actions'
 import { useGitStore } from './git.store'
+import { useT } from '../../lib/i18n'
 
 export function WorktreeSection() {
   const worktrees = useGitStore((s) => s.worktrees)
   const branches = useGitStore((s) => s.branches)
   const [adding, setAdding] = useState(false)
+  const t = useT()
   const [branch, setBranch] = useState('')
 
   const trimmed = branch.trim()
@@ -23,7 +25,7 @@ export function WorktreeSection() {
   }
 
   return (
-    <section className="mt-3" aria-label="Worktrees">
+    <section className="mt-3" aria-label={t('git.worktrees')}>
       <header className="flex h-6 items-center px-3 text-[11px] font-semibold tracking-wide text-fg-muted uppercase">
         <span className="flex-1">
           Worktrees{' '}
@@ -31,8 +33,8 @@ export function WorktreeSection() {
         </span>
         <button
           type="button"
-          title="Nova worktree"
-          aria-label="Nova worktree"
+          title={t('git.newWorktree')}
+          aria-label={t('git.newWorktree')}
           onClick={() => setAdding((a) => !a)}
           className="rounded p-0.5 hover:bg-surface-3 hover:text-fg"
         >
@@ -45,7 +47,7 @@ export function WorktreeSection() {
           <input
             autoFocus
             value={branch}
-            placeholder="Branch da worktree"
+            placeholder={t('git.worktreeBranch')}
             spellCheck={false}
             onChange={(e) => setBranch(e.target.value)}
             onKeyDown={(e) => {
@@ -58,9 +60,9 @@ export function WorktreeSection() {
             <p className="text-[11px] text-fg-muted">
               {existing
                 ? existing.worktreePath
-                  ? 'Essa branch já está em uso em outra worktree.'
-                  : `Usa a branch existente ${trimmed}.`
-                : `Cria a branch ${trimmed} a partir do HEAD atual.`}
+                  ? t('git.branchBusy')
+                  : t('git.useExisting', { branch: trimmed })
+                : t('git.createFromHead', { branch: trimmed })}
             </p>
           )}
           <button
@@ -69,7 +71,7 @@ export function WorktreeSection() {
             onClick={() => void submit()}
             className="rounded-md bg-accent py-0.5 text-accent-fg enabled:hover:bg-accent/85 disabled:opacity-40"
           >
-            Criar worktree
+            {t('git.createWorktree')}
           </button>
         </div>
       )}
@@ -84,17 +86,19 @@ export function WorktreeSection() {
             <span className="truncate">{basename(w.path)}</span>
             <span className="truncate text-[11px] text-fg-muted">{w.branch ?? w.head}</span>
             {w.isMain && (
-              <span className="rounded bg-surface-3 px-1 text-[10px] text-fg-muted">principal</span>
+              <span className="rounded bg-surface-3 px-1 text-[10px] text-fg-muted">
+                {t('git.main')}
+              </span>
             )}
             {w.isCurrent && (
-              <span className="rounded bg-accent/30 px-1 text-[10px] text-fg">aberta</span>
+              <span className="rounded bg-accent/30 px-1 text-[10px] text-fg">{t('git.open')}</span>
             )}
             <span className="ml-auto flex gap-0.5">
               {!w.isCurrent && (
                 <button
                   type="button"
-                  aria-label={`Abrir worktree ${basename(w.path)}`}
-                  title="Abrir como workspace"
+                  aria-label={t('git.openWorktree', { name: basename(w.path) })}
+                  title={t('git.openAsWorkspace')}
                   onClick={() => void openWorktree(w.path)}
                   className="rounded p-0.5 text-fg-muted hover:bg-surface-3 hover:text-fg"
                 >
@@ -104,8 +108,8 @@ export function WorktreeSection() {
               {!w.isMain && !w.isCurrent && (
                 <button
                   type="button"
-                  aria-label={`Remover worktree ${basename(w.path)}`}
-                  title="Remover worktree"
+                  aria-label={t('git.removeWorktreeLabel', { name: basename(w.path) })}
+                  title={t('git.removeWorktreeTitle')}
                   onClick={() => void removeWorktree(w.path)}
                   className="rounded p-0.5 text-fg-muted hover:bg-surface-3 hover:text-danger"
                 >

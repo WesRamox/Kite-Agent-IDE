@@ -6,6 +6,7 @@ import { AppException } from '../lib/errors'
 import { decodeText, encodeText, looksBinary, MAX_EDITABLE_BYTES } from '../lib/file-content'
 import { IgnoreRules } from '../lib/ignore-rules'
 import type { WorkspaceGuard } from '../lib/workspace-guard'
+import { t } from '../lib/i18n'
 
 export const MAX_LISTED_FILES = 50_000
 
@@ -56,12 +57,12 @@ export class FsService {
   async readFile(file: string): Promise<FileContent> {
     const real = await this.deps.guard.resolveExisting(file)
     const info = await stat(real)
-    if (!info.isFile()) throw new AppException('NOT_FOUND', 'Não é um arquivo')
+    if (!info.isFile()) throw new AppException('NOT_FOUND', t('error.notAFile'))
     if (info.size > MAX_EDITABLE_BYTES) {
-      throw new AppException('FILE_TOO_LARGE', 'Arquivo maior que 5 MB')
+      throw new AppException('FILE_TOO_LARGE', t('error.fileTooLarge'))
     }
     const buf = await readFile(real)
-    if (looksBinary(buf)) throw new AppException('BINARY_FILE', 'Arquivo binário')
+    if (looksBinary(buf)) throw new AppException('BINARY_FILE', t('error.binaryFile'))
     return decodeText(buf)
   }
 
@@ -74,7 +75,7 @@ export class FsService {
 
   async create(target: string, kind: 'file' | 'directory'): Promise<void> {
     const resolved = await this.deps.guard.resolveEntry(target)
-    if (await exists(resolved)) throw new AppException('ALREADY_EXISTS', 'Já existe')
+    if (await exists(resolved)) throw new AppException('ALREADY_EXISTS', t('error.alreadyExists'))
     if (kind === 'directory') await mkdir(resolved)
     else await writeFile(resolved, '', { flag: 'wx' })
   }
@@ -82,17 +83,18 @@ export class FsService {
   async rename(from: string, to: string): Promise<void> {
     const src = await this.deps.guard.resolveEntry(from)
     const dest = await this.deps.guard.resolveEntry(to)
-    if (!(await exists(src))) throw new AppException('NOT_FOUND', 'Arquivo ou pasta não encontrado')
+    if (!(await exists(src))) throw new AppException('NOT_FOUND', t('error.notFound'))
     // Em FS sem diferenciação de maiúsculas, renomear só a caixa "colide" consigo mesmo.
     const caseOnly = src.toLowerCase() === dest.toLowerCase()
-    if (!caseOnly && (await exists(dest))) throw new AppException('ALREADY_EXISTS', 'Já existe')
+    if (!caseOnly && (await exists(dest)))
+      throw new AppException('ALREADY_EXISTS', t('error.alreadyExists'))
     await rename(src, dest)
   }
 
   async delete(target: string): Promise<void> {
     const resolved = await this.deps.guard.resolveEntry(target)
     if (!(await exists(resolved))) {
-      throw new AppException('NOT_FOUND', 'Arquivo ou pasta não encontrado')
+      throw new AppException('NOT_FOUND', t('error.notFound'))
     }
     await this.deps.trash(resolved)
   }
@@ -101,7 +103,7 @@ export class FsService {
   // de diretório, evitando ciclos.
   async listFiles(root: string): Promise<{ files: string[]; truncated: boolean }> {
     if (!this.deps.guard.isRoot(root)) {
-      throw new AppException('FORBIDDEN_PATH', 'Não é uma pasta aberta')
+      throw new AppException('FORBIDDEN_PATH', t('error.notAnOpenFolder'))
     }
     const rules = this.rulesFor(root)
     const files: string[] = []
@@ -136,7 +138,7 @@ export class FsService {
 
   private rulesFor(target: string): IgnoreRules {
     const root = this.deps.guard.rootOf(target)
-    if (!root) throw new AppException('FORBIDDEN_PATH', 'Caminho fora das pastas abertas')
+    if (!root) throw new AppException('FORBIDDEN_PATH', t('error.outsideRoots'))
     let rules = this.ignoreByRoot.get(root)
     if (!rules) {
       rules = new IgnoreRules(root)

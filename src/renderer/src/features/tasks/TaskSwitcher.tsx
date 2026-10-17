@@ -6,6 +6,7 @@ import { TaskDot } from './TaskDot'
 import { openDiscover, openTask, showWorkspace } from './tasks.actions'
 import { useTasksStore } from './tasks.store'
 import { useTaskSwitcherStore } from './task-switcher.store'
+import { useT } from '../../lib/i18n'
 
 // Ctrl/Cmd+K: troca de tarefa (cada uma guarda as próprias abas e terminais).
 export function TaskSwitcher() {
@@ -28,6 +29,7 @@ function SwitcherDialog() {
   const active = useTasksStore((s) => s.activeTaskId)
   const root = useWorkspaceStore((s) => s.root)
   const hide = useTaskSwitcherStore((s) => s.hide)
+  const tr = useT()
   const [query, setQuery] = useState('')
   const [selected, setSelected] = useState(0)
   const inputRef = useRef<HTMLInputElement>(null)
@@ -35,7 +37,7 @@ function SwitcherDialog() {
 
   const entries: Entry[] = useMemo(
     () => [
-      { id: null, label: 'Workspace', detail: root ? tildePath(root) : '' },
+      { id: null, label: tr('switcher.workspace'), detail: root ? tildePath(root) : '' },
       ...(ws?.tasks ?? [])
         .filter((t) => !t.hidden)
         .map((t) => ({
@@ -43,9 +45,9 @@ function SwitcherDialog() {
           label: `${t.key} · ${t.name}`,
           detail: t.worktrees.map((w) => w.repoName).join(', '),
         })),
-      { id: DISCOVER, label: 'Descobrir tarefas…', detail: 'agrupamento, worktrees soltas' },
+      { id: DISCOVER, label: tr('switcher.discover'), detail: tr('switcher.discoverDetail') },
     ],
-    [ws, root],
+    [ws, root, tr],
   )
   const items = useMemo(() => fuzzyFilter(query, entries, (e) => e.label, 50), [query, entries])
 
@@ -65,13 +67,13 @@ function SwitcherDialog() {
     >
       <div
         role="dialog"
-        aria-label="Trocar de tarefa"
+        aria-label={tr('switcher.label')}
         className="flex h-fit max-h-[60vh] w-[560px] flex-col overflow-hidden rounded-[10px] border border-border bg-surface-1 font-geist text-[13px] text-fg shadow-2xl"
       >
         <input
           ref={inputRef}
           value={query}
-          placeholder="Ir para a tarefa…"
+          placeholder={tr('switcher.placeholder')}
           onChange={(e) => {
             setQuery(e.target.value)
             setSelected(0)
@@ -104,7 +106,9 @@ function SwitcherDialog() {
                 )}
                 <span className="min-w-0 flex-1 truncate">{item.label}</span>
                 <span className="text-xs text-fg-muted">{item.detail}</span>
-                {item.id === active && <span className="text-[11px] text-accent">aberta</span>}
+                {item.id === active && (
+                  <span className="text-[11px] text-accent">{tr('switcher.open')}</span>
+                )}
               </button>
             </li>
           ))}

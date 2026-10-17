@@ -18,6 +18,7 @@ import {
   replaceContent,
 } from './models'
 import { closeModal } from '../../stores/modal.store'
+import { t } from '../../lib/i18n'
 
 export const EDITOR_COMPONENT = 'editor'
 
@@ -35,11 +36,11 @@ export async function openFile(path: string): Promise<void> {
     const res = await window.api.fs.readFile(path)
     if (!res.ok) {
       if (res.error.code === 'BINARY_FILE') {
-        toast.warning(`${basename(path)} é um arquivo binário e não abre no editor.`)
+        toast.warning(t('editor.binary', { file: basename(path) }))
       } else if (res.error.code === 'FILE_TOO_LARGE') {
-        toast.warning(`${basename(path)} tem mais de 5 MB e não abre no editor.`)
+        toast.warning(t('editor.tooLarge', { file: basename(path) }))
       } else {
-        toast.error(`Não foi possível abrir ${basename(path)}: ${res.error.message}`)
+        toast.error(t('editor.openError', { file: basename(path), reason: res.error.message }))
       }
       return
     }
@@ -61,7 +62,7 @@ export async function saveFile(path: string): Promise<boolean> {
   const content = entry.model.getValue()
   const ok = await attempt(
     window.api.fs.writeFile(path, content, entry.encoding),
-    `Erro ao salvar ${basename(path)}`,
+    t('editor.saveError', { file: basename(path) }),
   )
   if (ok === null) return false
   markSaved(path, content)
@@ -77,9 +78,9 @@ export async function saveActive(): Promise<void> {
 async function resolveDirty(path: string): Promise<boolean> {
   if (!isDirty(path)) return true
   const res = await window.api.dialog.confirm({
-    message: `Salvar as alterações em ${basename(path)}?`,
-    detail: 'Suas alterações serão perdidas se você não salvar.',
-    buttons: ['Salvar', 'Não salvar', 'Cancelar'],
+    message: t('editor.saveChanges', { file: basename(path) }),
+    detail: t('editor.saveChangesDetail'),
+    buttons: [t('editor.save'), t('editor.dontSave'), t('common.cancel')],
     kind: 'warning',
   })
   if (!res.ok || res.data === 2) return false
@@ -126,9 +127,9 @@ export async function resolveAllDirty(): Promise<boolean> {
   const dirty = openPaths().filter(isDirty)
   if (dirty.length === 0) return true
   const res = await window.api.dialog.confirm({
-    message: `Há ${dirty.length} arquivo(s) com alterações não salvas.`,
+    message: t('editor.unsaved', { n: dirty.length }),
     detail: dirty.map((p) => basename(p)).join(', '),
-    buttons: ['Salvar todos', 'Descartar', 'Cancelar'],
+    buttons: [t('editor.saveAll'), t('editor.discard'), t('common.cancel')],
     kind: 'warning',
   })
   if (!res.ok || res.data === 2) return false
@@ -194,9 +195,9 @@ export async function handleExternalChange(path: string): Promise<void> {
   prompting.add(path)
   try {
     const answer = await window.api.dialog.confirm({
-      message: `${basename(path)} foi alterado fora do editor.`,
-      detail: 'Você tem alterações não salvas neste arquivo.',
-      buttons: ['Recarregar do disco', 'Manter minhas alterações'],
+      message: t('editor.changedOutside', { file: basename(path) }),
+      detail: t('editor.changedOutsideDetail'),
+      buttons: [t('editor.reload'), t('editor.keepMine')],
       kind: 'warning',
     })
     if (answer.ok && answer.data === 0) replaceContent(path, disk)
@@ -207,5 +208,5 @@ export async function handleExternalChange(path: string): Promise<void> {
 }
 
 export function handleExternalDelete(path: string): void {
-  if (hasModel(path)) toast.warning(`${basename(path)} foi removido do disco.`)
+  if (hasModel(path)) toast.warning(t('editor.deleted', { file: basename(path) }))
 }

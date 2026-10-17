@@ -1,6 +1,7 @@
 import type { KeyboardEvent, PointerEvent } from 'react'
 import { useEffect, useRef } from 'react'
 import { SIDEBAR_DEFAULT, SIDEBAR_MAX, SIDEBAR_MIN, useLayoutStore } from '../stores/layout.store'
+import { useT } from '../lib/i18n'
 
 const STEP = 16
 const DOUBLE_CLICK_MS = 400
@@ -14,6 +15,7 @@ export function SidebarResizer() {
   const width = useLayoutStore((s) => s.sidebarWidth)
   const setWidth = useLayoutStore((s) => s.setSidebarWidth)
   const stop = useRef<(() => void) | null>(null)
+  const t = useT()
   // Duplo clique detectado aqui: o dblclick do navegador chega com o alvo errado porque o arrasto
   // desliga os cliques da página entre um clique e outro.
   const lastDown = useRef({ time: 0, x: 0 })
@@ -65,12 +67,12 @@ export function SidebarResizer() {
     <div
       role="separator"
       aria-orientation="vertical"
-      aria-label="Largura da barra lateral"
+      aria-label={t('sidebar.resize')}
       aria-valuenow={width}
       aria-valuemin={SIDEBAR_MIN}
       aria-valuemax={SIDEBAR_MAX}
       tabIndex={0}
-      title="Arraste para ajustar · duplo clique volta ao padrão"
+      title={t('sidebar.resizeHint')}
       onPointerDown={onPointerDown}
       onKeyDown={onKeyDown}
       className="group absolute inset-y-0 -right-[3px] z-20 w-1.5 cursor-col-resize outline-none"

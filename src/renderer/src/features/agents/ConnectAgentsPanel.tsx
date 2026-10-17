@@ -18,6 +18,7 @@ import {
 } from './session-format'
 import { installHooks, uninstallHooks } from './sessions.actions'
 import { useSessionsStore } from './sessions.store'
+import { useT } from '../../lib/i18n'
 
 // Tela 5 do canvas "Kite — Tarefas multi-repo" (Hooks.dc.html).
 
@@ -46,25 +47,25 @@ export function ConnectAgentsPanel() {
   const [preview, setPreview] = useState<AgentCli>('claude')
   const all = useSessionsStore((s) => s.sessions)
   const sessions = all.filter((x) => x.status !== 'ended')
+  const tr = useT()
 
   return (
     <div className="h-full overflow-y-auto bg-surface-0 font-geist text-[13px] text-fg">
       <div className="flex min-h-full justify-center px-6 py-9">
         <div className="flex w-full max-w-[1120px] flex-col gap-6">
           <header>
-            <span className={LABEL}>Configurações · Agentes</span>
+            <span className={LABEL}>{tr('connect.kicker')}</span>
             <h1 className="mt-1 text-[26px] font-semibold tracking-[-0.01em]">
-              Saber quando um agente precisa de você
+              {tr('connect.title')}
             </h1>
-            <p className="mt-2 max-w-[720px] leading-normal text-fg-muted">
-              Com a integração ligada, o próprio agente avisa o Kite quando para, pede permissão ou
-              termina, mesmo rodando num terminal fora do Kite. Sem ela, o Kite só consegue
-              adivinhar pelo terminal, e só nos agentes abertos aqui dentro.
-            </p>
+            <p className="mt-2 max-w-[720px] leading-normal text-fg-muted">{tr('connect.intro')}</p>
           </header>
 
           <div className="flex flex-wrap items-start gap-6">
-            <section aria-label="Integrações" className="flex flex-[1_1_420px] flex-col gap-2.5">
+            <section
+              aria-label={tr('connect.integrations')}
+              className="flex flex-[1_1_420px] flex-col gap-2.5"
+            >
               {CLIS.map((cli) => (
                 <HookCard
                   key={cli}
@@ -74,10 +75,10 @@ export function ConnectAgentsPanel() {
                 />
               ))}
               <CliCard
-                name="Outros CLIs"
-                how="Heurística pelo terminal: só para agentes abertos dentro do Kite."
-                state="Sempre ativo"
-                action="Ajustar"
+                name={tr('connect.otherClis')}
+                how={tr('connect.otherClisHow')}
+                state={tr('connect.alwaysOn')}
+                action={tr('connect.adjust')}
                 onAction={() => {
                   useAttentionStore.getState().set({ mode: 'presets' })
                   showAttentionView()
@@ -89,19 +90,16 @@ export function ConnectAgentsPanel() {
             </section>
 
             <section
-              aria-label="Sessões detectadas"
+              aria-label={tr('connect.sessions')}
               className="flex flex-[1_1_420px] flex-col gap-2.5"
             >
               <div className="flex items-baseline gap-2">
-                <h2 className="text-[15px] font-semibold">Sessões ativas agora</h2>
-                <span className="text-xs text-fg-muted">
-                  o Kite descobre a tarefa pelos arquivos que o agente toca
-                </span>
+                <h2 className="text-[15px] font-semibold">{tr('connect.activeSessions')}</h2>
+                <span className="text-xs text-fg-muted">{tr('connect.activeSessionsHint')}</span>
               </div>
               {sessions.length === 0 ? (
                 <p className="rounded-[10px] border border-dashed border-border px-4 py-3 text-xs leading-[1.45] text-fg-muted">
-                  Nenhuma sessão ainda. Depois de conectar, abra o agente em qualquer terminal e ela
-                  aparece aqui.
+                  {tr('connect.noSessions')}
                 </p>
               ) : (
                 sessions.map((s) => <SessionCard key={s.id} session={s} />)
@@ -125,6 +123,7 @@ function CliCard(props: {
   disabled?: boolean
   onAction?: () => void
 }) {
+  const tr = useT()
   return (
     <div
       role="group"
@@ -141,7 +140,7 @@ function CliCard(props: {
       <button
         type="button"
         disabled={props.disabled}
-        title={props.disabled ? 'Disponível numa próxima fase' : undefined}
+        title={props.disabled ? tr('connect.nextPhase') : undefined}
         onClick={props.onAction}
         className={props.primary ? BTN_PRIMARY : BTN_SECONDARY}
       >
@@ -151,16 +150,11 @@ function CliCard(props: {
   )
 }
 
-const HOW: Record<AgentCli, string> = {
-  claude: 'Hooks: pede permissão, terminou o turno, voltou a trabalhar, arquivos tocados.',
-  codex:
-    'Hooks do Codex: pede permissão, terminou o turno, arquivos do apply_patch. O Codex pede para confiar nos hooks na primeira vez.',
-  gemini: 'Hooks do Gemini CLI: pede permissão, terminou o turno, arquivos editados.',
-}
-
 function HookCard(props: { cli: AgentCli; hooks: HooksStatus | null; onTouch: () => void }) {
   const { cli, hooks } = props
   const name = CLI_LABEL[cli]
+  const tr = useT()
+  const how = tr(`connect.how.${cli}`)
   const act = (fn: () => Promise<void>) => {
     props.onTouch()
     void fn()
@@ -169,10 +163,10 @@ function HookCard(props: { cli: AgentCli; hooks: HooksStatus | null; onTouch: ()
     return (
       <CliCard
         name={name}
-        how={HOW[cli]}
-        state="configuração inválida"
+        how={how}
+        state={tr('connect.invalid')}
         stateClass="text-danger"
-        action="Tentar de novo"
+        action={tr('connect.retry')}
         onAction={() => act(() => installHooks(cli))}
       />
     )
@@ -181,10 +175,10 @@ function HookCard(props: { cli: AgentCli; hooks: HooksStatus | null; onTouch: ()
   return (
     <CliCard
       name={name}
-      how={HOW[cli]}
-      state={installed ? 'Conectado' : 'Não conectado'}
+      how={how}
+      state={installed ? tr('connect.connected') : tr('connect.notConnected')}
       stateClass={installed ? 'text-success' : 'text-fg-muted'}
-      action={installed ? 'Remover' : 'Conectar'}
+      action={installed ? tr('connect.remove') : tr('connect.connect')}
       primary={!installed}
       active={installed}
       disabled={!hooks}
@@ -199,12 +193,13 @@ function SettingsPreview(props: {
   onPick: (cli: AgentCli) => void
 }) {
   const { hooks } = props
+  const tr = useT()
   return (
     <div className="flex flex-col gap-2.5 rounded-[10px] border border-border bg-surface-1 px-4 py-3.5">
       <div className="flex flex-wrap items-center gap-2">
-        <span className={LABEL}>O que muda no {hooks.settingsPath}</span>
+        <span className={LABEL}>{tr('connect.whatChanges', { path: hooks.settingsPath })}</span>
         <span className="flex-1" />
-        <div role="group" aria-label="Ver arquivo de" className="flex gap-1">
+        <div role="group" aria-label={tr('connect.viewFileOf')} className="flex gap-1">
           {CLIS.map((c) => (
             <button
               key={c}
@@ -224,9 +219,7 @@ function SettingsPreview(props: {
         {hooks.snippet}
       </pre>
       <p className="text-xs leading-normal text-fg-muted">
-        {hooks.error
-          ? `Não foi possível ler o arquivo: ${hooks.error}. O Kite não altera um arquivo inválido.`
-          : 'Seus hooks atuais são mantidos. Os eventos ficam só na sua máquina: o Kite guarda caminhos de arquivo e a última mensagem do agente, nunca o conteúdo dos arquivos. Dá para remover em um clique.'}
+        {hooks.error ? tr('connect.cannotRead', { error: hooks.error }) : tr('connect.privacy')}
       </p>
     </div>
   )
@@ -234,6 +227,7 @@ function SettingsPreview(props: {
 
 function SessionCard({ session }: { session: AgentSession }) {
   const tone = sessionTone(session)
+  const tr = useT()
   const task = useAgentsStore((s) =>
     session.agentTaskId ? s.tasks.find((t) => t.id === session.agentTaskId) : undefined,
   )
@@ -251,7 +245,7 @@ function SessionCard({ session }: { session: AgentSession }) {
     )
   const evidence =
     startedInside && session.touchedCount === 0
-      ? 'Começou dentro da pasta da tarefa.'
+      ? tr('connect.startedInside')
       : sessionEvidence(session)
 
   const openMenu = (e: React.MouseEvent) =>
@@ -266,7 +260,7 @@ function SessionCard({ session }: { session: AgentSession }) {
         ...(manual
           ? [
               {
-                label: 'Voltar à detecção automática',
+                label: tr('connect.backToAuto'),
                 onSelect: () => void linkSession(session.id, null),
               },
             ]
@@ -285,29 +279,30 @@ function SessionCard({ session }: { session: AgentSession }) {
       <div className="text-xs leading-[1.45] text-fg-muted">{evidence}</div>
       <div className="flex flex-wrap items-center gap-2">
         {task ? (
-          <span className="text-xs text-fg">Aberta pelo Kite · {task.name}</span>
+          <span className="text-xs text-fg">{tr('connect.openedByKite', { name: task.name })}</span>
         ) : linked ? (
           <span className="text-xs text-fg">
-            Vinculada a {linked.key}
-            {manual ? '' : ' automaticamente'}
+            {manual
+              ? tr('connect.linkedTo', { key: linked.key })
+              : tr('connect.linkedAuto', { key: linked.key })}
           </span>
         ) : (
-          <span className="text-xs text-accent">Sem tarefa por enquanto</span>
+          <span className="text-xs text-accent">{tr('connect.noTask')}</span>
         )}
         <span className="flex-1" />
         {task ? (
           <button type="button" onClick={() => openAgentTerminal(task.id)} className={BTN_SMALL}>
-            Abrir terminal
+            {tr('connect.openTerminal')}
           </button>
         ) : (
           <button
             type="button"
             disabled={visible.length === 0}
-            title={visible.length === 0 ? 'Abra um workspace com tarefas importadas' : undefined}
+            title={visible.length === 0 ? tr('connect.needsTasks') : undefined}
             onClick={openMenu}
             className={BTN_SMALL}
           >
-            {linked ? 'Trocar tarefa' : 'Vincular a…'}
+            {linked ? tr('connect.switchTask') : tr('connect.linkTo')}
           </button>
         )}
       </div>

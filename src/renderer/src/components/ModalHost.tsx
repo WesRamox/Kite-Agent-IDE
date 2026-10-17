@@ -1,14 +1,19 @@
 import { Inbox, Plug, Settings, X, type LucideIcon } from 'lucide-react'
 import { useEffect, useRef } from 'react'
+import type { MessageKey } from '@shared/i18n'
 import { CentralPanel } from '../features/agents/CentralPanel'
 import { ConnectAgentsPanel } from '../features/agents/ConnectAgentsPanel'
 import { SettingsPanel } from '../features/settings/SettingsPanel'
 import { type ModalId, useModalStore } from '../stores/modal.store'
+import { useT } from '../lib/i18n'
 
-const MODALS: Record<ModalId, { title: string; icon: LucideIcon; body: () => React.ReactNode }> = {
-  central: { title: 'Central de atenção', icon: Inbox, body: () => <CentralPanel /> },
-  connect: { title: 'Conectar agentes', icon: Plug, body: () => <ConnectAgentsPanel /> },
-  settings: { title: 'Configurações', icon: Settings, body: () => <SettingsPanel /> },
+const MODALS: Record<
+  ModalId,
+  { title: MessageKey; icon: LucideIcon; body: () => React.ReactNode }
+> = {
+  central: { title: 'modal.central', icon: Inbox, body: () => <CentralPanel /> },
+  connect: { title: 'modal.connect', icon: Plug, body: () => <ConnectAgentsPanel /> },
+  settings: { title: 'modal.settings', icon: Settings, body: () => <SettingsPanel /> },
 }
 
 // Janela sobreposta: fundo escurecido, cabeçalho com o título e o X. Esc (na captura, antes do
@@ -17,6 +22,7 @@ export function ModalHost() {
   const open = useModalStore((s) => s.open)
   const close = useModalStore((s) => s.close)
   const dialog = useRef<HTMLDivElement>(null)
+  const t = useT()
 
   useEffect(() => {
     if (!open) return
@@ -38,6 +44,7 @@ export function ModalHost() {
 
   if (!open) return null
   const modal = MODALS[open]
+  const title = t(modal.title)
   const Icon = modal.icon
   return (
     <div
@@ -48,17 +55,17 @@ export function ModalHost() {
         ref={dialog}
         role="dialog"
         aria-modal="true"
-        aria-label={modal.title}
+        aria-label={title}
         tabIndex={-1}
         className="flex h-[min(860px,100%)] w-[min(1180px,100%)] flex-col overflow-hidden rounded-xl border border-border bg-surface-0 shadow-2xl outline-none"
       >
         <header className="flex h-10 shrink-0 items-center gap-2 border-b border-border bg-surface-1 pr-2 pl-4 font-geist text-[13px]">
           <Icon size={15} className="text-accent" />
-          <span className="flex-1 font-medium text-fg">{modal.title}</span>
+          <span className="flex-1 font-medium text-fg">{title}</span>
           <span className="mr-1 font-geist-mono text-[11px] text-fg-muted">Esc</span>
           <button
             type="button"
-            aria-label={`Fechar ${modal.title}`}
+            aria-label={t('modal.close', { title })}
             onClick={close}
             className="flex size-7 items-center justify-center rounded-md text-fg-muted hover:bg-surface-3 hover:text-fg"
           >

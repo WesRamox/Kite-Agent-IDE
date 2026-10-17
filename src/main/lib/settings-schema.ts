@@ -1,6 +1,7 @@
 import { z } from 'zod'
 import { DEFAULT_SETTINGS, FONT_MAX, FONT_MIN } from '@shared/settings'
 import { THEMES, type ThemeId } from '@shared/themes'
+import type { AppSettings } from '@shared/types'
 
 // Campos do settings.json. Cada um tem padrão e é validado sozinho: um valor inválido (ou um
 // arquivo antigo, só com o tema) não derruba o resto.
@@ -9,11 +10,23 @@ export const themeSchema = z.enum(THEMES.map((t) => t.id) as [ThemeId, ...ThemeI
 export { DEFAULT_SETTINGS }
 
 const fields = {
-  language: z.enum(['pt-BR']),
+  language: z.enum(['pt-BR', 'en']),
   editorFontSize: z.number().int().min(FONT_MIN).max(FONT_MAX),
   terminalFontSize: z.number().int().min(FONT_MIN).max(FONT_MAX),
   restoreTerminals: z.boolean(),
   notifications: z.boolean(),
+}
+
+// O idioma padrão vem do sistema (ver languageFor), então o schema recebe os padrões.
+export function settingsSchemaWith(defaults: AppSettings) {
+  return z.object({
+    theme: themeSchema.catch(defaults.theme),
+    language: fields.language.catch(defaults.language),
+    editorFontSize: fields.editorFontSize.catch(defaults.editorFontSize),
+    terminalFontSize: fields.terminalFontSize.catch(defaults.terminalFontSize),
+    restoreTerminals: fields.restoreTerminals.catch(defaults.restoreTerminals),
+    notifications: fields.notifications.catch(defaults.notifications),
+  })
 }
 
 export const settingsSchema = z.object({

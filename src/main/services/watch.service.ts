@@ -4,6 +4,7 @@ import { AppException } from '../lib/errors'
 import { DEFAULT_IGNORED_NAMES } from '../lib/ignore-rules'
 import type { Logger } from '../lib/logger'
 import type { WorkspaceGuard } from '../lib/workspace-guard'
+import { t } from '../lib/i18n'
 
 export interface WatchEvent {
   path: string
@@ -38,7 +39,7 @@ export class WatchService {
 
   async watch(root: string): Promise<void> {
     if (!this.deps.guard.isRoot(root)) {
-      throw new AppException('FORBIDDEN_PATH', 'Não é uma pasta aberta')
+      throw new AppException('FORBIDDEN_PATH', t('error.notAnOpenFolder'))
     }
     if (this.subs.has(root)) return
     const sub = this.deps.subscribe(

@@ -13,6 +13,7 @@ import { DeliverDialog } from './DeliverDialog'
 import type { TaskReviewParams } from './review.actions'
 import { useTasksStore } from './tasks.store'
 import { useSettingsStore } from '../../stores/settings.store'
+import { useT } from '../../lib/i18n'
 
 // Tela 3 do canvas "Kite — Tarefas multi-repo" (Review.dc.html).
 
@@ -66,6 +67,7 @@ export function TaskReviewPanel({ params }: IDockviewPanelProps<TaskReviewParams
 
   // Recarregar à mão (depois de commitar) incrementa o contador.
   const [reloads, setReloads] = useState(0)
+  const tr = useT()
   const reload = () => setReloads((n) => n + 1)
 
   useEffect(() => {
@@ -95,7 +97,7 @@ export function TaskReviewPanel({ params }: IDockviewPanelProps<TaskReviewParams
     }
   }, [root, params.taskId, statusKey, reloads])
 
-  if (!task) return <p className="p-6 text-fg-muted">Tarefa não encontrada.</p>
+  if (!task) return <p className="p-6 text-fg-muted">{tr('review.notFound')}</p>
   const repos = review?.repos ?? []
   const totalFiles = repos.reduce((n, r) => n + r.files.length, 0)
   const added = repos.reduce((n, r) => n + r.added, 0)
@@ -109,23 +111,22 @@ export function TaskReviewPanel({ params }: IDockviewPanelProps<TaskReviewParams
         {task.key !== task.name && (
           <span className="font-geist-mono text-xs text-fg-muted">{task.key}</span>
         )}
-        <h1 className="text-lg font-semibold">Revisar · {task.name}</h1>
+        <h1 className="text-lg font-semibold">{tr('review.title', { name: task.name })}</h1>
         {waiting && (
           <span className="inline-flex h-[22px] items-center rounded-full bg-accent/15 px-2 text-xs text-accent">
-            agente esperando você
+            {tr('review.agentWaiting')}
           </span>
         )}
         <span className="flex-1" />
         <span className="text-xs text-fg-muted">
-          {repos.length} {repos.length === 1 ? 'repo' : 'repos'} · {totalFiles}{' '}
-          {totalFiles === 1 ? 'arquivo' : 'arquivos'} · +{added} −{deleted}
+          {tr('review.summary', { repos: repos.length, files: totalFiles })} · +{added} −{deleted}
         </span>
         <button
           type="button"
           onClick={() => setDialog({ kind: 'ask' })}
           className="h-8 rounded-[7px] border border-border bg-surface-2 px-3 text-fg hover:bg-surface-3"
         >
-          Pedir ajuste ao agente
+          {tr('review.ask')}
         </button>
         <button
           type="button"
@@ -135,16 +136,18 @@ export function TaskReviewPanel({ params }: IDockviewPanelProps<TaskReviewParams
           }
           className="h-8 rounded-[7px] bg-accent px-3.5 font-semibold text-accent-fg hover:bg-accent/85 disabled:opacity-50"
         >
-          Commit e PR {deliverable.length === 1 ? 'no repo' : `nos ${deliverable.length} repos`}
+          {tr('review.deliver', { n: deliverable.length })}
         </button>
       </header>
       {error && <p className="px-6 py-3 text-danger">{error}</p>}
       <div className="flex min-h-0 flex-1">
         <aside
-          aria-label="Arquivos alterados"
+          aria-label={tr('review.files')}
           className="w-[340px] shrink-0 overflow-y-auto border-r border-border bg-surface-1 px-1.5 py-2.5"
         >
-          {review === null && !error && <p className="px-3 text-fg-muted">Carregando…</p>}
+          {review === null && !error && (
+            <p className="px-3 text-fg-muted">{tr('common.loading')}</p>
+          )}
           {repos.map((r) => (
             <RepoGroup
               key={r.worktree}
@@ -165,7 +168,7 @@ export function TaskReviewPanel({ params }: IDockviewPanelProps<TaskReviewParams
               taskId={task.id}
             />
           ) : (
-            <p className="p-6 text-fg-muted">{review ? 'Nada mudou nesta tarefa ainda.' : ''}</p>
+            <p className="p-6 text-fg-muted">{review ? tr('review.nothing') : ''}</p>
           )}
         </main>
       </div>
@@ -194,11 +197,14 @@ function RepoGroup(props: {
   onPR: () => void
 }) {
   const { repo } = props
+  const tr = useT()
   return (
-    <div className="mb-3.5" role="group" aria-label={`Repositório ${repo.repoName}`}>
+    <div className="mb-3.5" role="group" aria-label={tr('review.repo', { repo: repo.repoName })}>
       <div className="flex items-center gap-2 px-2.5 py-1.5">
         <span className="font-geist-mono font-semibold">{repo.repoName}</span>
-        <span className="truncate text-[11px] text-fg-muted">{repo.branch ?? 'sem branch'}</span>
+        <span className="truncate text-[11px] text-fg-muted">
+          {repo.branch ?? tr('review.noBranch')}
+        </span>
         <span className="ml-auto font-geist-mono text-[11px]">
           <span className="text-success">+{repo.added}</span>{' '}
           <span className="text-danger">−{repo.deleted}</span>
@@ -230,7 +236,7 @@ function RepoGroup(props: {
           onClick={props.onCommit}
           className={`${SMALL_BTN} disabled:opacity-50`}
         >
-          Commit em {repo.repoName}
+          {tr('review.commitIn', { repo: repo.repoName })}
         </button>
         {repo.pr ? (
           <a
@@ -248,7 +254,7 @@ function RepoGroup(props: {
             onClick={props.onPR}
             className={`${SMALL_BTN} disabled:opacity-50`}
           >
-            Abrir PR
+            {tr('review.openPR')}
           </button>
         )}
       </div>
@@ -265,6 +271,7 @@ function FileDiff({ repo, rel, taskId }: { repo: ReviewRepo; rel: string; taskId
   const monacoTheme = useMonacoTheme()
   const [state, setState] = useState<DiffState>({ kind: 'loading' })
   const [sideBySide, setSideBySide] = useState(false)
+  const tr = useT()
 
   useEffect(() => {
     if (!root) return
@@ -298,14 +305,16 @@ function FileDiff({ repo, rel, taskId }: { repo: ReviewRepo; rel: string; taskId
           onClick={() => setSideBySide((v) => !v)}
           className={SMALL_BTN}
         >
-          {sideBySide ? 'Em linha' : 'Lado a lado'}
+          {sideBySide ? tr('review.inline') : tr('review.sideBySide')}
         </button>
       </div>
       <div className="min-h-0 flex-1">
-        {state.kind === 'loading' && <p className="p-4 text-fg-muted">Carregando diff…</p>}
+        {state.kind === 'loading' && (
+          <p className="p-4 text-fg-muted">{tr('review.loadingDiff')}</p>
+        )}
         {state.kind === 'error' && <p className="p-4 text-danger">{state.message}</p>}
         {state.kind === 'ready' && state.diff.binary && (
-          <p className="p-4 text-fg-muted">Arquivo binário: diff não disponível.</p>
+          <p className="p-4 text-fg-muted">{tr('review.binary')}</p>
         )}
         {state.kind === 'ready' && !state.diff.binary && (
           <DiffEditor

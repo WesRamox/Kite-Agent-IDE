@@ -2,6 +2,7 @@ import { create } from 'zustand'
 import { attempt } from '../../lib/ipc'
 import { relative } from '../../lib/paths'
 import { toast } from '../../stores/toast.store'
+import { t } from '../../lib/i18n'
 
 // Pastas em que o quick open busca: a pasta aberta ou, numa tarefa, cada worktree (com o nome
 // do repo na frente do caminho).
@@ -41,9 +42,8 @@ export const useQuickOpenStore = create<QuickOpenState>((set, get) => ({
       set({ loading: true })
       const lists = await Promise.all(
         roots.map(async (r) => {
-          const res = await attempt(window.api.fs.listFiles(r.path), 'Erro ao listar arquivos')
-          if (res?.truncated)
-            toast.warning('Projeto grande: o quick open mostra só parte dos arquivos.')
+          const res = await attempt(window.api.fs.listFiles(r.path), t('quickOpen.listError'))
+          if (res?.truncated) toast.warning(t('quickOpen.truncated'))
           return (res?.files ?? []).map((path) => {
             const rel = relative(r.path, path)
             return { path, rel: r.label ? `${r.label}/${rel}` : rel }

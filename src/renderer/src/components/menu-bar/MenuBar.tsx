@@ -1,9 +1,10 @@
 import { Check, ChevronRight } from 'lucide-react'
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { useActiveTask } from '../../features/tasks/tasks.store'
 import { basename } from '../../lib/paths'
 import { useWorkspaceStore } from '../../stores/workspace.store'
 import { buildMenus, type MenuDef, type MenuEntry } from './menus'
+import { useT } from '../../lib/i18n'
 
 // Barra de menus no topo da janela, no lugar do menu nativo (removido no Linux/Windows). Como no
 // VS Code: clique abre, passar o mouse troca de menu enquanto um está aberto, setas navegam.
@@ -88,16 +89,19 @@ function Dropdown({
 }
 
 export function MenuBar() {
-  const [menus, setMenus] = useState<MenuDef[]>(() => buildMenus())
   const [open, setOpen] = useState<number | null>(null)
   const [active, setActive] = useState(-1)
   const [sub, setSub] = useState<{ index: number; active: number } | null>(null)
   const ref = useRef<HTMLDivElement>(null)
   const root = useWorkspaceStore((s) => s.root)
   const task = useActiveTask()
+  const t = useT()
+  // Os itens leem o estado na hora de abrir (habilitados, recentes, tema); os rótulos seguem o
+  // idioma, que pode chegar do main depois da primeira renderização.
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  const menus: MenuDef[] = useMemo(() => buildMenus(), [t, open])
 
   const show = (index: number | null) => {
-    if (index !== null) setMenus(buildMenus())
     setOpen(index)
     setActive(-1)
     setSub(null)
@@ -177,7 +181,7 @@ export function MenuBar() {
     <div
       ref={ref}
       role="menubar"
-      aria-label="Menu do Kite"
+      aria-label={t('menu.bar')}
       className="relative flex h-[30px] shrink-0 items-center border-b border-border bg-surface-1 px-1.5 font-geist text-[13px]"
     >
       {menus.map((m, i) => (

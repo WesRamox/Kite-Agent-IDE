@@ -1,5 +1,6 @@
 import { X } from 'lucide-react'
 import { useToastStore, type ToastKind } from '../stores/toast.store'
+import { useT } from '../lib/i18n'
 
 const KIND_CLASS: Record<ToastKind, string> = {
   info: 'border-accent/60',
@@ -10,6 +11,7 @@ const KIND_CLASS: Record<ToastKind, string> = {
 export function Toasts() {
   const toasts = useToastStore((s) => s.toasts)
   const dismiss = useToastStore((s) => s.dismiss)
+  const tr = useT()
 
   return (
     <div className="pointer-events-none fixed right-4 bottom-10 z-50 flex w-96 flex-col gap-2">
@@ -22,7 +24,7 @@ export function Toasts() {
           <span className="flex-1 select-text">{t.message}</span>
           <button
             type="button"
-            aria-label="Fechar"
+            aria-label={tr('toast.close')}
             onClick={() => dismiss(t.id)}
             className="text-fg-muted hover:text-fg"
           >

@@ -6,6 +6,7 @@ import { currentItems, focusItem, openCentral, showAttentionView } from './atten
 import type { AgentCli, HooksStatus } from '@shared/types'
 import { CLI_LABEL, CLIS } from './cli'
 import { useSessionsStore } from './sessions.store'
+import { t } from '../../lib/i18n'
 
 const store = () => useSessionsStore.getState()
 
@@ -52,18 +53,16 @@ export function openConnectAgents(): void {
 export async function installHooks(cli: AgentCli = 'claude'): Promise<void> {
   const status = await attempt(
     window.api.hooks.install(cli),
-    `Erro ao conectar o ${CLI_LABEL[cli]}`,
+    t('connect.installError', { cli: CLI_LABEL[cli] }),
   )
   if (!status) return
   store().set({ hooks: { ...store().hooks, [cli]: status } })
   toast.info(
-    cli === 'codex'
-      ? 'Codex conectado. Na primeira sessão, o Codex pede para revisar e confiar nos hooks.'
-      : `${CLI_LABEL[cli]} conectado. Vale para as sessões abertas a partir de agora.`,
+    cli === 'codex' ? t('connect.codexInstalled') : t('connect.installed', { cli: CLI_LABEL[cli] }),
   )
 }
 
 export async function uninstallHooks(cli: AgentCli = 'claude'): Promise<void> {
-  const status = await attempt(window.api.hooks.uninstall(cli), 'Erro ao remover a integração')
+  const status = await attempt(window.api.hooks.uninstall(cli), t('connect.uninstallError'))
   if (status) store().set({ hooks: { ...store().hooks, [cli]: status } })
 }

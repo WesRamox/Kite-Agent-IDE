@@ -1,8 +1,10 @@
 import type { IDockviewPanelHeaderProps } from 'dockview-react'
 import { FolderSearch, X } from 'lucide-react'
 import { getDockApi } from '../../lib/dock'
+import { useT } from '../../lib/i18n'
 
 export function DiscoverTab({ api }: IDockviewPanelHeaderProps) {
+  const t = useT()
   const close = () => {
     const panel = getDockApi()?.getPanel(api.id)
     if (panel) getDockApi()?.removePanel(panel)
@@ -13,7 +15,7 @@ export function DiscoverTab({ api }: IDockviewPanelHeaderProps) {
       <span className="max-w-64 truncate">{api.title}</span>
       <button
         type="button"
-        aria-label="Fechar Descobrir tarefas"
+        aria-label={t('discover.closeTab')}
         onClick={(e) => {
           e.stopPropagation()
           close()

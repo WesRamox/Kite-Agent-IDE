@@ -12,6 +12,7 @@ import { openAgentTerminal } from '../agents/agents.actions'
 import { useAgentsStore } from '../agents/agents.store'
 import { taskContext, useTasksStore } from './tasks.store'
 import { closeModal } from '../../stores/modal.store'
+import { t } from '../../lib/i18n'
 
 export const DISCOVER_COMPONENT = 'discover'
 export const DISCOVER_TAB_COMPONENT = 'discover-tab'
@@ -27,10 +28,10 @@ const root = () => useWorkspaceStore.getState().root
 // Descobre as tarefas da pasta aberta e passa a observar as worktrees. Na primeira vez num
 // workspace com worktrees, abre a tela de descoberta (canvas, tela 4).
 export async function loadTasks(dir: string, opts: { fromOpen?: boolean } = {}): Promise<void> {
-  const ws = await attempt(window.api.task.discover(dir), 'Erro ao procurar tarefas')
+  const ws = await attempt(window.api.task.discover(dir), t('tasks.discoverError'))
   if (!ws || root() !== dir) return
   await applyWorkspace(ws)
-  await attempt(window.api.task.watch(dir), 'Erro ao observar as worktrees')
+  await attempt(window.api.task.watch(dir), t('tasks.watchError'))
   if (opts.fromOpen && !ws.imported && (ws.tasks.length > 0 || ws.unassigned.length > 0)) {
     openDiscover()
   }
@@ -85,7 +86,7 @@ export async function refreshTaskStatus(path: string): Promise<void> {
 async function prepareTask(id: string): Promise<boolean> {
   const dir = root()
   if (!dir) return false
-  const task = await attempt(window.api.task.open(dir, id), 'Erro ao abrir a tarefa')
+  const task = await attempt(window.api.task.open(dir, id), t('tasks.openError'))
   if (!task) return false
   const explorer = useExplorerStore.getState()
   await Promise.all(
@@ -132,7 +133,7 @@ export function openDiscover(): void {
     id: DISCOVER_PANEL_ID,
     component: DISCOVER_COMPONENT,
     tabComponent: DISCOVER_TAB_COMPONENT,
-    title: 'Descobrir tarefas',
+    title: t('discover.tab'),
   })
 }
 
@@ -155,36 +156,36 @@ async function change(
 }
 
 export const setGrouping = (g: TaskGrouping) =>
-  change((d) => window.api.task.setGrouping(d, g), 'Erro ao mudar o agrupamento')
+  change((d) => window.api.task.setGrouping(d, g), t('tasks.groupingError'))
 export const renameTask = (id: string, name: string) =>
-  change((d) => window.api.task.rename(d, id, name), 'Erro ao renomear a tarefa')
+  change((d) => window.api.task.rename(d, id, name), t('tasks.renameError'))
 export const moveWorktree = (path: string, target: string) =>
-  change((d) => window.api.task.move(d, path, target), 'Erro ao mover a worktree')
+  change((d) => window.api.task.move(d, path, target), t('tasks.moveError'))
 export const ignoreWorktree = (path: string) =>
-  change((d) => window.api.task.ignore(d, path), 'Erro ao ignorar a worktree')
+  change((d) => window.api.task.ignore(d, path), t('tasks.ignoreError'))
 export const setTaskHidden = (id: string, hidden: boolean) =>
-  change((d) => window.api.task.setHidden(d, id, hidden), 'Erro ao atualizar a tarefa')
+  change((d) => window.api.task.setHidden(d, id, hidden), t('tasks.updateError'))
 export const setTaskNotes = (id: string, notes: string) =>
-  change((d) => window.api.task.setNotes(d, id, notes), 'Erro ao salvar as notas')
+  change((d) => window.api.task.setNotes(d, id, notes), t('tasks.notesError'))
 export const linkSession = (sessionId: string, id: string | null) =>
-  change((d) => window.api.task.linkSession(d, sessionId, id), 'Erro ao vincular a sessão')
+  change((d) => window.api.task.linkSession(d, sessionId, id), t('tasks.linkError'))
 export const addExternalRepo = () =>
-  change((d) => window.api.task.addExternalRepo(d), 'Erro ao adicionar o repositório')
+  change((d) => window.api.task.addExternalRepo(d), t('tasks.addRepoError'))
 
 export async function addRepoToTask(id: string, repo: string): Promise<void> {
   const ws = await change(
     (d) => window.api.task.addRepo(d, id, repo),
-    'Erro ao adicionar o repositório à tarefa',
+    t('tasks.addRepoToTaskError'),
   )
-  if (ws) toast.info('Worktree criada na tarefa.')
+  if (ws) toast.info(t('tasks.worktreeCreated'))
 }
 
 export async function importTasks(hidden: string[]): Promise<void> {
-  const ws = await change((d) => window.api.task.import(d, hidden), 'Erro ao importar as tarefas')
+  const ws = await change((d) => window.api.task.import(d, hidden), t('tasks.importError'))
   if (!ws) return
   closeDiscover()
   const shown = ws.tasks.filter((t) => !t.hidden).length
-  toast.info(`${shown} ${shown === 1 ? 'tarefa importada' : 'tarefas importadas'}.`)
+  toast.info(t('tasks.imported', { n: shown }))
 }
 
 // "Nova tarefa" (Fase 10): cria as worktrees, abre a tarefa e, se pedido, o agente na pasta dela.
@@ -199,16 +200,16 @@ export async function createTaskWithAgent(input: {
   if (!dir) return false
   const task = await attempt(
     window.api.task.create(dir, { name: input.name, branch: input.branch, repos: input.repos }),
-    'Erro ao criar a tarefa',
+    t('tasks.createError'),
   )
   if (!task) return false
-  const ws = await attempt(window.api.task.discover(dir), 'Erro ao atualizar as tarefas')
+  const ws = await attempt(window.api.task.discover(dir), t('tasks.refreshError'))
   if (ws) await applyWorkspace(ws)
   await openTask(task.id)
   if (!input.presetId) return true
   const agent = await attempt(
     window.api.agent.startInTask(dir, task.id, input.presetId, input.prompt),
-    'Erro ao iniciar o agente',
+    t('tasks.startAgentError'),
   )
   if (!agent) return true
   useAgentsStore.getState().upsert(agent)
@@ -222,7 +223,7 @@ export async function startAgentInTask(taskId: string, presetId: string): Promis
   if (!dir) return
   const agent = await attempt(
     window.api.agent.startInTask(dir, taskId, presetId, ''),
-    'Erro ao iniciar o agente',
+    t('tasks.startAgentError'),
   )
   if (!agent) return
   useAgentsStore.getState().upsert(agent)

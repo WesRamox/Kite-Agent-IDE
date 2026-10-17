@@ -6,6 +6,7 @@ import { useSessionsStore } from '../agents/sessions.store'
 import { linkSessions } from './task-links'
 import { setTaskNotes } from './tasks.actions'
 import { useActiveTask, useTasksStore } from './tasks.store'
+import { t as tr, currentLang, useT } from '../../lib/i18n'
 
 // Painel da direita da tarefa (canvas, tela 2: Task.dc.html, "Detalhes da tarefa").
 
@@ -25,7 +26,7 @@ function clock(ts: number): string {
   const d = new Date(ts)
   const today = new Date().toDateString() === d.toDateString()
   const hm = `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`
-  return today ? `desde ${hm}` : `${d.toLocaleDateString('pt-BR')} ${hm}`
+  return today ? tr('details.since', { time: hm }) : `${d.toLocaleDateString(currentLang())} ${hm}`
 }
 
 export function TaskDetails() {
@@ -34,6 +35,7 @@ export function TaskDetails() {
   const prs = useTasksStore((s) => s.prs)
   const links = useTasksStore((s) => s.workspace?.sessionLinks ?? {})
   const sessions = useSessionsStore((s) => s.sessions)
+  const t = useT()
   if (!task) return null
 
   const linked = linkSessions(sessions, [task], links)
@@ -41,21 +43,21 @@ export function TaskDetails() {
 
   return (
     <aside
-      aria-label="Detalhes da tarefa"
+      aria-label={t('details.label')}
       className="flex w-[300px] shrink-0 flex-col gap-[18px] overflow-y-auto border-l border-border bg-surface-1 p-4 font-geist text-[13px] text-fg"
     >
       <div className="flex flex-col gap-1.5">
-        <span className={LABEL}>Tarefa</span>
+        <span className={LABEL}>{t('details.task')}</span>
         <span className="text-[15px] font-semibold">{task.name}</span>
         {task.cardUrl && (
           <a href={task.cardUrl} target="_blank" rel="noreferrer" className="text-xs text-accent">
-            Abrir card {task.key}
+            {t('details.openCard', { key: task.key })}
           </a>
         )}
       </div>
 
       <div className="flex flex-col gap-2">
-        <span className={LABEL}>Repositórios</span>
+        <span className={LABEL}>{t('details.repos')}</span>
         {task.worktrees.map((w) => {
           const st = status[w.path]
           const files = st?.isRepo ? st.files.length : null
@@ -70,13 +72,13 @@ export function TaskDetails() {
                 <span className="font-geist-mono font-medium">{w.repoName}</span>
                 <PrBadge pr={prs[w.path]} />
               </div>
-              <div className="text-xs text-fg-muted">{w.branch ?? `sem branch (${w.head})`}</div>
+              <div className="text-xs text-fg-muted">
+                {w.branch ?? t('details.noBranch', { head: w.head })}
+              </div>
               {files !== null && (
                 <div className="text-xs text-fg-muted">
-                  {files} {files === 1 ? 'alterado' : 'alterados'} ·{' '}
-                  {ahead > 0
-                    ? `${ahead} ${ahead === 1 ? 'commit' : 'commits'} à frente`
-                    : 'nada à frente'}
+                  {t('details.changed', { n: files })} ·{' '}
+                  {ahead > 0 ? t('details.ahead', { n: ahead }) : t('details.nothingAhead')}
                 </div>
               )}
             </div>
@@ -85,9 +87,9 @@ export function TaskDetails() {
       </div>
 
       <div className="flex flex-col gap-2">
-        <span className={LABEL}>Sessões de agente</span>
+        <span className={LABEL}>{t('details.sessions')}</span>
         {mine.length === 0 && (
-          <span className="text-xs text-fg-muted">Nenhuma sessão ligada a esta tarefa.</span>
+          <span className="text-xs text-fg-muted">{t('details.noSessions')}</span>
         )}
         {mine.map((s) => {
           const tone = sessionTone(s)
@@ -104,7 +106,7 @@ export function TaskDetails() {
       </div>
 
       <div className="flex flex-col gap-1.5">
-        <span className={LABEL}>Notas</span>
+        <span className={LABEL}>{t('details.notes')}</span>
         <NotesBox key={`${task.id}:${task.notes}`} taskId={task.id} initial={task.notes} />
       </div>
     </aside>
@@ -113,11 +115,12 @@ export function TaskDetails() {
 
 function NotesBox({ taskId, initial }: { taskId: string; initial: string }) {
   const [notes, setNotes] = useState(initial)
+  const t = useT()
   return (
     <textarea
-      aria-label="Notas da tarefa"
+      aria-label={t('details.notesLabel')}
       value={notes}
-      placeholder="Anotações sobre a tarefa (ficam só no Kite)."
+      placeholder={t('details.notesPlaceholder')}
       onChange={(e) => setNotes(e.target.value)}
       onBlur={() => notes !== initial && void setTaskNotes(taskId, notes)}
       rows={5}
@@ -126,16 +129,12 @@ function NotesBox({ taskId, initial }: { taskId: string; initial: string }) {
   )
 }
 
-const PR_STATE: Record<PullSummary['state'], string> = {
-  open: 'aberto',
-  closed: 'fechado',
-  merged: 'mesclado',
-}
-
 // Status do PR da branch (canvas: "sem PR"). Sem GitHub ou sem login: nada.
 function PrBadge({ pr }: { pr: PullSummary | null | undefined }) {
+  const t = useT()
   if (pr === undefined) return null
-  if (pr === null) return <span className="ml-auto text-[11px] text-fg-muted">sem PR</span>
+  if (pr === null)
+    return <span className="ml-auto text-[11px] text-fg-muted">{t('details.noPR')}</span>
   return (
     <a
       href={pr.url}
@@ -143,7 +142,10 @@ function PrBadge({ pr }: { pr: PullSummary | null | undefined }) {
       rel="noreferrer"
       className={`ml-auto text-[11px] ${pr.state === 'open' ? 'text-success' : 'text-fg-muted'}`}
     >
-      PR #{pr.number} {pr.draft ? 'rascunho' : PR_STATE[pr.state]}
+      {t('details.pr', {
+        number: pr.number,
+        state: pr.draft ? t('details.pr.draft') : t(`details.pr.${pr.state}`),
+      })}
     </a>
   )
 }

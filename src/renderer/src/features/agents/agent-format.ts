@@ -1,4 +1,5 @@
 import type { AgentTask } from '@shared/types'
+import { t } from '../../lib/i18n'
 
 export type AgentDisplayState = AgentTask['status'] | 'interrupted'
 
@@ -6,12 +7,8 @@ export function displayState(task: AgentTask): AgentDisplayState {
   return task.interrupted ? 'interrupted' : task.status
 }
 
-export const STATE_LABEL: Record<AgentDisplayState, string> = {
-  running: 'Trabalhando',
-  waiting: 'Aguardando você',
-  done: 'Concluído',
-  error: 'Erro',
-  interrupted: 'Interrompido',
+export function stateLabel(state: AgentDisplayState): string {
+  return t(`agents.state.${state}`)
 }
 
 export const STATE_DOT: Record<AgentDisplayState, string> = {

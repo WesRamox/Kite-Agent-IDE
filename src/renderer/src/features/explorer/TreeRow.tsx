@@ -1,7 +1,7 @@
 import { ChevronRight } from 'lucide-react'
 import type { NodeRendererProps } from 'react-arborist'
 import { useEditorStore } from '../editor/editor.store'
-import { displayKind, KIND_COLOR, KIND_LABEL, KIND_LETTER } from '../git/git-format'
+import { displayKind, KIND_COLOR, kindLabel, KIND_LETTER } from '../git/git-format'
 import { useGitStore } from '../git/git.store'
 import { useTasksStore } from '../tasks/tasks.store'
 import { createEntry, renameEntry } from './explorer.actions'
@@ -75,7 +75,7 @@ export function TreeRow({ node, style, dragHandle }: NodeRendererProps<TreeNodeD
             <span className="font-geist-mono text-[11px] text-fg-muted">{data.badge}</span>
           )}
           {kind && (
-            <span title={KIND_LABEL[kind]} className={`font-mono text-[11px] ${KIND_COLOR[kind]}`}>
+            <span title={kindLabel(kind)} className={`font-mono text-[11px] ${KIND_COLOR[kind]}`}>
               {KIND_LETTER[kind]}
             </span>
           )}

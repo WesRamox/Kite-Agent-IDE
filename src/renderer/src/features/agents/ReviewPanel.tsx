@@ -10,11 +10,13 @@ import { FileIcon } from '../explorer/FileIcon'
 import { KIND_COLOR, KIND_LETTER } from '../git/git-format'
 import { useAgentsStore } from './agents.store'
 import { useSettingsStore } from '../../stores/settings.store'
+import { useT } from '../../lib/i18n'
 
 // Revisão de uma tarefa: o que mudou na worktree do agente desde a branch de origem.
 export function ReviewPanel({ api, params }: IDockviewPanelProps<{ taskId: string }>) {
   const fontSize = useSettingsStore((s) => s.settings.editorFontSize)
   const monacoTheme = useMonacoTheme()
+  const t = useT()
   const task = useAgentsStore((s) => s.tasks.find((t) => t.id === params.taskId))
   const [review, setReview] = useState<AgentReview | null>(null)
   const [error, setError] = useState<string | null>(null)
@@ -72,30 +74,30 @@ export function ReviewPanel({ api, params }: IDockviewPanelProps<{ taskId: strin
         <span className="truncate">
           {task ? (
             <>
-              <code className="text-fg">{task.branch}</code> comparado com{' '}
+              <code className="text-fg">{task.branch}</code> {t('agentReview.comparedWith')}{' '}
               <code className="text-fg">{review?.base ?? task.baseBranch}</code>
             </>
           ) : (
-            'Tarefa removida'
+            t('agentReview.removed')
           )}
         </span>
         <button
           type="button"
           onClick={() => void load()}
           className="ml-auto flex items-center gap-1 hover:text-fg"
-          aria-label="Atualizar revisão"
+          aria-label={t('agentReview.refresh')}
         >
-          <RefreshCw size={12} /> Atualizar
+          <RefreshCw size={12} /> {t('agentReview.refreshShort')}
         </button>
       </div>
       {error && <p className="p-4 text-danger">{error}</p>}
       {!error && review && review.files.length === 0 && (
-        <p className="p-4 text-fg-muted">O agente ainda não alterou nenhum arquivo.</p>
+        <p className="p-4 text-fg-muted">{t('agentReview.empty')}</p>
       )}
       {!error && review && review.files.length > 0 && (
         <div className="flex min-h-0 flex-1">
           <ul
-            aria-label="Arquivos alterados"
+            aria-label={t('agentReview.files')}
             className="w-60 shrink-0 overflow-y-auto border-r border-border py-1"
           >
             {review.files.map((f) => (
@@ -118,9 +120,7 @@ export function ReviewPanel({ api, params }: IDockviewPanelProps<{ taskId: strin
             ))}
           </ul>
           <div className="min-w-0 flex-1">
-            {diff?.binary && (
-              <p className="p-4 text-fg-muted">Arquivo binário: diff não disponível.</p>
-            )}
+            {diff?.binary && <p className="p-4 text-fg-muted">{t('agentReview.binary')}</p>}
             {diff && !diff.binary && selected && (
               <DiffEditor
                 className="min-w-0 overflow-hidden"

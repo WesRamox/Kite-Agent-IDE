@@ -13,6 +13,7 @@ import {
 } from '../lib/claude-settings'
 import { AppException } from '../lib/errors'
 import type { Logger } from '../lib/logger'
+import { t } from '../lib/i18n'
 
 export interface HooksServiceDeps {
   // CLI e o arquivo de configuração dele (ex.: ~/.claude/settings.json).
@@ -109,7 +110,10 @@ export class HooksService {
     } catch (err) {
       throw new AppException(
         'INVALID_SETTINGS',
-        `Não foi possível ler ${this.display(this.deps.settingsPath)}: ${(err as Error).message}`,
+        t('error.cannotReadFile', {
+          file: this.display(this.deps.settingsPath),
+          reason: (err as Error).message,
+        }),
       )
     }
   }
@@ -134,7 +138,7 @@ export class HooksService {
     } catch (err) {
       throw new AppException(
         'INTERNAL',
-        `Não foi possível gravar ${this.display(file)}: ${(err as Error).message}`,
+        t('error.cannotWriteFile', { file: this.display(file), reason: (err as Error).message }),
       )
     }
   }

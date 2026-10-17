@@ -11,6 +11,7 @@ import { scanRepos } from '../lib/repo-scan'
 import {
   EMPTY_OVERRIDES,
   groupWorktrees,
+  normalizePattern,
   parseTaskMeta,
   type RepoWorktrees,
   type TaskOverrides,
@@ -18,6 +19,7 @@ import {
 import type { WorkspaceGuard } from '../lib/workspace-guard'
 import type { GitRunner } from './git.service'
 import type { SubscribeFn, Subscription } from './watch.service'
+import { t } from '../lib/i18n'
 
 const configSchema = z.object({
   grouping: z.object({
@@ -182,7 +184,7 @@ export class TaskService {
     const ws = await this.discover(root)
     const known = [...ws.tasks.flatMap((t) => t.worktrees), ...ws.unassigned]
     const wt = known.find((w) => w.path === worktree)
-    if (!wt) throw new AppException('NOT_FOUND', 'Worktree não encontrada')
+    if (!wt) throw new AppException('NOT_FOUND', t('error.worktreeNotFound'))
     return this.update(root, (c) => {
       let manual = c.overrides.manual
       let dest = target
@@ -191,7 +193,7 @@ export class TaskService {
         const name = wt.branch ?? path.basename(wt.path)
         manual = [...manual, { id: dest, name }]
       } else if (!ws.tasks.some((t) => t.id === target)) {
-        throw new AppException('NOT_FOUND', 'Tarefa não encontrada')
+        throw new AppException('NOT_FOUND', t('error.taskNotFound'))
       }
       return {
         ...c,
@@ -247,7 +249,7 @@ export class TaskService {
       (s) => s.isDirectory(),
       () => false,
     )
-    if (!isRepo) throw new AppException('NOT_A_REPO', 'A pasta não é um repositório Git')
+    if (!isRepo) throw new AppException('NOT_A_REPO', t('error.notARepo'))
     return this.update(root, (c) => ({ ...c, extraRepos: [...new Set([...c.extraRepos, real])] }))
   }
 
@@ -255,7 +257,7 @@ export class TaskService {
   async open(root: string, taskId: string): Promise<Task> {
     const ws = await this.discover(root)
     const task = ws.tasks.find((t) => t.id === taskId)
-    if (!task) throw new AppException('NOT_FOUND', 'Tarefa não encontrada')
+    if (!task) throw new AppException('NOT_FOUND', t('error.taskNotFound'))
     for (const wt of task.worktrees) await this.deps.guard.addRoot(wt.path)
     if (task.folder) await this.deps.guard.addRoot(task.folder)
     return task
@@ -266,18 +268,19 @@ export class TaskService {
     const ws = await this.discover(root)
     const task = ws.tasks.find((t) => t.id === taskId)
     const r = ws.repos.find((x) => x.path === repo)
-    if (!task || !r) throw new AppException('NOT_FOUND', 'Tarefa ou repositório não encontrado')
+    if (!task || !r) throw new AppException('NOT_FOUND', t('error.taskOrRepoNotFound'))
     if (task.worktrees.some((w) => w.repo === repo)) {
-      throw new AppException('ALREADY_EXISTS', `${r.name} já está nesta tarefa`)
+      throw new AppException('ALREADY_EXISTS', t('error.repoAlreadyInTask', { repo: r.name }))
     }
     const branch = commonBranch(task) ?? task.key
     await this.deps.run(repo, ['check-ref-format', '--branch', branch]).catch(() => {
-      throw new AppException('INVALID_ARGS', `Nome de branch inválido: ${branch}`)
+      throw new AppException('INVALID_ARGS', t('error.invalidBranch', { branch }))
     })
     const dir = task.folder
       ? path.join(task.folder, r.name)
       : path.join(path.dirname(repo), `${r.name}-worktrees`, worktreeDirName(branch))
-    if (await exists(dir)) throw new AppException('ALREADY_EXISTS', `A pasta ${dir} já existe`)
+    if (await exists(dir))
+      throw new AppException('ALREADY_EXISTS', t('error.folderExists', { dir }))
     // `rev-parse --verify -q` falha em silêncio: a saída vazia é que indica "não existe".
     const hasBranch = await this.deps
       .run(repo, ['rev-parse', '--verify', '-q', `refs/heads/${branch}^{commit}`])
@@ -315,14 +318,14 @@ export class TaskService {
     const cfg = await this.config(root)
     const repos = input.repos.map((p) => ws.repos.find((r) => r.path === p))
     if (repos.length === 0 || repos.some((r) => !r)) {
-      throw new AppException('INVALID_ARGS', 'Escolha os repositórios da tarefa')
+      throw new AppException('INVALID_ARGS', t('error.chooseTaskRepos'))
     }
     const name = input.name.trim()
     const branch = input.branch.trim()
-    if (!name || !branch) throw new AppException('INVALID_ARGS', 'Informe o nome e a branch')
+    if (!name || !branch) throw new AppException('INVALID_ARGS', t('error.nameAndBranchRequired'))
     const first = repos[0]?.path ?? root
     await this.deps.run(first, ['check-ref-format', '--branch', branch]).catch(() => {
-      throw new AppException('INVALID_ARGS', `Nome de branch inválido: ${branch}`)
+      throw new AppException('INVALID_ARGS', t('error.invalidBranch', { branch }))
     })
     const key = worktreeDirName(branch)
     const pattern =
@@ -334,11 +337,15 @@ export class TaskService {
       const repo = r as { path: string; name: string }
       const dir = single
         ? path.join(path.dirname(root), `${repo.name}-worktrees`, key)
-        : path.resolve(root, pattern.replaceAll('{tarefa}', key).replaceAll('{repo}', repo.name))
+        : path.resolve(
+            root,
+            normalizePattern(pattern).replaceAll('{tarefa}', key).replaceAll('{repo}', repo.name),
+          )
       return { repo, dir }
     })
     for (const { dir } of plan) {
-      if (await exists(dir)) throw new AppException('ALREADY_EXISTS', `A pasta ${dir} já existe`)
+      if (await exists(dir))
+        throw new AppException('ALREADY_EXISTS', t('error.folderExists', { dir }))
     }
     const created: string[] = []
     for (const { repo, dir } of plan) {
@@ -389,7 +396,7 @@ export class TaskService {
       }))
       task = ws2.tasks.find((t) => t.id === id)
     }
-    if (!task) throw new AppException('INTERNAL', 'A tarefa criada não foi encontrada')
+    if (!task) throw new AppException('INTERNAL', t('error.createdTaskMissing'))
     this.deps.emit(ws2)
     return task
   }
@@ -401,7 +408,7 @@ export class TaskService {
   ): Promise<{ cwd: string; repoPath: string; branch: string; name: string; id: string }> {
     const task = await this.open(root, taskId)
     const first = task.worktrees[0]
-    if (!first) throw new AppException('NOT_FOUND', 'A tarefa não tem worktrees')
+    if (!first) throw new AppException('NOT_FOUND', t('error.taskHasNoWorktrees'))
     return {
       cwd: task.folder ?? first.path,
       repoPath: first.repo,
@@ -413,7 +420,7 @@ export class TaskService {
 
   private checkRoot(root: string): void {
     if (!this.deps.guard.isRoot(root)) {
-      throw new AppException('FORBIDDEN_PATH', 'Não é uma pasta aberta')
+      throw new AppException('FORBIDDEN_PATH', t('error.notAnOpenFolder'))
     }
   }
 

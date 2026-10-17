@@ -121,6 +121,7 @@ describe('groupWorktrees', () => {
     expect(branchKey('agent/corrigir-login')).toBe('corrigir-login')
     expect(branchKey('main')).toBe('main')
     expect(patternRegex('.worktrees/{tarefa}/{repo}')?.exec('.worktrees/A-1/api')?.[1]).toBe('A-1')
+    expect(patternRegex('wt/{task}/{repo}')?.exec('wt/A-2/web')?.[1]).toBe('A-2')
     expect(patternRegex('sem-marcador')).toBeNull()
   })
 

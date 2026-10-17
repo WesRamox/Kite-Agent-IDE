@@ -8,6 +8,7 @@ import { focusTerminalByPty } from '../terminal/terminal.actions'
 import { openTask, refreshTaskStatus } from './tasks.actions'
 import { useTasksStore } from './tasks.store'
 import { closeModal } from '../../stores/modal.store'
+import { t } from '../../lib/i18n'
 
 export const TASK_REVIEW_COMPONENT = 'task-review'
 export const TASK_REVIEW_TAB_COMPONENT = 'task-review-tab'
@@ -39,7 +40,7 @@ export async function openTaskReview(taskId: string): Promise<void> {
     id,
     component: TASK_REVIEW_COMPONENT,
     tabComponent: TASK_REVIEW_TAB_COMPONENT,
-    title: `Revisar · ${task.name}`,
+    title: t('review.tab', { name: task.name }),
     params,
   })
 }
@@ -60,7 +61,7 @@ export async function deliverTask(
   if (!root) return null
   const results = await attempt(
     window.api.review.deliver(root, task.id, input),
-    'Erro ao commitar e abrir os PRs',
+    t('review.deliverError'),
   )
   if (!results) return null
   for (const w of input.worktrees) void refreshTaskStatus(w)
@@ -68,11 +69,9 @@ export async function deliverTask(
   const failed = results.filter((r) => r.error).length
   if (failed === 0) {
     const prs = results.filter((r) => r.pr).length
-    toast.info(
-      input.openPRs ? `${prs} ${prs === 1 ? 'PR pronto' : 'PRs prontos'}.` : 'Commits feitos.',
-    )
+    toast.info(input.openPRs ? t('review.prsReady', { n: prs }) : t('review.commitsDone'))
   } else {
-    toast.warning(`${failed} ${failed === 1 ? 'repositório falhou' : 'repositórios falharam'}.`)
+    toast.warning(t('review.reposFailed', { n: failed }))
   }
   return results
 }
@@ -92,23 +91,23 @@ export async function askAgent(task: Task, text: string): Promise<boolean> {
   if (target?.ptyId) {
     const res = await window.api.pty.write(target.ptyId, pasteAndSend(text.trim()))
     if (!res.ok) {
-      toast.error('O terminal do agente foi fechado.')
+      toast.error(t('review.terminalClosed'))
       return false
     }
     focusTerminalByPty(target.ptyId)
-    toast.info('Pedido enviado ao agente.')
+    toast.info(t('review.sent'))
     return true
   }
   if (item && sessions.length > 0) {
     const answer = await window.api.dialog.confirm({
-      message: 'O agente desta tarefa roda fora do Kite.',
-      detail: 'Para mandar o pedido daqui, retome a sessão num terminal do Kite.',
-      buttons: ['Retomar aqui', 'Cancelar'],
+      message: t('review.outsideKite'),
+      detail: t('review.outsideKiteDetail'),
+      buttons: [t('review.resume'), t('common.cancel')],
       kind: 'info',
     })
     if (answer.ok && answer.data === 0) await resumeHere(item)
     return false
   }
-  toast.info('Nenhuma sessão de agente ligada a esta tarefa.')
+  toast.info(t('review.noSession'))
   return false
 }

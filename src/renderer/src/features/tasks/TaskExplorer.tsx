@@ -12,11 +12,12 @@ import { TaskDot } from './TaskDot'
 import { addRepoToTask } from './tasks.actions'
 import { taskBaseDir, useActiveTask, useTasksStore } from './tasks.store'
 import { useTaskSwitcherStore } from './task-switcher.store'
+import { t, useT } from '../../lib/i18n'
 
 // Sidebar da tarefa aberta (canvas, tela 2: Task.dc.html, coluna "Explorer da tarefa").
 
 function badge(branch: string | null, ahead: number | undefined): string {
-  const b = branch ?? 'sem branch'
+  const b = branch ?? t('taskExplorer.noBranch')
   return ahead ? `${b} ↑${ahead}` : b
 }
 
@@ -26,6 +27,7 @@ export function TaskExplorer() {
   const repos = useTasksStore((s) => s.workspace?.repos ?? [])
   const children = useExplorerStore((s) => s.children)
   const mode = useTasksStore((s) => s.explorerMode)
+  const tr = useT()
   const treeRef = useRef<TreeApi<TreeNodeData> | null>(null)
   const [menu, setMenu] = useState<{ x: number; y: number; items: MenuItem[] } | null>(null)
 
@@ -65,7 +67,7 @@ export function TaskExplorer() {
       <div className="flex flex-col gap-2 border-b border-border p-3">
         <button
           type="button"
-          aria-label="Trocar de tarefa"
+          aria-label={tr('taskExplorer.switch')}
           onClick={() => useTaskSwitcherStore.getState().show()}
           className="flex items-center gap-2 rounded-[7px] border border-border bg-surface-0 px-2.5 py-2 text-left text-fg hover:border-fg-muted/40"
         >
@@ -85,21 +87,19 @@ export function TaskExplorer() {
           </svg>
         </button>
         <div className="flex gap-1.5 text-[11px] text-fg-muted">
-          <span>{mod}K troca de tarefa</span>
+          <span>{tr('taskExplorer.switchHint', { mod })}</span>
           <span>·</span>
-          <span>
-            {mod}P busca {nRepos === 1 ? 'no repo' : `nos ${nRepos} repos`}
-          </span>
+          <span>{tr('taskExplorer.searchHint', { mod, n: nRepos })}</span>
         </div>
         <div
           role="radiogroup"
-          aria-label="Arquivos mostrados"
+          aria-label={tr('taskExplorer.shown')}
           className="flex rounded-md border border-border bg-surface-0 p-0.5 text-xs"
         >
           {(
             [
-              ['changed', 'Alterados'],
-              ['all', 'Todos'],
+              ['changed', tr('taskExplorer.changed')],
+              ['all', tr('taskExplorer.all')],
             ] as const
           ).map(([value, label]) => (
             <button
@@ -130,16 +130,17 @@ export function TaskExplorer() {
             treeRef={treeRef}
             forest={forest}
             rootMenu={(path) => [
-              { label: 'Abrir terminal aqui', onSelect: () => openTerminal({ cwd: path }) },
+              {
+                label: tr('taskExplorer.openTerminalHere'),
+                onSelect: () => openTerminal({ cwd: path }),
+              },
             ]}
           />
         )}
         <button
           type="button"
           disabled={missing.length === 0}
-          title={
-            missing.length === 0 ? 'Todos os repositórios do workspace já estão aqui' : undefined
-          }
+          title={missing.length === 0 ? tr('taskExplorer.allReposHere') : undefined}
           onClick={(e) =>
             setMenu({
               x: e.clientX,
@@ -152,7 +153,7 @@ export function TaskExplorer() {
           }
           className="mx-2 mt-2.5 mb-3 h-[30px] shrink-0 rounded-md border border-dashed border-fg-muted/30 bg-transparent text-xs text-fg-muted hover:text-fg disabled:opacity-50"
         >
-          + Adicionar repositório à tarefa
+          {tr('taskExplorer.addRepo')}
         </button>
       </div>
       {menu && menu.items.length > 0 && (

@@ -170,7 +170,7 @@ function fromGemini(p: Obj, env: Record<string, string | undefined>): Obj | null
     const details = isObj(p['details']) ? p['details'] : {}
     const tool = details['tool_name'] ?? details['toolName'] ?? details['name']
     out['hook_event_name'] = 'PermissionRequest'
-    out['tool_name'] = typeof tool === 'string' ? tool : 'ferramenta'
+    if (typeof tool === 'string') out['tool_name'] = tool
     out['tool_input'] = isObj(details['tool_input'])
       ? details['tool_input']
       : { command: typeof p['message'] === 'string' ? p['message'] : '' }

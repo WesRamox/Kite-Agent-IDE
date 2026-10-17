@@ -11,6 +11,7 @@ import {
 } from './tasks.actions'
 import { GroupingFieldset } from './GroupingFieldset'
 import { useTasksStore } from './tasks.store'
+import { useT } from '../../lib/i18n'
 
 // Tela 4 do canvas "Kite — Tarefas multi-repo" (Discover.dc.html).
 
@@ -35,6 +36,7 @@ function DiscoverBody() {
     () => new Set(ws?.tasks.filter((t) => t.hidden).map((t) => t.id) ?? []),
   )
   const [menu, setMenu] = useState<{ x: number; y: number; items: MenuItem[] } | null>(null)
+  const tr = useT()
 
   if (!ws) return null
   const total = ws.tasks.reduce((n, t) => n + t.worktrees.length, 0) + ws.unassigned.length
@@ -56,15 +58,12 @@ function DiscoverBody() {
         <div className="flex w-full max-w-[1120px] flex-col gap-6">
           <header className="flex flex-wrap items-end gap-4">
             <div className="flex-[1_1_420px]">
-              <span className={LABEL}>Workspace</span>
+              <span className={LABEL}>{tr('discover.workspace')}</span>
               <h1 className="mt-1 text-[26px] font-semibold tracking-[-0.01em]">
                 {tildePath(ws.root)}
               </h1>
               <p className="mt-2 leading-normal text-fg-muted">
-                Encontramos {ws.repos.length}{' '}
-                {ws.repos.length === 1 ? 'repositório' : 'repositórios'} e {total}{' '}
-                {total === 1 ? 'worktree' : 'worktrees'}. Agrupamos as worktrees em tarefas. Confira
-                antes de importar.
+                {tr('discover.found', { repos: ws.repos.length, worktrees: total })}
               </p>
             </div>
             <button
@@ -72,7 +71,7 @@ function DiscoverBody() {
               onClick={() => void importTasks([...hidden])}
               className="h-9 rounded-lg bg-accent px-4 font-semibold text-accent-fg hover:bg-accent/85"
             >
-              Importar {chosen} {chosen === 1 ? 'tarefa' : 'tarefas'}
+              {tr('discover.import', { n: chosen })}
             </button>
           </header>
 
@@ -80,14 +79,14 @@ function DiscoverBody() {
             <aside className="flex max-w-[320px] flex-[1_1_280px] flex-col gap-[18px]">
               <GroupingFieldset grouping={ws.grouping} />
               <div className="flex flex-col gap-2.5 rounded-[10px] border border-border bg-surface-1 px-4 py-3.5">
-                <span className={LABEL}>Repositórios</span>
+                <span className={LABEL}>{tr('discover.repos')}</span>
                 {ws.repos.map((r) => {
                   const n = countByRepo(r.path)
                   return (
                     <div key={r.path} className="flex items-center gap-2" title={r.path}>
                       <span className="font-geist-mono">{r.name}</span>
                       <span className="ml-auto text-xs text-fg-muted">
-                        {n} {n === 1 ? 'worktree' : 'worktrees'}
+                        {tr('discover.worktrees', { n })}
                       </span>
                     </div>
                   )
@@ -97,22 +96,17 @@ function DiscoverBody() {
                   onClick={() => void addExternalRepo()}
                   className="mt-1 h-7 rounded-md border border-dashed border-fg-muted/30 bg-transparent text-xs text-fg-muted hover:text-fg"
                 >
-                  + Adicionar repo de outra pasta
+                  {tr('discover.addExternal')}
                 </button>
               </div>
-              <p className="text-xs leading-normal text-fg-muted">
-                O Kite continua observando o workspace: quando a sua skill criar uma worktree nova,
-                ela entra na tarefa certa sozinha.
-              </p>
+              <p className="text-xs leading-normal text-fg-muted">{tr('discover.watching')}</p>
             </aside>
 
             <section
-              aria-label="Tarefas encontradas"
+              aria-label={tr('discover.found.label')}
               className="flex min-w-0 flex-[999_1_520px] flex-col gap-3"
             >
-              {ws.tasks.length === 0 && (
-                <p className="text-fg-muted">Nenhuma tarefa com este agrupamento.</p>
-              )}
+              {ws.tasks.length === 0 && <p className="text-fg-muted">{tr('discover.none')}</p>}
               {ws.tasks.map((t) => (
                 <TaskCard
                   key={`${t.id}:${t.name}`}
@@ -124,7 +118,7 @@ function DiscoverBody() {
               ))}
               {ws.unassigned.length > 0 && (
                 <div className="flex flex-col gap-2.5 rounded-[10px] border border-dashed border-fg-muted/30 px-4 py-3.5">
-                  <span className={LABEL}>Sem tarefa</span>
+                  <span className={LABEL}>{tr('discover.loose')}</span>
                   {ws.unassigned.map((w) => (
                     <LooseRow
                       key={w.path}
@@ -158,6 +152,7 @@ function DiscoverBody() {
 function TaskCard(props: { task: Task; root: string; checked: boolean; onToggle: () => void }) {
   const { task } = props
   const [name, setName] = useState(task.name)
+  const tr = useT()
   return (
     <div className="flex flex-col gap-2.5 rounded-[10px] border border-border bg-surface-1 px-4 py-3.5">
       <div className="flex flex-wrap items-center gap-2.5">
@@ -165,13 +160,13 @@ function TaskCard(props: { task: Task; root: string; checked: boolean; onToggle:
           type="checkbox"
           checked={props.checked}
           onChange={props.onToggle}
-          aria-label={`Importar ${task.name}`}
+          aria-label={tr('discover.importTask', { name: task.name })}
           className="size-4 accent-accent"
         />
         <input
           type="text"
           value={name}
-          aria-label="Nome da tarefa"
+          aria-label={tr('discover.taskName')}
           onChange={(e) => setName(e.target.value)}
           onBlur={() => name !== task.name && void renameTask(task.id, name)}
           onKeyDown={(e) => e.key === 'Enter' && e.currentTarget.blur()}
@@ -198,6 +193,7 @@ function LooseRow(props: {
   onJoin: (x: number, y: number) => void
 }) {
   const { wt } = props
+  const tr = useT()
   return (
     <div className="flex flex-wrap items-center gap-2.5 text-xs">
       <span className="w-14 font-geist-mono font-medium">{wt.repoName}</span>
@@ -206,21 +202,21 @@ function LooseRow(props: {
       </span>
       <span className="text-fg-muted">{wt.branch ?? `(${wt.head})`}</span>
       <button type="button" onClick={() => void moveWorktree(wt.path, 'new')} className={SMALL_BTN}>
-        Criar tarefa
+        {tr('discover.createTask')}
       </button>
       <button
         type="button"
         onClick={(e) => props.onJoin(e.clientX, e.clientY)}
         className={SMALL_BTN}
       >
-        Juntar a…
+        {tr('discover.join')}
       </button>
       <button
         type="button"
         onClick={() => void ignoreWorktree(wt.path)}
         className="h-[26px] rounded-md bg-transparent px-2.5 text-xs text-fg-muted hover:text-fg"
       >
-        Ignorar
+        {tr('discover.ignore')}
       </button>
     </div>
   )

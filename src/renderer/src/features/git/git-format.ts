@@ -1,4 +1,5 @@
 import type { GitChangeKind } from '@shared/types'
+import { t } from '../../lib/i18n'
 
 export const KIND_LETTER: Record<GitChangeKind, string> = {
   modified: 'M',
@@ -11,15 +12,8 @@ export const KIND_LETTER: Record<GitChangeKind, string> = {
   conflicted: '!',
 }
 
-export const KIND_LABEL: Record<GitChangeKind, string> = {
-  modified: 'Modificado',
-  added: 'Adicionado',
-  deleted: 'Removido',
-  renamed: 'Renomeado',
-  copied: 'Copiado',
-  typechange: 'Tipo alterado',
-  untracked: 'Não rastreado',
-  conflicted: 'Conflito',
+export function kindLabel(kind: GitChangeKind): string {
+  return t(`git.kind.${kind}`)
 }
 
 export const KIND_COLOR: Record<GitChangeKind, string> = {

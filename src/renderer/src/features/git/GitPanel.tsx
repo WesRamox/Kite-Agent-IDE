@@ -7,19 +7,19 @@ import { refreshGit } from './git-sync'
 import { stageAll, unstageAll } from './git.actions'
 import { useGitStore } from './git.store'
 import { WorktreeSection } from './WorktreeSection'
+import { useT } from '../../lib/i18n'
 
 export function GitPanel() {
   const root = useWorkspaceStore((s) => s.root)
   const status = useGitStore((s) => s.status)
+  const t = useT()
 
   if (!root) {
-    return <p className="px-4 py-6 text-center text-fg-muted">Abra uma pasta para usar o Git.</p>
+    return <p className="px-4 py-6 text-center text-fg-muted">{t('git.openFolder')}</p>
   }
-  if (!status) return <p className="px-4 py-6 text-center text-fg-muted">Carregando…</p>
+  if (!status) return <p className="px-4 py-6 text-center text-fg-muted">{t('common.loading')}</p>
   if (!status.isRepo) {
-    return (
-      <p className="px-4 py-6 text-center text-fg-muted">Esta pasta não é um repositório Git.</p>
-    )
+    return <p className="px-4 py-6 text-center text-fg-muted">{t('git.notRepo')}</p>
   }
 
   const staged = status.files.filter((f) => f.staged)
@@ -33,8 +33,8 @@ export function GitPanel() {
         </div>
         <button
           type="button"
-          title="Atualizar"
-          aria-label="Atualizar"
+          title={t('git.refresh')}
+          aria-label={t('git.refresh')}
           onClick={() => void refreshGit()}
           className="rounded p-1 text-fg-muted hover:bg-surface-3 hover:text-fg"
         >
@@ -44,16 +44,22 @@ export function GitPanel() {
       <div className="mt-2">
         <CommitBox stagedCount={staged.length} />
       </div>
-      <ChangeList title="Stage" root={root} files={staged} staged onAll={() => void unstageAll()} />
       <ChangeList
-        title="Alterações"
+        title={t('git.staged')}
+        root={root}
+        files={staged}
+        staged
+        onAll={() => void unstageAll()}
+      />
+      <ChangeList
+        title={t('git.changes')}
         root={root}
         files={unstaged}
         staged={false}
         onAll={() => void stageAll()}
       />
       {status.files.length === 0 && (
-        <p className="px-3 py-3 text-center text-fg-muted">Nenhuma alteração.</p>
+        <p className="px-3 py-3 text-center text-fg-muted">{t('git.noChanges')}</p>
       )}
       <WorktreeSection />
     </div>

@@ -13,6 +13,7 @@ import type { Logger } from '../lib/logger'
 import type { GitHubService } from './github.service'
 import type { GitService } from './git.service'
 import type { TaskService } from './task.service'
+import { t } from '../lib/i18n'
 
 export interface TaskReviewServiceDeps {
   tasks: Pick<TaskService, 'open'>
@@ -36,7 +37,7 @@ const BRANCH = /^[A-Za-z0-9][A-Za-z0-9._/-]{0,199}$/
 
 function checkBranch(name: string): string {
   if (!BRANCH.test(name) || name.includes('..')) {
-    throw new AppException('INVALID_ARGS', `Branch base inválida: ${name}`)
+    throw new AppException('INVALID_ARGS', t('error.invalidBaseBranch', { branch: name }))
   }
   return name
 }
@@ -106,8 +107,7 @@ export class TaskReviewService {
   async deliver(root: string, taskId: string, input: DeliverInput): Promise<DeliverResult[]> {
     const task = await this.deps.tasks.open(root, taskId)
     const selected = task.worktrees.filter((w) => input.worktrees.includes(w.path))
-    if (selected.length === 0)
-      throw new AppException('INVALID_ARGS', 'Escolha ao menos um repositório')
+    if (selected.length === 0) throw new AppException('INVALID_ARGS', t('error.chooseRepo'))
     const results: DeliverResult[] = []
     // Em série: o push e a criação de PRs pedem o token e falham de forma independente.
     for (const w of selected) results.push(await this.deliverOne(w, input))
@@ -142,18 +142,17 @@ export class TaskReviewService {
     }
     try {
       const status = await this.deps.git.status(w.path)
-      if (!status.isRepo) throw new AppException('NOT_A_REPO', 'Não é um repositório Git')
+      if (!status.isRepo) throw new AppException('NOT_A_REPO', t('error.notARepoShort'))
       if (status.files.length > 0) {
         if (!input.message.trim()) {
-          throw new AppException('INVALID_ARGS', 'Escreva a mensagem do commit')
+          throw new AppException('INVALID_ARGS', t('error.commitMessageRequired'))
         }
         await this.deps.git.commitAll(w.path, input.message.trim())
         r.committed = true
       }
       if (!input.openPRs) return r
       const branch = status.branch
-      if (!branch)
-        throw new AppException('GIT_ERROR', 'HEAD destacado: crie uma branch antes do PR')
+      if (!branch) throw new AppException('GIT_ERROR', t('error.detachedHead'))
       const existing = await this.pr(w.path, branch)
       if (existing?.state === 'open') {
         await this.deps.github.pushCurrent(w.path)
@@ -227,7 +226,7 @@ export class TaskReviewService {
   private async worktree(root: string, taskId: string, path: string): Promise<TaskWorktree> {
     const task = await this.deps.tasks.open(root, taskId)
     const w = task.worktrees.find((x) => x.path === path)
-    if (!w) throw new AppException('NOT_FOUND', 'A worktree não é desta tarefa')
+    if (!w) throw new AppException('NOT_FOUND', t('error.worktreeNotInTask'))
     return w
   }
 }

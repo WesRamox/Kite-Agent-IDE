@@ -1,5 +1,6 @@
 import path from 'node:path'
 import type { TaskGrouping, TaskSource, TaskWorktree } from '@shared/types'
+import { t as tr } from './i18n'
 
 // Agrupa worktrees de vários repositórios em tarefas (Fase 8). Funções puras: recebem o que o
 // git listou e os ajustes do usuário, devolvem as tarefas.
@@ -52,9 +53,14 @@ function escapeRegex(s: string): string {
   return s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
 }
 
+// "{task}" é o mesmo que "{tarefa}" (a interface em inglês mostra {task}).
+export function normalizePattern(pattern: string): string {
+  return pattern.replaceAll('{task}', '{tarefa}')
+}
+
 // ".worktrees/{tarefa}/{repo}" → regex que captura a tarefa no caminho relativo (com '/').
 export function patternRegex(pattern: string): RegExp | null {
-  const clean = pattern
+  const clean = normalizePattern(pattern)
     .trim()
     .replace(/\\/g, '/')
     .replace(/^\.?\//, '')
@@ -154,7 +160,7 @@ export function groupWorktrees(
         id: m.id,
         key: m.name,
         source: 'manual',
-        why: 'montada por você',
+        why: tr('grouping.manual'),
         folder: null,
         worktrees: [],
       })
@@ -184,12 +190,14 @@ export function groupWorktrees(
 function explain(t: GroupedTask, root: string): string {
   if (t.source === 'folder' && t.folder) {
     const rel = toPosix(path.relative(root, t.folder))
-    return `mesma pasta ${rel.startsWith('..') ? t.folder : rel}`
+    return tr('grouping.sameFolder', { folder: rel.startsWith('..') ? t.folder : rel })
   }
   if (t.source === 'branch') {
-    return t.worktrees.length > 1 ? `mesma branch em ${t.worktrees.length} repos` : 'branch própria'
+    return t.worktrees.length > 1
+      ? tr('grouping.sameBranch', { n: t.worktrees.length })
+      : tr('grouping.ownBranch')
   }
-  return 'segue o padrão de pasta'
+  return tr('grouping.pattern')
 }
 
 // Título e link do card a partir de um arquivo de metadados na pasta da tarefa:

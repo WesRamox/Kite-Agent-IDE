@@ -11,6 +11,7 @@ import { useAttentionStore } from './attention.store'
 import { useSessionsStore } from './sessions.store'
 import { useTasksStore } from '../tasks/tasks.store'
 import { buildItems } from './use-attention'
+import { t } from '../../lib/i18n'
 
 export function currentItems(now = Date.now()): AttentionItem[] {
   return buildItems(
@@ -53,7 +54,7 @@ export function respond(item: AttentionItem): void {
   }
   const pty = item.session?.ptyId
   if (pty && focusTerminalByPty(pty)) return
-  toast.info('O terminal desta sessão foi fechado. Use "Retomar aqui" para continuar.')
+  toast.info(t('resume.terminalClosed'))
 }
 
 function resumeCommand(item: AttentionItem): string | null {
@@ -73,28 +74,26 @@ export async function resumeHere(item: AttentionItem): Promise<void> {
   const root = useWorkspaceStore.getState().root
   if (!root || !inside(session.cwd, root)) {
     await window.api.clipboard.writeText(command)
-    toast.info(
-      `A sessão roda em ${session.cwd}, fora da pasta aberta. O comando foi copiado: abra essa pasta ou rode-o num terminal lá.`,
-    )
+    toast.info(t('resume.outside', { cwd: session.cwd }))
     return
   }
   if (session.status !== 'ended') {
     const answer = await window.api.dialog.confirm({
-      message: 'A sessão ainda está aberta em outro terminal.',
-      detail: 'Retomar aqui abre uma segunda cópia. O ideal é fechar a outra antes.',
-      buttons: ['Retomar aqui mesmo assim', 'Cancelar'],
+      message: t('resume.stillOpen'),
+      detail: t('resume.stillOpenDetail'),
+      buttons: [t('resume.anyway'), t('common.cancel')],
       kind: 'warning',
     })
     if (!answer.ok || answer.data !== 0) return
   }
-  openTerminal({ cwd: session.cwd, input: command, title: 'Claude (retomado)' })
+  openTerminal({ cwd: session.cwd, input: command, title: t('resume.terminalTitle') })
 }
 
 export async function copyResume(item: AttentionItem): Promise<void> {
   const command = resumeCommand(item)
   if (!command) return
   await window.api.clipboard.writeText(command)
-  toast.info('Comando copiado.')
+  toast.info(t('resume.copied'))
 }
 
 // Ctrl/Cmd+J: o próximo agente que espera, do que espera há mais tempo.
@@ -102,7 +101,7 @@ export function jumpToNextWaiting(): void {
   const items = currentItems()
   const next = nextWaiting(items, useAttentionStore.getState().highlighted)
   if (!next) {
-    toast.info('Nenhum agente esperando você.')
+    toast.info(t('resume.noneWaiting'))
     return
   }
   focusItem(next)

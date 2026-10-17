@@ -1,8 +1,10 @@
 import type { IDockviewPanelHeaderProps } from 'dockview-react'
 import { SquareTerminal, X } from 'lucide-react'
 import { closeTerminal } from './terminal.actions'
+import { useT } from '../../lib/i18n'
 
 export function TerminalTab({ api }: IDockviewPanelHeaderProps) {
+  const t = useT()
   return (
     <div
       onMouseDown={(e) => {
@@ -17,7 +19,7 @@ export function TerminalTab({ api }: IDockviewPanelHeaderProps) {
       <span>{api.title}</span>
       <button
         type="button"
-        aria-label="Fechar terminal"
+        aria-label={t('terminal.close')}
         onClick={(e) => {
           e.stopPropagation()
           closeTerminal(api.id)

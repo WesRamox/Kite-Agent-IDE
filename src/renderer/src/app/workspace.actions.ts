@@ -12,13 +12,14 @@ import { loadTasks } from '../features/tasks/tasks.actions'
 import { useTasksStore } from '../features/tasks/tasks.store'
 import { useContextStore } from '../stores/context.store'
 import { useWorkspaceStore } from '../stores/workspace.store'
+import { t } from '../lib/i18n'
 
 async function switchWorkspace(open: () => Promise<Result<string | null>>): Promise<void> {
   if (!(await resolveAllDirty())) return
   // Guarda os terminais do workspace atual antes que o main o feche.
   const previous = useWorkspaceStore.getState().root
   if (previous) await saveTerminalSessions(previous)
-  const root = await attempt(open(), 'Erro ao abrir a pasta')
+  const root = await attempt(open(), t('workspace.openError'))
   const workspace = useWorkspaceStore.getState()
   void workspace.loadRecent()
   if (!root) return
@@ -33,8 +34,8 @@ async function switchWorkspace(open: () => Promise<Result<string | null>>): Prom
   explorer.reset()
   workspace.setRoot(root)
   // Observa antes de carregar: nada criado entre a leitura e o início do watcher se perde.
-  await attempt(window.api.fs.watch(root), 'Erro ao observar a pasta')
-  await attempt(window.api.git.watch(root), 'Erro ao observar o repositório')
+  await attempt(window.api.fs.watch(root), t('workspace.watchError'))
+  await attempt(window.api.git.watch(root), t('workspace.gitWatchError'))
   await explorer.load(root)
   await restoreTerminalSessions(root)
   await loadTasks(root, { fromOpen: true })

@@ -1,6 +1,7 @@
 import { z } from 'zod'
 import type { AgentSession, WaitReason } from '@shared/types'
 import { LIMITS, type HookRecord } from './hook-record'
+import { t } from './i18n'
 
 // Validação das linhas do spool (escritas pelo kite-hook, mas o arquivo pode ter sido mexido).
 export const hookRecordSchema: z.ZodType<HookRecord> = z.object({
@@ -114,7 +115,7 @@ export function reduceSession(prev: AgentSession | undefined, rec: HookRecord): 
       break
     case 'PermissionRequest':
       wait(s, 'permission', rec.ts)
-      s.pending = { tool: rec.tool ?? 'ferramenta', detail: rec.toolDetail ?? '' }
+      s.pending = { tool: rec.tool || t('session.tool'), detail: rec.toolDetail ?? '' }
       break
     case 'Notification':
       if (rec.notificationType === 'permission_prompt') {

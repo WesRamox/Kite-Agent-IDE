@@ -54,6 +54,7 @@ import { useTasksStore } from '../features/tasks/tasks.store'
 import { findPanel, registerDock, unregisterDock, WORKSPACE_CONTEXT } from '../lib/dock'
 import { isMac } from '../lib/platform'
 import { useContextStore } from '../stores/context.store'
+import { useT } from '../lib/i18n'
 
 const components = {
   [EDITOR_COMPONENT]: EditorPanel,
@@ -166,9 +167,10 @@ function DockContext({ id, visible }: { id: string; visible: boolean }) {
 
 function TaskWatermark() {
   const mod = isMac ? '⌘' : 'Ctrl+'
+  const t = useT()
   return (
     <div className="flex h-full items-center justify-center font-geist text-fg-muted">
-      Abra um arquivo no explorer da tarefa ou use {mod}P para buscar nos repositórios dela.
+      {t('welcome.taskHint', { mod })}
     </div>
   )
 }

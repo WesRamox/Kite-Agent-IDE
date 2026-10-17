@@ -11,16 +11,18 @@ import { basename } from '../lib/paths'
 import { useLayoutStore } from '../stores/layout.store'
 import { useActiveTask } from '../features/tasks/tasks.store'
 import { useWorkspaceStore } from '../stores/workspace.store'
+import { useT } from '../lib/i18n'
 
 // Moldura do canvas (Main.dc.html e Task.dc.html): 26 px, contagens da Central à esquerda.
 export function StatusBar() {
   const root = useWorkspaceStore((s) => s.root)
   const status = useGitStore((s) => s.status)
   // "Claude Code conectado" (ou o primeiro CLI conectado); nenhum: convite para conectar.
-  const connectedLabel = useSessionsStore((s) => {
-    const cli = CLIS.find((c) => s.hooks[c]?.installed)
-    return cli ? `${CLI_LABEL[cli]} conectado` : null
-  })
+  const t = useT()
+  const connectedCli = useSessionsStore((s) => CLIS.find((c) => s.hooks[c]?.installed) ?? null)
+  const connectedLabel = connectedCli
+    ? t('status.connected', { cli: CLI_LABEL[connectedCli] })
+    : null
   const groups = useAttentionGroups()
   const task = useActiveTask()
   const taskBranch = task?.worktrees.find((w) => w.branch)?.branch ?? null
@@ -35,9 +37,9 @@ export function StatusBar() {
   const cursor = useEditorStore((s) => s.cursor)
   const language = useEditorStore((s) => (s.activePath ? s.tabs[s.activePath]?.language : null))
   const counts = [
-    { n: groups.waiting.length, label: 'esperando você', className: 'text-accent' },
-    { n: groups.running.length, label: 'trabalhando', className: '' },
-    { n: groups.review.length, label: 'para revisar', className: '' },
+    { n: groups.waiting.length, label: t('status.waiting'), className: 'text-accent' },
+    { n: groups.running.length, label: t('status.running'), className: '' },
+    { n: groups.review.length, label: t('status.review'), className: '' },
   ].filter((c) => c.n > 0)
 
   return (
@@ -47,27 +49,27 @@ export function StatusBar() {
           <span>
             {task.key} · {task.worktrees.map((w) => w.repoName).join(', ')}
           </span>
-          {taskBranch && <span>branch {taskBranch}</span>}
+          {taskBranch && <span>{t('status.branch', { branch: taskBranch })}</span>}
         </>
       ) : status?.isRepo ? (
         <>
           <button
             type="button"
-            title="Branch atual"
+            title={t('status.currentBranch')}
             onClick={showGit}
             className="flex items-center gap-1 hover:text-fg"
           >
             <GitBranch size={12} />
-            {status.branch ?? `(${status.head ?? 'sem commits'})`}
+            {status.branch ?? `(${status.head ?? t('status.noCommits')})`}
             {status.files.length > 0 && <span className="text-warning">*</span>}
           </button>
           <span title={status.worktreePath} className="flex items-center gap-1">
             <FolderGit2 size={12} />
-            {status.isMainWorktree ? 'worktree principal' : basename(status.worktreePath)}
+            {status.isMainWorktree ? t('status.mainWorktree') : basename(status.worktreePath)}
           </span>
         </>
       ) : (
-        <span>sem repositório</span>
+        <span>{t('status.noRepo')}</span>
       )}
       {counts.map((c) => (
         <button
@@ -82,22 +84,18 @@ export function StatusBar() {
       {root && (
         <button
           type="button"
-          title="Terminal (Ctrl+`)"
+          title={t('status.terminalTitle')}
           onClick={focusOrCreateTerminal}
           className="flex items-center gap-1 hover:text-fg"
         >
-          <SquareTerminal size={12} /> Terminal
+          <SquareTerminal size={12} /> {t('status.terminal')}
         </button>
       )}
       <span className="ml-auto flex gap-4">
-        {cursor && (
-          <span>
-            Ln {cursor.line}, Col {cursor.column}
-          </span>
-        )}
+        {cursor && <span>{t('status.cursor', { line: cursor.line, column: cursor.column })}</span>}
         {language && <span>{language}</span>}
         <button type="button" onClick={openConnectAgents} className="hover:text-fg">
-          {connectedLabel ?? 'Conectar Claude Code'}
+          {connectedLabel ?? t('status.connectClaude')}
         </button>
       </span>
     </footer>

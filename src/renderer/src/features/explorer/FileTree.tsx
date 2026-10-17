@@ -14,6 +14,7 @@ import {
 } from './tree-data'
 import type { DirEntry } from '@shared/types'
 import { TreeRow } from './TreeRow'
+import { t } from '../../lib/i18n'
 
 interface Props {
   // Pasta aberta (árvore comum) ou, na tarefa, a pasta base para "Novo arquivo" na raiz.
@@ -61,16 +62,19 @@ export function FileTree({ root, treeRef, forest, rootMenu }: Props) {
   const menuItems = (node: TreeNodeData | null): MenuItem[] => {
     const openDir = (dir: string) => treeRef.current?.open(dir)
     const create: MenuItem[] = [
-      { label: 'Novo arquivo', onSelect: () => beginCreate(root, 'file', node, openDir) },
-      { label: 'Nova pasta', onSelect: () => beginCreate(root, 'directory', node, openDir) },
+      { label: t('explorer.newFile'), onSelect: () => beginCreate(root, 'file', node, openDir) },
+      {
+        label: t('explorer.newFolder'),
+        onSelect: () => beginCreate(root, 'directory', node, openDir),
+      },
     ]
     if (!node) return create
     if (node.isRoot) return [...create, ...(rootMenu?.(node.id) ?? [])]
     return [
       ...create,
-      { label: 'Renomear', onSelect: () => startRename(node.id) },
+      { label: t('explorer.rename'), onSelect: () => startRename(node.id) },
       {
-        label: 'Mover para a lixeira',
+        label: t('explorer.trash'),
         danger: true,
         onSelect: () => void deleteEntry(node.id, node.kind),
       },

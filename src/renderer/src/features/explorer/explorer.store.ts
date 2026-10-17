@@ -2,6 +2,7 @@ import type { DirEntry } from '@shared/types'
 import { create } from 'zustand'
 import { attempt } from '../../lib/ipc'
 import { isInside } from '../../lib/paths'
+import { t } from '../../lib/i18n'
 
 export interface PendingCreate {
   parent: string
@@ -28,7 +29,7 @@ export const useExplorerStore = create<ExplorerState>((set, get) => ({
   renaming: null,
   reset: () => set({ children: {}, pendingCreate: null, renaming: null }),
   load: async (dir) => {
-    const entries = await attempt(window.api.fs.readDir(dir), 'Erro ao ler a pasta')
+    const entries = await attempt(window.api.fs.readDir(dir), t('explorer.readError'))
     if (entries) set((s) => ({ children: { ...s.children, [dir]: entries } }))
   },
   // Recarrega só as pastas que já estão carregadas.

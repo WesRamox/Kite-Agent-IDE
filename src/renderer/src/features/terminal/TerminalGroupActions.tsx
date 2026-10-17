@@ -7,6 +7,7 @@ import { startAgentInTask } from '../tasks/tasks.actions'
 import { useTasksStore } from '../tasks/tasks.store'
 import { openTerminal, splitTerminal } from './terminal.actions'
 import { isAgentPanel, isTerminalPanel } from './terminals'
+import { useT } from '../../lib/i18n'
 
 function Action(props: {
   label: string
@@ -32,6 +33,7 @@ export function TerminalGroupActions({ activePanel }: IDockviewHeaderActionsProp
   const taskId = useTasksStore((s) => s.activeTaskId)
   const presets = useAgentsStore((s) => s.presets)
   const [menu, setMenu] = useState<{ x: number; y: number; items: MenuItem[] } | null>(null)
+  const t = useT()
   if (!activePanel || !(isTerminalPanel(activePanel.id) || isAgentPanel(activePanel.id))) {
     return null
   }
@@ -40,7 +42,7 @@ export function TerminalGroupActions({ activePanel }: IDockviewHeaderActionsProp
     <div className="flex h-full items-center gap-0.5 px-2">
       {taskId && (
         <Action
-          label="Novo agente na tarefa"
+          label={t('terminal.newAgentInTask')}
           onClick={(e) =>
             setMenu({
               x: e.clientX,
@@ -57,13 +59,13 @@ export function TerminalGroupActions({ activePanel }: IDockviewHeaderActionsProp
           <Bot size={14} />
         </Action>
       )}
-      <Action label="Novo terminal" onClick={() => openTerminal({ reference: ref })}>
+      <Action label={t('terminal.new')} onClick={() => openTerminal({ reference: ref })}>
         <Plus size={14} />
       </Action>
-      <Action label="Dividir à direita" onClick={() => splitTerminal(ref, 'right')}>
+      <Action label={t('terminal.splitRight')} onClick={() => splitTerminal(ref, 'right')}>
         <Columns2 size={14} />
       </Action>
-      <Action label="Dividir abaixo" onClick={() => splitTerminal(ref, 'below')}>
+      <Action label={t('terminal.splitDown')} onClick={() => splitTerminal(ref, 'below')}>
         <Rows2 size={14} />
       </Action>
       {menu && menu.items.length > 0 && (

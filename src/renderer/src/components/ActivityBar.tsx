@@ -4,6 +4,7 @@ import { useLayoutStore } from '../stores/layout.store'
 import { KiteLogo } from './KiteLogo'
 import { Settings } from 'lucide-react'
 import { openSettings } from '../features/settings/settings.actions'
+import { useT } from '../lib/i18n'
 
 // Moldura do canvas (Main.dc.html): logo no topo, botões de 36 px, badge de quem espera.
 export function ActivityBar() {
@@ -11,14 +12,16 @@ export function ActivityBar() {
   const sidebarVisible = useLayoutStore((s) => s.sidebarVisible)
   const selectView = useLayoutStore((s) => s.selectView)
   const waiting = useAttentionGroups().waiting.length
+  const t = useT()
 
   return (
     <nav
-      aria-label="Atividades"
+      aria-label={t('activity.label')}
       className="flex w-12 shrink-0 flex-col items-center gap-1.5 border-r border-border bg-surface-1 py-2.5"
     >
       <KiteLogo size={26} className="mb-2.5" />
-      {VIEWS.map(({ id, label, icon: Icon }) => {
+      {VIEWS.map(({ id, label: labelKey, icon: Icon }) => {
+        const label = t(labelKey)
         const active = sidebarVisible && activeView === id
         const badge = id === 'attention' && waiting > 0
         return (
@@ -26,7 +29,7 @@ export function ActivityBar() {
             key={id}
             type="button"
             title={label}
-            aria-label={badge ? `${label}, ${waiting} esperando` : label}
+            aria-label={badge ? t('activity.waiting', { label, n: waiting }) : label}
             aria-pressed={active}
             onClick={() => selectView(id)}
             className={`relative flex size-9 items-center justify-center rounded-lg transition-colors ${
@@ -44,8 +47,8 @@ export function ActivityBar() {
       })}
       <button
         type="button"
-        title="Configurações"
-        aria-label="Configurações"
+        title={t('activity.settings')}
+        aria-label={t('activity.settings')}
         onClick={openSettings}
         className="mt-auto flex size-9 items-center justify-center rounded-lg text-fg-muted transition-colors hover:bg-surface-2 hover:text-fg"
       >

@@ -26,11 +26,10 @@ export interface AppError {
 
 export type Result<T> = { ok: true; data: T } | { ok: false; error: AppError }
 
-export type AppLanguage = 'pt-BR'
+export type AppLanguage = 'pt-BR' | 'en'
 
 export interface AppSettings {
   theme: ThemeId
-  // Só português por enquanto; o inglês entra com a tradução da interface.
   language: AppLanguage
   editorFontSize: number
   terminalFontSize: number

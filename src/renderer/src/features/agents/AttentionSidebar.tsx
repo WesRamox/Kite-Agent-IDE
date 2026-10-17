@@ -11,7 +11,7 @@ import {
   stopAgent,
 } from './agents.actions'
 import {
-  GROUP_LABEL,
+  groupLabel,
   GROUP_ORDER,
   shortKey,
   groupItems,
@@ -27,6 +27,7 @@ import { openTaskReview } from '../tasks/review.actions'
 import { openDiscover, openTask, setTaskHidden } from '../tasks/tasks.actions'
 import { useTasksStore } from '../tasks/tasks.store'
 import { useAttentionItems } from './use-attention'
+import { t, useT } from '../../lib/i18n'
 
 // Sidebar da Central de atenção (canvas, tela 1: Main.dc.html, coluna "Tarefas").
 
@@ -43,29 +44,39 @@ function taskMenu(item: AttentionItem): MenuItem[] {
   // Ações do agente do Kite (quando há um, inclusive dentro de uma tarefa multi-repo).
   const agent: MenuItem[] = task
     ? [
-        { label: 'Terminal do agente', onSelect: () => openAgentTerminal(task.id) },
+        { label: t('sidebar.menu.terminal'), onSelect: () => openAgentTerminal(task.id) },
         task.alive
-          ? { label: 'Parar agente', onSelect: () => void stopAgent(task.id) }
-          : { label: 'Reiniciar agente', onSelect: () => void restartAgent(task.id) },
+          ? { label: t('sidebar.menu.stop'), onSelect: () => void stopAgent(task.id) }
+          : { label: t('sidebar.menu.restart'), onSelect: () => void restartAgent(task.id) },
       ]
     : []
   if (ws) {
     return [
-      { label: 'Abrir tarefa', onSelect: () => void openTask(ws.id) },
-      { label: 'Revisar mudanças', onSelect: () => void openTaskReview(ws.id) },
+      { label: t('sidebar.menu.openTask'), onSelect: () => void openTask(ws.id) },
+      { label: t('sidebar.menu.reviewTask'), onSelect: () => void openTaskReview(ws.id) },
       ...agent,
       ...(task
-        ? [{ label: 'Remover agente', danger: true, onSelect: () => void removeAgent(task.id) }]
+        ? [
+            {
+              label: t('sidebar.menu.removeAgent'),
+              danger: true,
+              onSelect: () => void removeAgent(task.id),
+            },
+          ]
         : []),
-      { label: 'Esconder da Central', onSelect: () => void setTaskHidden(ws.id, true) },
+      { label: t('sidebar.menu.hide'), onSelect: () => void setTaskHidden(ws.id, true) },
     ]
   }
   if (!task) return []
   return [
     agent[0] as MenuItem,
-    { label: 'Revisar alterações', onSelect: () => openReview(task.id) },
+    { label: t('sidebar.menu.review'), onSelect: () => openReview(task.id) },
     agent[1] as MenuItem,
-    { label: 'Remover tarefa', danger: true, onSelect: () => void removeAgent(task.id) },
+    {
+      label: t('sidebar.menu.removeTask'),
+      danger: true,
+      onSelect: () => void removeAgent(task.id),
+    },
   ]
 }
 
@@ -80,23 +91,24 @@ export function AttentionSidebar() {
   const groups = groupItems(items)
   const setMode = (m: typeof mode) => useAttentionStore.getState().set({ mode: m })
   const empty = GROUP_ORDER.every((g) => groups[g].length === 0)
+  const tr = useT()
 
   return (
     <div className="flex min-h-0 flex-1 flex-col font-geist">
       <div className="flex flex-col gap-2.5 border-b border-border px-3.5 pt-3.5 pb-2.5">
         <div className="flex items-center justify-between">
           <span className="text-[11px] font-semibold tracking-[0.08em] text-fg-muted uppercase">
-            Tarefas
+            {tr('sidebar.tasks')}
           </span>
           <div className="flex items-center gap-1.5">
             {root && (
               <button
                 type="button"
-                title="Agrupamento das worktrees e worktrees soltas"
+                title={tr('sidebar.discoverHint')}
                 onClick={openDiscover}
                 className="h-[26px] rounded-md border border-border bg-transparent px-2.5 text-xs text-fg-muted hover:bg-surface-2 hover:text-fg"
               >
-                Descobrir
+                {tr('sidebar.discover')}
               </button>
             )}
             <button
@@ -105,13 +117,13 @@ export function AttentionSidebar() {
               onClick={() => setMode(mode === 'new' ? 'list' : 'new')}
               className="h-[26px] rounded-md border border-border bg-surface-2 px-2.5 text-xs text-fg hover:bg-surface-3"
             >
-              + Nova
+              {tr('sidebar.new')}
             </button>
           </div>
         </div>
         <button
           type="button"
-          title={root ?? 'Abrir pasta'}
+          title={root ?? tr('sidebar.openFolder')}
           onClick={() => void openFolder()}
           className="flex h-8 items-center gap-2 rounded-md border border-border bg-surface-0 px-2.5 text-left text-fg hover:border-fg-muted/40"
         >
@@ -126,10 +138,12 @@ export function AttentionSidebar() {
           >
             <path d="M3 6h6l2 2h10v11H3z" />
           </svg>
-          <span className="min-w-0 flex-1 truncate">{root ? tildePath(root) : 'Abrir pasta'}</span>
+          <span className="min-w-0 flex-1 truncate">
+            {root ? tildePath(root) : tr('sidebar.openFolder')}
+          </span>
           {(repos > 0 || isRepo) && (
             <span className="text-[11px] text-fg-muted">
-              {Math.max(repos, 1)} {Math.max(repos, 1) === 1 ? 'repo' : 'repos'}
+              {tr('sidebar.repos', { n: Math.max(repos, 1) })}
             </span>
           )}
         </button>
@@ -138,23 +152,20 @@ export function AttentionSidebar() {
       {mode === 'presets' && <PresetEditor onDone={() => setMode('list')} />}
       <div className="flex min-h-0 flex-1 flex-col gap-3 overflow-y-auto px-1.5 py-2">
         {empty && (
-          <p className="px-2.5 py-4 text-xs leading-normal text-fg-muted">
-            Nenhum agente ainda. Crie uma tarefa em “+ Nova” ou conecte o Claude Code para ver as
-            sessões abertas em qualquer terminal.
-          </p>
+          <p className="px-2.5 py-4 text-xs leading-normal text-fg-muted">{tr('sidebar.empty')}</p>
         )}
         {GROUP_ORDER.filter((g) => groups[g].length > 0).map((g) => (
-          <div key={g} className="flex flex-col gap-0.5" role="group" aria-label={GROUP_LABEL[g]}>
+          <div key={g} className="flex flex-col gap-0.5" role="group" aria-label={groupLabel(g)}>
             <div className="flex items-center gap-1.5 px-2 py-1 text-[11px] font-semibold tracking-[0.06em] text-fg-muted uppercase">
               <span className={`size-2 rounded-full ${GROUP_DOT[g]}`} />
-              {GROUP_LABEL[g]}
+              {groupLabel(g)}
               <span className="ml-auto font-medium">{groups[g].length}</span>
             </div>
             {groups[g].map((item) => (
               <button
                 key={item.id}
                 type="button"
-                aria-label={`Tarefa ${item.name}`}
+                aria-label={tr('central.task', { name: item.name })}
                 // Tarefa sem agente não tem cartão na Central: abre a tarefa direto.
                 onClick={() =>
                   item.wsTask && item.group === 'idle'

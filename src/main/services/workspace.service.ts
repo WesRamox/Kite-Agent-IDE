@@ -2,6 +2,7 @@ import path from 'node:path'
 import { AppException } from '../lib/errors'
 import type { JsonStore } from '../lib/json-store'
 import type { WorkspaceGuard } from '../lib/workspace-guard'
+import { t } from '../lib/i18n'
 
 export const MAX_RECENT = 10
 
@@ -31,8 +32,7 @@ export class WorkspaceService {
 
   async openRecent(dir: string): Promise<string> {
     const { recent } = await this.deps.store.read()
-    if (!recent.includes(dir))
-      throw new AppException('FORBIDDEN_PATH', 'Pasta não está nas recentes')
+    if (!recent.includes(dir)) throw new AppException('FORBIDDEN_PATH', t('error.notInRecent'))
     return this.open(dir)
   }
 
@@ -40,7 +40,7 @@ export class WorkspaceService {
   // git lista como worktree das raízes abertas.
   async openWorktree(dir: string): Promise<string> {
     if (!(await this.deps.isKnownWorktree(dir))) {
-      throw new AppException('FORBIDDEN_PATH', 'Não é uma worktree deste repositório')
+      throw new AppException('FORBIDDEN_PATH', t('error.notWorktreeOfRepo'))
     }
     return this.open(dir)
   }

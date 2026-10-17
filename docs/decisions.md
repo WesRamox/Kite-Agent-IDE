@@ -502,3 +502,18 @@ Decisões fáceis de desfazer, não cobertas pelo `AGENTS.md`. Mais recente no f
 - O app não abre mais a Central sozinho ao iniciar: ela taparia tudo. Com um CLI conectado, abre na
   sidebar da Central. `Ctrl/Cmd+J` vai direto ao terminal de quem espera quando ele roda no Kite;
   senão, mostra o item na Central.
+
+## Interface em inglês e português
+
+- **Sem biblioteca nova.** Um catálogo tipado por área em `src/shared/i18n/messages/`, com o
+  português (fonte) e o inglês lado a lado. Um texto é fixo ou uma função dos parâmetros (para
+  interpolar e para plural). O TypeScript acusa chave faltando ou parâmetro diferente.
+- **Renderer:** `useT()` nos componentes (re-renderizam na troca de idioma) e `t()` nas ações e
+  stores. O idioma fica no `settings.json` e em cache no `localStorage`, para a interface já abrir
+  no idioma certo. A troca vale na hora; títulos de abas já abertas ficam como estavam.
+- **Main:** erros, notificações e o menu do macOS usam o idioma da configuração (`setLanguage`). O
+  `kite-hook` não traduz nada (não depende da configuração). Logs continuam em português.
+- **Idioma padrão:** o do sistema (`app.getLocale()`): português para `pt-*`, inglês para o resto.
+  Os e2e fixam `--lang=pt-BR`.
+- **Padrão de pasta:** `{task}` vale o mesmo que `{tarefa}`, para a interface em inglês.
+- **Imagens do README** geradas nos dois idiomas (`docs/images/en` e `docs/images/pt-BR`).

@@ -31,7 +31,9 @@ import { registerReviewIpc } from './ipc/review.ipc'
 import { registerTerminalIpc } from './ipc/terminal.ipc'
 import { registerWorkspaceIpc } from './ipc/workspace.ipc'
 import { JsonStore } from './lib/json-store'
-import { DEFAULT_SETTINGS, settingsSchema } from './lib/settings-schema'
+import { DEFAULT_SETTINGS, settingsSchemaWith } from './lib/settings-schema'
+import { setLanguage, t } from './lib/i18n'
+import { languageFor } from '@shared/i18n'
 import { loadEnvFiles } from './lib/env-file'
 import { agentStateSchema } from './lib/agent-schemas'
 import { HOOK_TARGETS, wrapperScript } from './lib/claude-settings'
@@ -127,14 +129,11 @@ function createWindow(): BrowserWindow {
 }
 
 const AGENT_MESSAGES: Record<string, (name: string, code: number | null) => [string, string]> = {
-  waiting: (name) => [
-    `${name} está aguardando você`,
-    'O agente parou e parece esperar uma resposta.',
-  ],
-  done: (name) => [`${name} terminou`, 'Use "Revisar" para ver as alterações.'],
+  waiting: (name) => [t('notify.agentWaiting', { name }), t('notify.agentWaitingBody')],
+  done: (name) => [t('notify.agentDone', { name }), t('notify.agentDoneBody')],
   error: (name, code) => [
-    `${name} falhou`,
-    code === null ? 'O agente foi interrompido.' : `Saiu com código ${code}.`,
+    t('notify.agentFailed', { name }),
+    code === null ? t('notify.agentInterrupted') : t('notify.agentExitCode', { code }),
   ],
 }
 
@@ -162,11 +161,11 @@ const CLI_NAME: Record<AgentCli, string> = { claude: 'Claude', codex: 'Codex', g
 
 const SESSION_MESSAGES: Record<string, (s: AgentSession) => [string, string]> = {
   permission: (s) => [
-    `${CLI_NAME[s.cli]} pede permissão`,
+    t('notify.sessionPermission', { cli: CLI_NAME[s.cli] }),
     s.pending ? `${s.pending.tool}: ${s.pending.detail}`.trim() : (s.lastMessage ?? ''),
   ],
-  turn: (s) => [`${CLI_NAME[s.cli]} terminou e espera você`, s.lastMessage ?? ''],
-  input: (s) => [`${CLI_NAME[s.cli]} precisa de uma resposta`, s.lastMessage ?? ''],
+  turn: (s) => [t('notify.sessionTurn', { cli: CLI_NAME[s.cli] }), s.lastMessage ?? ''],
+  input: (s) => [t('notify.sessionInput', { cli: CLI_NAME[s.cli] }), s.lastMessage ?? ''],
 }
 
 // Notificação de uma sessão vista pelos hooks (agente dentro ou fora do Kite).
@@ -187,13 +186,20 @@ function notifySession(session: AgentSession): void {
 
 function createServices() {
   const guard = new WorkspaceGuard()
+  // Idioma padrão: o do sistema (português para pt-*, inglês para o resto).
+  const defaults: AppSettings = { ...DEFAULT_SETTINGS, language: languageFor(app.getLocale()) }
   const settingsService = new SettingsService({
     store: new JsonStore<AppSettings>(
       join(app.getPath('userData'), 'settings.json'),
-      settingsSchema,
-      DEFAULT_SETTINGS,
+      settingsSchemaWith(defaults),
+      defaults,
     ),
     applyTheme: applyNativeTheme,
+    applyLanguage: (lang) => {
+      setLanguage(lang)
+      installMenu()
+    },
+    defaults,
   })
   settingsRef = settingsService
   const appService = new AppService({

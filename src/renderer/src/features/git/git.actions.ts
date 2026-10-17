@@ -6,6 +6,7 @@ import { basename } from '../../lib/paths'
 import { toast } from '../../stores/toast.store'
 import { refreshGit } from './git-sync'
 import { useGitStore } from './git.store'
+import { t } from '../../lib/i18n'
 
 export const DIFF_COMPONENT = 'diff'
 const DIFF_PREFIX = 'diff:'
@@ -32,11 +33,11 @@ async function run<T>(call: (root: string) => Promise<Result<T>>, context: strin
 }
 
 export function stage(paths: string[]) {
-  return run((r) => window.api.git.stage(r, paths), 'Erro ao adicionar ao stage')
+  return run((r) => window.api.git.stage(r, paths), t('git.stageError'))
 }
 
 export function unstage(paths: string[]) {
-  return run((r) => window.api.git.unstage(r, paths), 'Erro ao remover do stage')
+  return run((r) => window.api.git.unstage(r, paths), t('git.unstageError'))
 }
 
 export function stageAll() {
@@ -54,15 +55,15 @@ export function unstageAll() {
 }
 
 export async function commit(message: string): Promise<boolean> {
-  const res = await run((r) => window.api.git.commit(r, message), 'Erro no commit')
-  if (res) toast.info(`Commit ${res.hash} criado.`)
+  const res = await run((r) => window.api.git.commit(r, message), t('git.commitError'))
+  if (res) toast.info(t('git.committed', { hash: res.hash }))
   return res !== null
 }
 
 export function checkout(branch: string, create = false) {
   return run(
     (r) => window.api.git.checkout(r, branch, create),
-    create ? 'Erro ao criar branch' : 'Erro ao trocar de branch',
+    create ? t('git.createBranchError') : t('git.checkoutError'),
   )
 }
 
@@ -70,14 +71,14 @@ export async function createWorktree(branch: string): Promise<string | null> {
   // Branch existente e livre: usa. Senão, cria uma nova a partir do HEAD atual.
   const existing = useGitStore.getState().branches.find((b) => b.name === branch)
   if (existing?.worktreePath) {
-    toast.error(`A branch ${branch} já está em uso em ${existing.worktreePath}`)
+    toast.error(t('git.branchInUse', { branch, path: existing.worktreePath }))
     return null
   }
   const res = await run(
     (r) => window.api.git.worktreeAdd(r, branch, !existing),
-    'Erro ao criar worktree',
+    t('git.worktreeError'),
   )
-  if (res) toast.info(`Worktree criada em ${res.path}`)
+  if (res) toast.info(t('git.worktreeCreated', { path: res.path }))
   return res?.path ?? null
 }
 
@@ -85,9 +86,9 @@ export async function removeWorktree(path: string): Promise<void> {
   const r = root()
   if (!r) return
   const answer = await window.api.dialog.confirm({
-    message: `Remover a worktree ${basename(path)}?`,
-    detail: `A pasta ${path} será apagada. A branch continua existindo.`,
-    buttons: ['Remover', 'Cancelar'],
+    message: t('git.removeWorktree', { name: basename(path) }),
+    detail: t('git.removeWorktreeDetail', { path }),
+    buttons: [t('git.remove'), t('common.cancel')],
     kind: 'warning',
   })
   if (!answer.ok || answer.data !== 0) return
@@ -95,15 +96,15 @@ export async function removeWorktree(path: string): Promise<void> {
   if (!res.ok && res.error.code === 'GIT_ERROR') {
     // Normalmente: há alterações não commitadas na worktree.
     const force = await window.api.dialog.confirm({
-      message: 'A worktree tem alterações não commitadas.',
-      detail: `${res.error.message}\n\nRemover mesmo assim? As alterações serão perdidas.`,
-      buttons: ['Remover mesmo assim', 'Cancelar'],
+      message: t('git.dirtyWorktree'),
+      detail: t('git.forceDetail', { reason: res.error.message }),
+      buttons: [t('git.removeAnyway'), t('common.cancel')],
       kind: 'warning',
     })
     if (!force.ok || force.data !== 0) return
     res = await window.api.git.worktreeRemove(r, path, true)
   }
-  if (!res.ok) toast.error(`Erro ao remover worktree: ${res.error.message}`)
+  if (!res.ok) toast.error(t('git.removeError', { reason: res.error.message }))
   await refreshGit()
 }
 
@@ -125,7 +126,7 @@ export function openDiff(path: string, staged: boolean): void {
     id,
     component: DIFF_COMPONENT,
     tabComponent: DIFF_COMPONENT,
-    title: `${basename(path)} (${staged ? 'stage' : 'alterações'})`,
+    title: t('git.diffTitle', { name: basename(path), staged }),
     params,
   })
 }

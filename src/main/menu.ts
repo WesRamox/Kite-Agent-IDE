@@ -1,4 +1,5 @@
 import { app, Menu, type MenuItemConstructorOptions } from 'electron'
+import { t } from './lib/i18n'
 
 // Sem barra de menu: o Kite é um app, não um site. No Windows/Linux o menu some por completo
 // (e com ele os atalhos de recarregar, zoom e DevTools). Ctrl/Cmd+W fecha a aba ativa,
@@ -24,7 +25,7 @@ export function installMenu(): void {
       ],
     },
     {
-      label: 'Edit',
+      label: t('menu.mac.edit'),
       submenu: [
         { role: 'undo' },
         { role: 'redo' },

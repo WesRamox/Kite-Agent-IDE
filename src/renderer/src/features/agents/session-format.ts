@@ -1,4 +1,5 @@
 import type { AgentSession, AgentTask } from '@shared/types'
+import { t } from '../../lib/i18n'
 
 export type SessionTone = 'waiting' | 'running' | 'muted'
 
@@ -10,13 +11,13 @@ export function sessionTone(s: AgentSession): SessionTone {
 
 export function sessionStatusLabel(s: AgentSession): string {
   if (s.status === 'waiting') {
-    if (s.waitReason === 'permission') return 'pede permissão'
-    if (s.waitReason === 'input') return 'precisa de resposta'
-    return 'sua vez'
+    if (s.waitReason === 'permission') return t('agents.session.permission')
+    if (s.waitReason === 'input') return t('agents.session.input')
+    return t('agents.session.turn')
   }
-  if (s.status === 'running') return 'trabalhando'
-  if (s.status === 'idle') return 'aguardando o primeiro pedido'
-  return 'encerrada'
+  if (s.status === 'running') return t('agents.session.running')
+  if (s.status === 'idle') return t('agents.session.idle')
+  return t('agents.session.ended')
 }
 
 // Pasta pessoal abreviada como ~ (Linux, macOS e Windows).
@@ -33,12 +34,9 @@ function relativeTo(file: string, dir: string): string {
 export function sessionEvidence(s: AgentSession): string {
   const [last] = s.touchedPaths
   if (last) {
-    const more = s.touchedCount - 1
-    const tail = more <= 0 ? '' : more === 1 ? ' e mais 1 arquivo' : ` e mais ${more} arquivos`
-    return `Editou ${relativeTo(last, s.cwd)}${tail}.`
+    return t('agents.session.edited', { file: relativeTo(last, s.cwd), more: s.touchedCount - 1 })
   }
-  const prompt = s.firstPrompt ? ` Primeiro pedido: “${s.firstPrompt}”.` : ''
-  return `Ainda não tocou em nenhuma worktree.${prompt}`
+  return t('agents.session.untouched', { prompt: s.firstPrompt ?? null })
 }
 
 // Agentes "esperando você": sessões dos hooks mais agentes do Kite, sem contar duas vezes a

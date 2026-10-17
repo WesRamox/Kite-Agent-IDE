@@ -20,6 +20,7 @@ import { useAttentionStore } from './attention.store'
 import { RESUME } from './cli'
 import { useAttentionItems } from './use-attention'
 import { useNow } from './use-now'
+import { t as tr, useT } from '../../lib/i18n'
 
 // Central de atenção (canvas, tela 1: Main.dc.html, área principal).
 
@@ -32,36 +33,37 @@ export function CentralPanel() {
   const items = useAttentionItems(15_000)
   const now = useNow(true, 15_000)
   const groups = groupItems(items)
+  const t = useT()
 
   return (
     <div className="h-full overflow-y-auto bg-surface-0 font-geist text-[13px] text-fg">
       <div className="flex min-w-0 flex-col gap-7 px-9 py-7">
         <header className="flex flex-wrap items-end gap-4">
           <div className="flex-[1_1_320px]">
-            <h1 className="text-2xl font-semibold tracking-[-0.01em]">Precisa de você</h1>
-            <p className="mt-1.5 text-fg-muted">
-              Agentes parados esperando uma resposta, em ordem de quem espera há mais tempo.
-            </p>
+            <h1 className="text-2xl font-semibold tracking-[-0.01em]">{t('central.title')}</h1>
+            <p className="mt-1.5 text-fg-muted">{t('central.subtitle')}</p>
           </div>
           <div className="flex items-center gap-2 text-xs text-fg-muted">
-            Próximo que espera
+            {t('central.nextWaiting')}
             <kbd className="rounded border border-b-2 border-border bg-surface-2 px-1.5 py-0.5 font-geist-mono text-[11px] text-fg">
               {isMac ? '⌘J' : 'Ctrl+J'}
             </kbd>
           </div>
         </header>
 
-        <section aria-label="Esperando você" className="flex flex-col gap-3.5">
+        <section aria-label={t('agents.group.waiting')} className="flex flex-col gap-3.5">
           {groups.waiting.length === 0 ? (
-            <p className="text-fg-muted">Nenhum agente esperando você agora.</p>
+            <p className="text-fg-muted">{t('central.noneWaiting')}</p>
           ) : (
             groups.waiting.map((item) => <WaitingCard key={item.id} item={item} now={now} />)
           )}
         </section>
 
         {groups.running.length > 0 && (
-          <section aria-label="Trabalhando" className="flex flex-col gap-2">
-            <h2 className={SECTION_TITLE}>Trabalhando · {groups.running.length}</h2>
+          <section aria-label={t('agents.group.running')} className="flex flex-col gap-2">
+            <h2 className={SECTION_TITLE}>
+              {t('central.runningTitle', { n: groups.running.length })}
+            </h2>
             <div className="overflow-hidden rounded-[10px] border border-border">
               {groups.running.map((item, i) => (
                 <Row key={item.id} item={item} first={i === 0} dot="bg-info">
@@ -76,8 +78,10 @@ export function CentralPanel() {
         )}
 
         {groups.review.length > 0 && (
-          <section aria-label="Para revisar" className="flex flex-col gap-2">
-            <h2 className={SECTION_TITLE}>Para revisar · {groups.review.length}</h2>
+          <section aria-label={t('agents.group.review')} className="flex flex-col gap-2">
+            <h2 className={SECTION_TITLE}>
+              {t('central.reviewTitle', { n: groups.review.length })}
+            </h2>
             <div className="overflow-hidden rounded-[10px] border border-border">
               {groups.review.map((item, i) => (
                 <Row key={item.id} item={item} first={i === 0} dot="bg-success">
@@ -94,7 +98,7 @@ export function CentralPanel() {
                       }
                       className="h-[30px] rounded-[7px] border border-border bg-surface-2 px-3 text-fg hover:bg-surface-3"
                     >
-                      Revisar
+                      {t('central.review')}
                     </button>
                   )}
                 </Row>
@@ -109,11 +113,13 @@ export function CentralPanel() {
 
 function reviewDetail(item: AttentionItem, now: number): string {
   if (item.task) {
-    return `Agente terminou ${ago(now - item.since)} · ${item.task.branch}`
+    return tr('central.agentDone', { when: ago(now - item.since), branch: item.task.branch })
   }
   const n = item.session?.touchedCount ?? 0
-  const where = item.wsTask ? item.wsTask.worktrees.map((w) => w.repoName).join(' e ') : item.key
-  return `Sessão terminou ${ago(now - item.since)} · ${where} · ${n} ${n === 1 ? 'arquivo' : 'arquivos'}`
+  const where = item.wsTask
+    ? item.wsTask.worktrees.map((w) => w.repoName).join(tr('central.and'))
+    : item.key
+  return tr('central.sessionDone', { when: ago(now - item.since), where, n })
 }
 
 function Row(props: {
@@ -122,9 +128,10 @@ function Row(props: {
   dot: string
   children: React.ReactNode
 }) {
+  const t = useT()
   return (
     <div
-      aria-label={`Tarefa ${props.item.name}`}
+      aria-label={t('central.task', { name: props.item.name })}
       className={`flex flex-wrap items-center gap-3 bg-surface-1 px-4 py-3 ${
         props.first ? '' : 'border-t border-border'
       }`}
@@ -141,6 +148,7 @@ function Row(props: {
 
 function WaitingCard({ item, now }: { item: AttentionItem; now: number }) {
   const highlighted = useAttentionStore((s) => s.highlighted === item.id)
+  const t = useT()
   const ref = useRef<HTMLElement>(null)
   useEffect(() => {
     if (highlighted) ref.current?.scrollIntoView({ block: 'nearest', behavior: 'smooth' })
@@ -163,7 +171,7 @@ function WaitingCard({ item, now }: { item: AttentionItem; now: number }) {
   return (
     <article
       ref={ref}
-      aria-label={`Tarefa ${item.name}`}
+      aria-label={t('central.task', { name: item.name })}
       className={`flex flex-col gap-3.5 rounded-[10px] border bg-surface-1 px-5 py-[18px] ${
         highlighted ? 'border-accent/60' : 'border-accent/20'
       }`}
@@ -182,7 +190,7 @@ function WaitingCard({ item, now }: { item: AttentionItem; now: number }) {
 
       <div className="flex flex-col gap-2 rounded-lg border border-border bg-surface-0 px-3.5 py-3">
         <span className="text-[11px] font-semibold tracking-[0.06em] text-fg-muted uppercase">
-          {pending ? `Quer executar · ${pending.tool}` : 'Última mensagem do agente'}
+          {pending ? t('central.wantsToRun', { tool: pending.tool }) : t('central.lastMessage')}
         </span>
         {pending?.detail && (
           <code className="block rounded bg-surface-3 px-2 py-1.5 font-geist-mono text-[13px] break-all text-fg">
@@ -202,20 +210,18 @@ function WaitingCard({ item, now }: { item: AttentionItem; now: number }) {
           >
             <span className="font-geist-mono">{c.repo}</span>
             {c.changed > 0 && (
-              <span className="text-fg-muted">
-                {c.changed} {c.changed === 1 ? 'alterado' : 'alterados'}
-              </span>
+              <span className="text-fg-muted">{t('central.changed', { n: c.changed })}</span>
             )}
           </span>
         ))}
         <span className="flex-1" />
         {item.inKite ? (
           <button type="button" onClick={() => respond(item)} className={BTN_PRIMARY}>
-            Responder no terminal
+            {t('central.respond')}
           </button>
         ) : (
           <button type="button" onClick={() => void resumeHere(item)} className={BTN_PRIMARY}>
-            Retomar aqui
+            {t('central.resume')}
           </button>
         )}
         {/* Como no desenho: agente no Kite → abrir a tarefa; fora dele → revisar as mudanças. */}
@@ -228,7 +234,7 @@ function WaitingCard({ item, now }: { item: AttentionItem; now: number }) {
             }
             className={BTN_SECONDARY}
           >
-            {item.inKite ? 'Abrir tarefa' : 'Revisar mudanças'}
+            {item.inKite ? t('central.openTask') : t('central.reviewChanges')}
           </button>
         )}
         {item.task && !item.wsTask && (
@@ -237,13 +243,13 @@ function WaitingCard({ item, now }: { item: AttentionItem; now: number }) {
             onClick={() => item.task && openReview(item.task.id)}
             className={BTN_SECONDARY}
           >
-            Revisar mudanças
+            {t('central.reviewChanges')}
           </button>
         )}
         {!item.inKite && (
           <button
             type="button"
-            aria-label={`Copiar comando ${RESUME[s?.cli ?? 'claude']}`}
+            aria-label={t('central.copyCommand', { command: RESUME[s?.cli ?? 'claude'] })}
             onClick={() => void copyResume(item)}
             className={`${BTN} border border-border bg-surface-2 px-3 font-geist-mono text-xs text-fg-muted hover:bg-surface-3`}
           >
@@ -258,7 +264,7 @@ function WaitingCard({ item, now }: { item: AttentionItem; now: number }) {
 function message(item: AttentionItem, hasPending: boolean): string {
   const text = item.session?.lastMessage
   if (text) return `“${text}”`
-  if (hasPending) return 'O agente precisa da sua permissão para continuar.'
-  if (item.task && !item.session) return 'O agente parou e parece esperar uma resposta.'
-  return 'O agente terminou o turno e espera o próximo pedido.'
+  if (hasPending) return tr('central.needsPermission')
+  if (item.task && !item.session) return tr('central.seemsWaiting')
+  return tr('central.turnEnded')
 }

@@ -15,7 +15,7 @@ Know which agent is waiting for you, and work on tasks that span several reposit
 
 English · [Português](README.pt-BR.md)
 
-<img src="docs/images/central.png" alt="Kite's attention center: agents waiting for you, with the permission each one asks for" width="900">
+<img src="docs/images/en/central.png" alt="Kite's attention center: agents waiting for you, with the permission each one asks for" width="900">
 
 </div>
 
@@ -53,7 +53,7 @@ and as a native notification.
 
 ### Multi-repo tasks
 
-<img src="docs/images/task.png" alt="A task with two repositories: only the changed files, the editor and the task details" width="900">
+<img src="docs/images/en/task.png" alt="A task with two repositories: only the changed files, the editor and the task details" width="900">
 
 Open the folder that holds your repositories and Kite finds them, lists every worktree and groups
 the worktrees into tasks. It groups worktrees that share a task folder (`.worktrees/PAY-412/{api,web}`)
@@ -71,12 +71,12 @@ or by hand: your adjustments always win over the heuristics.
   pattern, then starts an agent in the task folder with an optional first prompt.
 
 <p align="center">
-  <img src="docs/images/discover.png" alt="Discovering tasks: worktrees grouped by task folder" width="900">
+  <img src="docs/images/en/discover.png" alt="Discovering tasks: worktrees grouped by task folder" width="900">
 </p>
 
 ### Review and ship
 
-<img src="docs/images/review.png" alt="Reviewing a task: changed files per repository and a diff against the merge-base" width="900">
+<img src="docs/images/en/review.png" alt="Reviewing a task: changed files per repository and a diff against the merge-base" width="900">
 
 The review screen groups the changed files by repository, each diffed against its merge-base with
 the base branch, including uncommitted work. From there:
@@ -87,7 +87,7 @@ the base branch, including uncommitted work. From there:
 
 ### Connect your agents
 
-<img src="docs/images/connect.png" alt="Connecting Claude Code, Codex and Gemini CLI, with the sessions Kite detected" width="900">
+<img src="docs/images/en/connect.png" alt="Connecting Claude Code, Codex and Gemini CLI, with the sessions Kite detected" width="900">
 
 One click installs Kite's hooks for **Claude Code** (`~/.claude/settings.json`), **Codex**
 (`~/.codex/hooks.json`) or **Gemini CLI** (`~/.gemini/settings.json`):
@@ -109,12 +109,10 @@ terminal output.
   opening PRs.
 - Six themes, from the default amber-on-graphite to light and paper ones, applied to the editor,
   the terminals and native dialogs.
-- A settings page (`Ctrl/Cmd+,`) for the theme, font sizes, terminal restore, notifications, task
-  grouping and the GitHub account.
-
-> [!NOTE]
-> The interface is currently in Portuguese (pt-BR). Translations are welcome, see
-> [Contributing](#contributing).
+- A settings page (`Ctrl/Cmd+,`) for the theme, language, font sizes, terminal restore,
+  notifications, task grouping and the GitHub account.
+- English and Portuguese (pt-BR) interface: it follows your system language and can be switched
+  in the settings. More languages are welcome, see [Contributing](#contributing).
 
 ## Getting started
 
@@ -213,7 +211,7 @@ Design decisions are recorded in [`docs/decisions.md`](docs/decisions.md).
 Issues and pull requests are welcome. [CONTRIBUTING.md](CONTRIBUTING.md) explains the project
 structure, the scripts and the tests. Good places to start:
 
-- English translation of the interface
+- Translations into more languages
 - Windows support for the hooks
 - Packaging and releases for macOS, Windows and Linux
 

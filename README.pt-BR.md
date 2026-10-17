@@ -15,7 +15,7 @@ Saiba qual agente está esperando você e trabalhe em tarefas que mexem em vári
 
 [English](README.md) · Português
 
-<img src="docs/images/central.png" alt="Central de atenção do Kite: os agentes que esperam você, com o pedido de cada um" width="900">
+<img src="docs/images/pt-BR/central.png" alt="Central de atenção do Kite: os agentes que esperam você, com o pedido de cada um" width="900">
 
 </div>
 
@@ -53,7 +53,7 @@ notificação nativa.
 
 ### Tarefas multi-repo
 
-<img src="docs/images/task.png" alt="Uma tarefa com dois repositórios: só os arquivos alterados, o editor e os detalhes da tarefa" width="900">
+<img src="docs/images/pt-BR/task.png" alt="Uma tarefa com dois repositórios: só os arquivos alterados, o editor e os detalhes da tarefa" width="900">
 
 Abra a pasta que reúne os seus repositórios e o Kite encontra cada um, lista as worktrees e agrupa
 as worktrees em tarefas. Ele junta worktrees na mesma pasta de tarefa (`.worktrees/PAY-412/{api,web}`)
@@ -71,12 +71,12 @@ padrão de pasta, ou à mão: os seus ajustes sempre vencem as heurísticas.
   de pasta e inicia um agente na pasta da tarefa, com um prompt inicial opcional.
 
 <p align="center">
-  <img src="docs/images/discover.png" alt="Descobrir tarefas: worktrees agrupadas pela pasta da tarefa" width="900">
+  <img src="docs/images/pt-BR/discover.png" alt="Descobrir tarefas: worktrees agrupadas pela pasta da tarefa" width="900">
 </p>
 
 ### Revisar e entregar
 
-<img src="docs/images/review.png" alt="Revisão da tarefa: arquivos alterados por repositório e o diff contra o merge-base" width="900">
+<img src="docs/images/pt-BR/review.png" alt="Revisão da tarefa: arquivos alterados por repositório e o diff contra o merge-base" width="900">
 
 A revisão agrupa os arquivos alterados por repositório, cada um comparado com o merge-base da
 branch base, incluindo o que ainda não foi commitado. Dali:
@@ -87,7 +87,7 @@ branch base, incluindo o que ainda não foi commitado. Dali:
 
 ### Conectar os agentes
 
-<img src="docs/images/connect.png" alt="Conectando Claude Code, Codex e Gemini CLI, com as sessões que o Kite detectou" width="900">
+<img src="docs/images/pt-BR/connect.png" alt="Conectando Claude Code, Codex e Gemini CLI, com as sessões que o Kite detectou" width="900">
 
 Um clique instala os hooks do Kite no **Claude Code** (`~/.claude/settings.json`), no **Codex**
 (`~/.codex/hooks.json`) ou no **Gemini CLI** (`~/.gemini/settings.json`):
@@ -109,12 +109,10 @@ deduzido pela saída do terminal.
   de um PR e criação de PRs.
 - Seis temas, do padrão âmbar sobre grafite aos claros, aplicados ao editor, aos terminais e aos
   diálogos nativos.
-- Página de configurações (`Ctrl/Cmd+,`): tema, tamanho das fontes, restaurar terminais,
+- Página de configurações (`Ctrl/Cmd+,`): tema, idioma, tamanho das fontes, restaurar terminais,
   notificações, agrupamento das tarefas e conta do GitHub.
-
-> [!NOTE]
-> Por enquanto a interface está em português. Traduções são bem-vindas, veja
-> [Contribuir](#contribuir).
+- Interface em português e em inglês: segue o idioma do sistema e pode ser trocada nas
+  configurações. Outros idiomas são bem-vindos, veja [Contribuir](#contribuir).
 
 ## Como começar
 
@@ -214,7 +212,7 @@ As decisões de projeto ficam em [`docs/decisions.md`](docs/decisions.md).
 Issues e pull requests são bem-vindos. O [CONTRIBUTING.md](CONTRIBUTING.md) explica a estrutura
 do projeto, os scripts e os testes. Bons pontos de partida:
 
-- Tradução da interface para o inglês
+- Tradução para outros idiomas
 - Suporte a Windows nos hooks
 - Empacotamento e versões para macOS, Windows e Linux
 

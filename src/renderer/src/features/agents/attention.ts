@@ -2,6 +2,7 @@ import type { AgentSession, AgentTask, Task, WaitReason } from '@shared/types'
 import { basename } from '../../lib/paths'
 import { CLI_LABEL } from './cli'
 import { tildePath } from './session-format'
+import { t as tr } from '../../lib/i18n'
 
 // Modelo da Central de atenção (Fase 7): junta as sessões vistas pelos hooks e os agentes
 // abertos pelo Kite numa lista só, agrupada pelo que pede do usuário.
@@ -34,19 +35,14 @@ export function shortKey(item: AttentionItem): string {
   return item.key === item.name ? '' : item.key
 }
 
-export const GROUP_LABEL: Record<AttentionGroup, string> = {
-  waiting: 'Esperando você',
-  running: 'Trabalhando',
-  review: 'Para revisar',
-  idle: 'Sem agente',
+export function groupLabel(group: AttentionGroup): string {
+  return tr(`agents.group.${group}`)
 }
 
 export const GROUP_ORDER: AttentionGroup[] = ['waiting', 'running', 'review', 'idle']
 
-const WAIT_LABEL: Record<WaitReason, string> = {
-  permission: 'pede permissão',
-  turn: 'sua vez',
-  input: 'precisa de resposta',
+function waitLabel(reason: WaitReason): string {
+  return tr(`agents.session.${reason}`)
 }
 
 // Sessões encerradas só interessam se mexeram em algo; somem depois desse tempo.
@@ -68,7 +64,7 @@ function taskItem(task: AgentTask, session: AgentSession | undefined): Attention
     return {
       ...base,
       group: 'waiting',
-      meta: reason ? WAIT_LABEL[reason] : 'esperando você',
+      meta: reason ? waitLabel(reason) : tr('agents.meta.waiting'),
       waitReason: reason,
       since: session?.waitingSince ?? session?.lastEventAt ?? task.startedAt,
     }
@@ -77,7 +73,7 @@ function taskItem(task: AgentTask, session: AgentSession | undefined): Attention
     return {
       ...base,
       group: 'running',
-      meta: 'trabalhando',
+      meta: tr('agents.meta.running'),
       waitReason: null,
       since: session?.runningSince ?? task.startedAt,
     }
@@ -86,16 +82,12 @@ function taskItem(task: AgentTask, session: AgentSession | undefined): Attention
     return {
       ...base,
       group: 'review',
-      meta: 'terminou',
+      meta: tr('agents.meta.done'),
       waitReason: null,
       since: task.endedAt ?? task.startedAt,
     }
   }
-  const meta = task.interrupted
-    ? 'interrompido'
-    : task.status === 'error'
-      ? `erro${task.exitCode !== null ? ` (código ${task.exitCode})` : ''}`
-      : 'parado'
+  const meta = agentLabel(task)
   return {
     ...base,
     group: 'idle',
@@ -120,7 +112,7 @@ function sessionItem(s: AgentSession, now: number): AttentionItem | null {
     return {
       ...base,
       group: 'waiting',
-      meta: WAIT_LABEL[s.waitReason],
+      meta: waitLabel(s.waitReason),
       waitReason: s.waitReason,
       since: s.waitingSince ?? s.lastEventAt,
     }
@@ -129,7 +121,7 @@ function sessionItem(s: AgentSession, now: number): AttentionItem | null {
     return {
       ...base,
       group: 'running',
-      meta: 'trabalhando',
+      meta: tr('agents.meta.running'),
       waitReason: null,
       since: s.runningSince ?? s.lastEventAt,
     }
@@ -138,7 +130,7 @@ function sessionItem(s: AgentSession, now: number): AttentionItem | null {
     return {
       ...base,
       group: 'review',
-      meta: 'terminou',
+      meta: tr('agents.meta.done'),
       waitReason: null,
       since: s.endedAt ?? s.lastEventAt,
     }
@@ -148,9 +140,9 @@ function sessionItem(s: AgentSession, now: number): AttentionItem | null {
 }
 
 function agentLabel(a: AgentTask): string {
-  if (a.interrupted) return 'interrompido'
-  if (a.status === 'error') return `erro${a.exitCode !== null ? ` (código ${a.exitCode})` : ''}`
-  return 'parado'
+  if (a.interrupted) return tr('agents.meta.interrupted')
+  if (a.status === 'error') return tr('agents.meta.error', { code: a.exitCode })
+  return tr('agents.meta.stopped')
 }
 
 // Tarefa do workspace: o estado vem da sessão ou do agente do Kite que mais pede atenção
@@ -189,7 +181,7 @@ function wsTaskItem(
   if (waiting?.waitReason) {
     return item(
       'waiting',
-      WAIT_LABEL[waiting.waitReason],
+      waitLabel(waiting.waitReason),
       waiting.waitingSince ?? waiting.lastEventAt,
       waiting,
       agentOf(waiting),
@@ -199,12 +191,12 @@ function wsTaskItem(
   // Agente do Kite sem hooks: a heurística do terminal diz que ele espera.
   const agentWaiting = agents.find((a) => a.alive && a.status === 'waiting')
   if (agentWaiting)
-    return item('waiting', 'esperando você', agentWaiting.startedAt, null, agentWaiting)
+    return item('waiting', tr('agents.meta.waiting'), agentWaiting.startedAt, null, agentWaiting)
   const running = linked.find((s) => s.status === 'running')
   if (running) {
     return item(
       'running',
-      'trabalhando',
+      tr('agents.meta.running'),
       running.runningSince ?? running.lastEventAt,
       running,
       agentOf(running),
@@ -212,15 +204,27 @@ function wsTaskItem(
   }
   const agentRunning = agents.find((a) => a.alive)
   if (agentRunning)
-    return item('running', 'trabalhando', agentRunning.startedAt, null, agentRunning)
+    return item('running', tr('agents.meta.running'), agentRunning.startedAt, null, agentRunning)
   const ended = linked.find(
     (s) => s.status === 'ended' && s.touchedCount > 0 && now - (s.endedAt ?? 0) < REVIEW_WINDOW_MS,
   )
   if (ended)
-    return item('review', 'terminou', ended.endedAt ?? ended.lastEventAt, ended, agentOf(ended))
+    return item(
+      'review',
+      tr('agents.meta.done'),
+      ended.endedAt ?? ended.lastEventAt,
+      ended,
+      agentOf(ended),
+    )
   const lastAgent = [...agents].sort((a, b) => b.startedAt - a.startedAt)[0]
   if (lastAgent?.status === 'done' && !lastAgent.interrupted) {
-    return item('review', 'terminou', lastAgent.endedAt ?? lastAgent.startedAt, null, lastAgent)
+    return item(
+      'review',
+      tr('agents.meta.done'),
+      lastAgent.endedAt ?? lastAgent.startedAt,
+      null,
+      lastAgent,
+    )
   }
   if (lastAgent) {
     return item(
@@ -303,18 +307,23 @@ export function nextWaiting(items: AttentionItem[], current: string | null): Att
 // "há 6 min", "há 2 h", "agora".
 export function ago(ms: number): string {
   const min = Math.floor(ms / 60_000)
-  if (min < 1) return 'agora'
-  if (min < 60) return `há ${min} min`
+  if (min < 1) return tr('agents.ago.now')
+  if (min < 60) return tr('agents.ago.min', { n: min })
   const h = Math.floor(min / 60)
-  return h < 24 ? `há ${h} h` : `há ${Math.floor(h / 24)} d`
+  return h < 24
+    ? tr('agents.ago.hours', { n: h })
+    : tr('agents.ago.days', { n: Math.floor(h / 24) })
 }
 
 // "2 min", "1 h 05 min".
 export function elapsed(ms: number): string {
   const min = Math.floor(ms / 60_000)
-  if (min < 1) return 'agora'
-  if (min < 60) return `${min} min`
-  return `${Math.floor(min / 60)} h ${String(min % 60).padStart(2, '0')} min`
+  if (min < 1) return tr('agents.ago.now')
+  if (min < 60) return tr('agents.elapsed.min', { n: min })
+  return tr('agents.elapsed.hours', {
+    h: Math.floor(min / 60),
+    min: String(min % 60).padStart(2, '0'),
+  })
 }
 
 function rel(file: string, cwd: string): string {
@@ -325,37 +334,41 @@ function rel(file: string, cwd: string): string {
 export function doing(item: AttentionItem): string {
   const s = item.session
   const act = s?.activity
-  if (!s || !act) return item.task && !s ? 'Trabalhando no terminal' : 'Pensando'
+  if (!s || !act) return item.task && !s ? tr('agents.doing.terminal') : tr('agents.doing.thinking')
   const d = act.detail
   switch (act.tool) {
     case 'Edit':
     case 'Write':
     case 'MultiEdit':
     case 'NotebookEdit':
-      return d ? `Editando ${rel(d, s.cwd)}` : 'Editando arquivos'
+      return d
+        ? tr('agents.doing.editing', { file: rel(d, s.cwd) })
+        : tr('agents.doing.editingFiles')
     case 'Read':
-      return d ? `Lendo ${rel(d, s.cwd)}` : 'Lendo arquivos'
+      return d
+        ? tr('agents.doing.reading', { file: rel(d, s.cwd) })
+        : tr('agents.doing.readingFiles')
     case 'Bash':
-      return d ? `Rodando ${d}` : 'Rodando um comando'
+      return d ? tr('agents.doing.running', { command: d }) : tr('agents.doing.runningCommand')
     case 'Grep':
     case 'Glob':
-      return 'Buscando no código'
+      return tr('agents.doing.searching')
     case 'WebFetch':
     case 'WebSearch':
-      return 'Pesquisando na web'
+      return tr('agents.doing.web')
     case 'Task':
     case 'Agent':
-      return 'Delegando a um subagente'
+      return tr('agents.doing.delegating')
     default:
-      return `Usando ${act.tool}`
+      return tr('agents.doing.using', { tool: act.tool })
   }
 }
 
 export function chipLabel(item: AttentionItem): string {
-  if (item.waitReason === 'permission') return 'Pede permissão'
-  if (item.waitReason === 'input') return 'Precisa de resposta'
-  if (item.waitReason === 'turn') return 'Sua vez'
-  return 'Esperando'
+  if (item.waitReason === 'permission') return tr('agents.chip.permission')
+  if (item.waitReason === 'input') return tr('agents.chip.input')
+  if (item.waitReason === 'turn') return tr('agents.chip.turn')
+  return tr('agents.chip.waiting')
 }
 
 function clock(ts: number): string {
@@ -366,11 +379,19 @@ function clock(ts: number): string {
 // "Claude Code · iniciado 10:42 em ~/projetos/loja" ou "… · rodando fora do Kite".
 export function origin(item: AttentionItem): string {
   if (item.task) {
-    return `${item.task.presetName} · iniciado ${clock(item.task.startedAt)} em ${tildePath(item.task.worktreePath)}`
+    return tr('agents.origin.started', {
+      who: item.task.presetName,
+      time: clock(item.task.startedAt),
+      where: tildePath(item.task.worktreePath),
+    })
   }
   const s = item.session
   if (!s) return ''
   return item.inKite
-    ? `${CLI_LABEL[s.cli]} · iniciado ${clock(s.startedAt)} em ${tildePath(s.cwd)}`
-    : `${CLI_LABEL[s.cli]} · rodando fora do Kite`
+    ? tr('agents.origin.started', {
+        who: CLI_LABEL[s.cli],
+        time: clock(s.startedAt),
+        where: tildePath(s.cwd),
+      })
+    : tr('agents.origin.outside', { who: CLI_LABEL[s.cli] })
 }

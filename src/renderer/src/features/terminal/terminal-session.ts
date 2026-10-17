@@ -11,6 +11,7 @@ import { routePty, unseenPart } from './pty-router'
 import { useThemeStore } from '../../stores/theme.store'
 import { terminalTheme } from './terminal-theme'
 import { useSettingsStore } from '../../stores/settings.store'
+import { t } from '../../lib/i18n'
 
 export const SCROLLBACK_LINES = 5000
 const SAVED_LINES = 1000
@@ -88,7 +89,7 @@ export class TerminalSession {
   private async startShell(cwd: string, restore?: string, input?: string): Promise<void> {
     if (restore) {
       this.term.write(restore)
-      this.term.write('\r\n\x1b[2m── sessão restaurada ──\x1b[0m\r\n')
+      this.term.write(`\r\n\x1b[2m${t('terminal.restored')}\x1b[0m\r\n`)
     }
     const res = await window.api.pty.create({
       cwd,
@@ -97,7 +98,7 @@ export class TerminalSession {
     })
     if (!res.ok) {
       this.term.write(
-        `\r\n\x1b[31mNão foi possível iniciar o terminal: ${res.error.message}\x1b[0m\r\n`,
+        `\r\n\x1b[31m${t('terminal.startError', { reason: res.error.message })}\x1b[0m\r\n`,
       )
       return
     }
@@ -152,9 +153,7 @@ export class TerminalSession {
       if (part) this.term.write(part)
     }
     if (!ptyId || !snap.data.ptyId) {
-      this.term.write(
-        '\r\n\x1b[2m[agente encerrado · para continuar, use "Reiniciar agente" no menu da tarefa]\x1b[0m\r\n',
-      )
+      this.term.write(`\r\n\x1b[2m${t('terminal.agentEnded')}\x1b[0m\r\n`)
       unroute?.()
       return
     }

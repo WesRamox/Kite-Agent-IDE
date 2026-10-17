@@ -34,10 +34,10 @@ test('configurações: fonte do editor e do terminal, notificações, idioma e p
     await expect(settings).toBeVisible()
     await expect(page.getByRole('radiogroup', { name: 'Tema' }).getByRole('radio')).toHaveCount(6)
 
-    // Idioma: só português por enquanto.
+    // Idioma: o do sistema (os testes rodam com --lang=pt-BR); inglês disponível.
     const language = page.getByRole('radiogroup', { name: 'Idioma da interface' })
     await expect(language.getByRole('radio', { name: 'Português (Brasil)' })).toBeChecked()
-    await expect(language.getByRole('radio', { name: 'English' })).toBeDisabled()
+    await expect(language.getByRole('radio', { name: 'English' })).toBeEnabled()
 
     // Fontes: 13 → 15 no editor, 13 → 10 no terminal (inclusive no terminal já aberto).
     const editorFont = page.getByRole('group', { name: 'Fonte do editor' })

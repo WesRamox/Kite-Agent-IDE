@@ -6,6 +6,7 @@ import { toast } from '../../stores/toast.store'
 import { useWorkspaceStore } from '../../stores/workspace.store'
 import { refreshGit } from '../git/git-sync'
 import { useGitHubStore } from './github.store'
+import { t } from '../../lib/i18n'
 
 export const PR_COMPONENT = 'github-pr'
 export const ISSUE_COMPONENT = 'github-issue'
@@ -62,17 +63,14 @@ export async function login(): Promise<void> {
     if (poll.status === 'success') {
       store().set({ login: { kind: 'idle' } })
       await loadAuth()
-      toast.info(`Conectado ao GitHub como ${poll.user.login}.`)
+      toast.info(t('github.connected', { login: poll.user.login }))
       await loadRepo()
       return
     }
     store().set({
       login: {
         kind: 'error',
-        message:
-          poll.status === 'denied'
-            ? 'Autorização negada no GitHub.'
-            : 'O código expirou. Tente de novo.',
+        message: poll.status === 'denied' ? t('github.denied') : t('github.expired'),
       },
     })
     return
@@ -85,7 +83,7 @@ export function cancelLogin(): void {
 }
 
 export async function logout(): Promise<void> {
-  await attempt(window.api.github.logout(), 'Erro ao sair')
+  await attempt(window.api.github.logout(), t('github.signOutError'))
   store().set({ prs: null, issues: null, repo: undefined })
   await loadAuth()
 }
@@ -147,7 +145,7 @@ export function openIssue(number: number, title: string): void {
 }
 
 export function openCreatePull(): void {
-  openPanel(`${PREFIX}create-pr`, CREATE_PR_COMPONENT, 'Novo PR', {})
+  openPanel(`${PREFIX}create-pr`, CREATE_PR_COMPONENT, t('github.newPRTab'), {})
 }
 
 export function closeGitHubPanel(id: string): void {
@@ -162,20 +160,20 @@ export async function checkoutPull(number: number): Promise<void> {
   if (!r) return
   const res = await attempt(
     window.api.github.checkoutPR(r, number),
-    `Erro ao abrir o PR #${number}`,
+    t('github.checkoutError', { number }),
   )
   if (!res) return
-  toast.info(`PR #${number} na worktree ${res.branch}.`)
+  toast.info(t('github.checkedOut', { number, branch: res.branch }))
   await openWorktree(res.path)
 }
 
 export async function createPull(input: CreatePullInput): Promise<boolean> {
   const r = root()
   if (!r) return false
-  const res = await attempt(window.api.github.createPR(r, input), 'Erro ao criar o PR')
+  const res = await attempt(window.api.github.createPR(r, input), t('github.createPRError'))
   await refreshGit()
   if (!res) return false
-  toast.info(`PR #${res.number} criado.`)
+  toast.info(t('github.prCreated', { number: res.number }))
   closeGitHubPanel(`${PREFIX}create-pr`)
   openPull(res.number, input.title)
   if (store().tab === 'prs') void loadList()

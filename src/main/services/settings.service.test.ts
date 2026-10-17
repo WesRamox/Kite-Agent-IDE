@@ -2,7 +2,12 @@ import { writeFile } from 'node:fs/promises'
 import path from 'node:path'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { JsonStore } from '../lib/json-store'
-import { DEFAULT_SETTINGS, settingsPatchSchema, settingsSchema } from '../lib/settings-schema'
+import {
+  DEFAULT_SETTINGS,
+  settingsPatchSchema,
+  settingsSchema,
+  settingsSchemaWith,
+} from '../lib/settings-schema'
 import { makeTree } from '../test/tmp'
 import { SettingsService } from './settings.service'
 
@@ -32,6 +37,21 @@ describe('SettingsService', () => {
     })
   })
 
+  it('idioma padrão vem de fora (do sistema) e a troca é aplicada no main', async () => {
+    const applyLanguage = vi.fn()
+    const defaults = { ...DEFAULT_SETTINGS, language: 'en' as const }
+    const svc = new SettingsService({
+      store: new JsonStore(path.join(dir, 's.json'), settingsSchemaWith(defaults), defaults),
+      applyTheme: vi.fn(),
+      applyLanguage,
+      defaults,
+    })
+    await expect(svc.init()).resolves.toMatchObject({ language: 'en' })
+    expect(applyLanguage).toHaveBeenLastCalledWith('en')
+    await svc.update({ language: 'pt-BR' })
+    expect(applyLanguage).toHaveBeenLastCalledWith('pt-BR')
+  })
+
   it('arquivo antigo (só o tema) ou com um campo inválido mantém o resto', async () => {
     await writeFile(
       path.join(dir, 's.json'),
@@ -45,6 +65,7 @@ describe('SettingsService', () => {
     expect(settingsPatchSchema.safeParse({ terminalFontSize: 16 }).success).toBe(true)
     expect(settingsPatchSchema.safeParse({ terminalFontSize: 40 }).success).toBe(false)
     expect(settingsPatchSchema.safeParse({ theme: 'light' }).success).toBe(false)
-    expect(settingsPatchSchema.safeParse({ language: 'en' }).success).toBe(false)
+    expect(settingsPatchSchema.safeParse({ language: 'en' }).success).toBe(true)
+    expect(settingsPatchSchema.safeParse({ language: 'fr' }).success).toBe(false)
   })
 })

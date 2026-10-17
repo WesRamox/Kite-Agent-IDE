@@ -6,6 +6,7 @@ import { useAgentsStore } from './agents.store'
 import { attentionItems, groupItems, type AttentionGroup, type AttentionItem } from './attention'
 import { useSessionsStore } from './sessions.store'
 import { useNow } from './use-now'
+import { useLang } from '../../lib/i18n'
 
 // Itens da Central: agentes do Kite, tarefas do workspace (com as sessões ligadas) e sessões
 // soltas.
@@ -25,9 +26,12 @@ export function useAttentionItems(refreshMs = 30_000): AttentionItem[] {
   const tasks = useAgentsStore((s) => s.tasks)
   const workspace = useTasksStore((s) => s.workspace)
   const now = useNow(true, refreshMs)
+  // Os rótulos dos itens dependem do idioma: refaz a lista ao trocar.
+  const lang = useLang()
   return useMemo(
     () => buildItems(sessions, tasks, workspace, now),
-    [sessions, tasks, workspace, now],
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [sessions, tasks, workspace, now, lang],
   )
 }
 

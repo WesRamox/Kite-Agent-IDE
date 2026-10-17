@@ -1,6 +1,7 @@
 import { realpath } from 'node:fs/promises'
 import path from 'node:path'
 import { AppException } from './errors'
+import { t } from './i18n'
 
 export function isInside(root: string, target: string): boolean {
   const rel = path.relative(root, target)
@@ -8,7 +9,7 @@ export function isInside(root: string, target: string): boolean {
 }
 
 function forbidden(): AppException {
-  return new AppException('FORBIDDEN_PATH', 'Caminho fora das pastas abertas')
+  return new AppException('FORBIDDEN_PATH', t('error.outsideRoots'))
 }
 
 async function realpathOrNull(p: string): Promise<string | null> {
@@ -27,7 +28,7 @@ export class WorkspaceGuard {
 
   async addRoot(dir: string): Promise<string> {
     const real = await realpathOrNull(path.resolve(dir))
-    if (!real) throw new AppException('NOT_FOUND', 'Pasta não encontrada')
+    if (!real) throw new AppException('NOT_FOUND', t('error.folderNotFound'))
     this.roots.add(real)
     return real
   }
@@ -52,7 +53,7 @@ export class WorkspaceGuard {
   async resolveExisting(input: string): Promise<string> {
     const lexical = this.checkLexical(input)
     const real = await realpathOrNull(lexical)
-    if (!real) throw new AppException('NOT_FOUND', 'Arquivo ou pasta não encontrado')
+    if (!real) throw new AppException('NOT_FOUND', t('error.notFound'))
     if (!this.rootOf(real)) throw forbidden()
     return real
   }

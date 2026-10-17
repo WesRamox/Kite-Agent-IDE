@@ -11,6 +11,7 @@ import type { DiffParams } from './git.actions'
 import { useGitStore } from './git.store'
 import { CODE_FONT } from '../../lib/code-font'
 import { useSettingsStore } from '../../stores/settings.store'
+import { useT } from '../../lib/i18n'
 
 type State =
   { kind: 'loading' } | { kind: 'error'; message: string } | { kind: 'ready'; diff: GitDiff }
@@ -18,6 +19,7 @@ type State =
 export function DiffPanel({ api, params }: IDockviewPanelProps<DiffParams>) {
   const fontSize = useSettingsStore((s) => s.settings.editorFontSize)
   const monacoTheme = useMonacoTheme()
+  const t = useT()
   const { path, staged } = params
   const root = useGitStore((s) => s.root)
   // Recarrega quando o status do git muda (novo stage, arquivo salvo, commit...).
@@ -44,21 +46,21 @@ export function DiffPanel({ api, params }: IDockviewPanelProps<DiffParams>) {
     <div className="flex h-full w-full flex-col overflow-hidden">
       <div className="flex h-7 shrink-0 items-center gap-3 border-b border-border px-3 text-[11px] text-fg-muted">
         <span className="truncate">
-          {staged ? 'HEAD ↔ stage' : 'stage ↔ arquivo no disco'} · {path}
+          {staged ? t('git.diffStaged') : t('git.diffWorking')} · {path}
         </span>
         <button
           type="button"
           onClick={() => void openFile(path)}
           className="ml-auto flex items-center gap-1 hover:text-fg"
         >
-          <FileText size={12} /> Abrir arquivo
+          <FileText size={12} /> {t('quickOpen.label')}
         </button>
       </div>
       <div className="min-h-0 flex-1">
-        {state.kind === 'loading' && <p className="p-4 text-fg-muted">Carregando diff…</p>}
+        {state.kind === 'loading' && <p className="p-4 text-fg-muted">{t('git.loadingDiff')}</p>}
         {state.kind === 'error' && <p className="p-4 text-danger">{state.message}</p>}
         {state.kind === 'ready' && state.diff.binary && (
-          <p className="p-4 text-fg-muted">Arquivo binário: diff não disponível.</p>
+          <p className="p-4 text-fg-muted">{t('git.binary')}</p>
         )}
         {state.kind === 'ready' && !state.diff.binary && (
           <DiffEditor

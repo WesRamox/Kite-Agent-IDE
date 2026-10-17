@@ -18,6 +18,7 @@ import type { JsonStore } from '../lib/json-store'
 import type { ShellSpec } from '../lib/shell'
 import type { GitService } from './git.service'
 import type { PtyService } from './pty.service'
+import { t } from '../lib/i18n'
 
 export const DEFAULT_PRESETS: AgentPreset[] = [
   { id: 'claude', name: 'Claude Code', command: 'claude', promptMode: 'arg', promptFlag: '' },
@@ -108,13 +109,12 @@ export class AgentService {
   async start(input: StartAgentInput): Promise<AgentTask> {
     const preset = this.preset(input.presetId)
     if (!preset.command.trim()) {
-      throw new AppException('INVALID_ARGS', `Defina o comando do preset "${preset.name}"`)
+      throw new AppException('INVALID_ARGS', t('error.presetCommandMissing', { name: preset.name }))
     }
     const status = await this.deps.git.status(input.root)
-    if (!status.isRepo)
-      throw new AppException('NOT_A_REPO', 'A pasta aberta não é um repositório Git')
+    if (!status.isRepo) throw new AppException('NOT_A_REPO', t('error.openFolderNotARepo'))
     const baseBranch = status.branch ?? status.head
-    if (!baseBranch) throw new AppException('GIT_ERROR', 'O repositório ainda não tem commits')
+    if (!baseBranch) throw new AppException('GIT_ERROR', t('error.noCommits'))
 
     const branch = await this.uniqueBranch(input.root, `agent/${taskSlug(input.name)}`)
     const { path: worktreePath } = await this.deps.git.addWorktree(input.root, branch, true)
@@ -153,14 +153,14 @@ export class AgentService {
 
   async restart(id: string): Promise<AgentTask> {
     const task = this.task(id)
-    if (task.alive) throw new AppException('INVALID_ARGS', 'O agente ainda está rodando')
+    if (task.alive) throw new AppException('INVALID_ARGS', t('error.agentStillRunning'))
     if (
       !(await stat(task.worktreePath).then(
         (s) => s.isDirectory(),
         () => false,
       ))
     ) {
-      throw new AppException('NOT_FOUND', 'A worktree da tarefa não existe mais')
+      throw new AppException('NOT_FOUND', t('error.taskWorktreeGone'))
     }
     Object.assign(task, {
       status: 'running',
@@ -187,7 +187,7 @@ export class AgentService {
   }): AgentTask {
     const preset = this.preset(input.presetId)
     if (!preset.command.trim()) {
-      throw new AppException('INVALID_ARGS', `Defina o comando do preset "${preset.name}"`)
+      throw new AppException('INVALID_ARGS', t('error.presetCommandMissing', { name: preset.name }))
     }
     const task: AgentTask = {
       id: randomUUID(),
@@ -366,13 +366,13 @@ export class AgentService {
 
   private task(id: string): AgentTask {
     const task = this.state.tasks.find((t) => t.id === id)
-    if (!task) throw new AppException('NOT_FOUND', 'Tarefa não encontrada')
+    if (!task) throw new AppException('NOT_FOUND', t('error.taskNotFound'))
     return task
   }
 
   private preset(id: string): AgentPreset {
     const preset = this.state.presets.find((p) => p.id === id)
-    if (!preset) throw new AppException('NOT_FOUND', 'Preset não encontrado')
+    if (!preset) throw new AppException('NOT_FOUND', t('error.presetNotFound'))
     return preset
   }
 
@@ -381,7 +381,7 @@ export class AgentService {
       const candidate = i === 1 ? base : `${base}-${i}`
       if (!(await this.deps.git.branchExists(root, candidate))) return candidate
     }
-    throw new AppException('ALREADY_EXISTS', 'Muitas tarefas com esse nome')
+    throw new AppException('ALREADY_EXISTS', t('error.tooManyTasksWithName'))
   }
 
   private now(): number {

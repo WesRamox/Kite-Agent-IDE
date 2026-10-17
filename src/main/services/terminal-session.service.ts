@@ -5,6 +5,7 @@ import type { TerminalSession } from '@shared/types'
 import { AppException } from '../lib/errors'
 import { JsonStore } from '../lib/json-store'
 import type { WorkspaceGuard } from '../lib/workspace-guard'
+import { t } from '../lib/i18n'
 
 export const MAX_SESSIONS = 20
 export const MAX_SCROLLBACK_CHARS = 2_000_000
@@ -32,7 +33,8 @@ export class TerminalSessionService {
   }
 
   private store(root: string): JsonStore<{ sessions: TerminalSession[] }> {
-    if (!this.guard.isRoot(root)) throw new AppException('FORBIDDEN_PATH', 'Não é uma pasta aberta')
+    if (!this.guard.isRoot(root))
+      throw new AppException('FORBIDDEN_PATH', t('error.notAnOpenFolder'))
     const key = createHash('sha256').update(root).digest('hex').slice(0, 24)
     return new JsonStore(path.join(this.dir, `${key}.json`), fileSchema, { sessions: [] })
   }

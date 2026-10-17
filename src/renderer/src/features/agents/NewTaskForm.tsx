@@ -6,6 +6,7 @@ import { branchSlug } from '../tasks/branch-slug'
 import { createTaskWithAgent } from '../tasks/tasks.actions'
 import { useTasksStore } from '../tasks/tasks.store'
 import { useAgentsStore } from './agents.store'
+import { useT } from '../../lib/i18n'
 
 // "Nova tarefa" (Fase 10): nome → branch → repositórios → worktrees no padrão do workspace →
 // agente na pasta da tarefa com o prompt inicial. Com um repo só, é o fluxo da Fase 5.
@@ -27,6 +28,7 @@ export function NewTaskForm({ onDone }: { onDone: () => void }) {
   const [presetId, setPresetId] = useState(() => presets[0]?.id ?? 'claude')
   const [prompt, setPrompt] = useState('')
   const [busy, setBusy] = useState(false)
+  const t = useT()
 
   const finalBranch = branch ?? branchSlug(name)
   const preset = presets.find((p) => p.id === presetId)
@@ -50,7 +52,7 @@ export function NewTaskForm({ onDone }: { onDone: () => void }) {
 
   return (
     <form
-      aria-label="Nova tarefa"
+      aria-label={t('newTask.form')}
       className="flex flex-col gap-2 border-b border-border px-3.5 pt-2.5 pb-3"
       onSubmit={(e) => {
         e.preventDefault()
@@ -61,20 +63,20 @@ export function NewTaskForm({ onDone }: { onDone: () => void }) {
         autoFocus
         value={name}
         onChange={(e) => setName(e.target.value)}
-        placeholder="Nome da tarefa (ex.: PAY-415 Estorno parcial)"
-        aria-label="Nome da tarefa"
+        placeholder={t('newTask.namePlaceholder')}
+        aria-label={t('newTask.name')}
         className={FIELD}
       />
       <input
         value={finalBranch}
         onChange={(e) => setBranch(e.target.value)}
-        placeholder="Branch"
-        aria-label="Branch"
+        placeholder={t('newTask.branch')}
+        aria-label={t('newTask.branch')}
         className={`font-geist-mono text-xs ${FIELD}`}
       />
-      <fieldset className="m-0 flex flex-col gap-1 border-0 p-0" aria-label="Repositórios">
+      <fieldset className="m-0 flex flex-col gap-1 border-0 p-0" aria-label={t('newTask.repos')}>
         {repos.length === 0 && (
-          <span className="text-[11px] text-fg-muted">Nenhum repositório nesta pasta.</span>
+          <span className="text-[11px] text-fg-muted">{t('newTask.noRepos')}</span>
         )}
         {repos.map((r) => (
           <label key={r.path} className="flex items-center gap-2 text-xs" title={r.path}>
@@ -98,16 +100,16 @@ export function NewTaskForm({ onDone }: { onDone: () => void }) {
       <select
         value={presetId}
         onChange={(e) => setPresetId(e.target.value)}
-        aria-label="Agente"
+        aria-label={t('newTask.agent')}
         className={FIELD}
       >
         {presets.map((p) => (
           <option key={p.id} value={p.id}>
             {p.name}
-            {p.command.trim() ? ` — ${p.command}` : ' (sem comando)'}
+            {p.command.trim() ? ` — ${p.command}` : t('newTask.noCommand')}
           </option>
         ))}
-        <option value={NO_AGENT}>Nenhum (só criar a tarefa)</option>
+        <option value={NO_AGENT}>{t('newTask.noAgent')}</option>
       </select>
       {presetId !== NO_AGENT && (
         <textarea
@@ -120,19 +122,19 @@ export function NewTaskForm({ onDone }: { onDone: () => void }) {
             }
           }}
           rows={4}
-          placeholder="Prompt inicial (opcional)"
-          aria-label="Prompt inicial"
+          placeholder={t('newTask.promptPlaceholder')}
+          aria-label={t('newTask.prompt')}
           className={`resize-y ${FIELD}`}
         />
       )}
       <p className="text-[11px] leading-normal text-fg-muted">
         {!root
-          ? 'Abra uma pasta para criar tarefas.'
+          ? t('newTask.openFolder')
           : missingCommand
-            ? 'Defina o comando deste preset em Conectar agentes → Outros CLIs → Ajustar.'
+            ? t('newTask.missingCommand')
             : chosen.size > 1 || (repos.length > 1 && chosen.size === 1)
-              ? `Cria uma worktree por repo na branch ${finalBranch || '…'}, na pasta da tarefa.`
-              : `Cria a branch ${finalBranch || '…'} e uma worktree a partir do HEAD do repositório.`}
+              ? t('newTask.multiRepo', { branch: finalBranch || '…' })
+              : t('newTask.singleRepo', { branch: finalBranch || '…' })}
       </p>
       <button
         type="submit"
@@ -140,7 +142,11 @@ export function NewTaskForm({ onDone }: { onDone: () => void }) {
         className="flex items-center justify-center gap-1.5 rounded-md bg-accent py-1 text-accent-fg enabled:hover:bg-accent/85 disabled:opacity-40"
       >
         <Play size={14} />{' '}
-        {busy ? 'Criando worktrees…' : presetId === NO_AGENT ? 'Criar tarefa' : 'Iniciar agente'}
+        {busy
+          ? t('newTask.creating')
+          : presetId === NO_AGENT
+            ? t('newTask.create')
+            : t('newTask.start')}
       </button>
     </form>
   )

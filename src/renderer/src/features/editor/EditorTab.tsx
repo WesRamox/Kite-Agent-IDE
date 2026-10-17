@@ -4,10 +4,12 @@ import { FileIcon } from '../explorer/FileIcon'
 import { useActiveTask, worktreeOf } from '../tasks/tasks.store'
 import { closeFile } from './editor.actions'
 import { useEditorStore } from './editor.store'
+import { useT } from '../../lib/i18n'
 
 export function EditorTab({ api, params }: IDockviewPanelHeaderProps<{ path: string }>) {
   const path = params.path
   const dirty = useEditorStore((s) => s.tabs[path]?.dirty ?? false)
+  const t = useT()
   // Na tarefa, o repo do arquivo vem antes do nome (dois repos podem ter o mesmo arquivo).
   const repo = worktreeOf(useActiveTask(), path)?.repoName
 
@@ -32,7 +34,7 @@ export function EditorTab({ api, params }: IDockviewPanelHeaderProps<{ path: str
       <span className={dirty ? 'italic' : ''}>{api.title}</span>
       <button
         type="button"
-        aria-label={dirty ? 'Não salvo. Fechar' : 'Fechar'}
+        aria-label={dirty ? t('editor.closeDirty') : t('editor.close')}
         onClick={(e) => {
           e.stopPropagation()
           void closeFile(path)

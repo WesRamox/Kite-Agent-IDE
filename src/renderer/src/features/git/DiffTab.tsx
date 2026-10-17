@@ -1,8 +1,10 @@
 import type { IDockviewPanelHeaderProps } from 'dockview-react'
 import { GitCompare, X } from 'lucide-react'
 import { closeDiff } from './git.actions'
+import { useT } from '../../lib/i18n'
 
 export function DiffTab({ api }: IDockviewPanelHeaderProps) {
+  const t = useT()
   return (
     <div
       onMouseDown={(e) => {
@@ -17,7 +19,7 @@ export function DiffTab({ api }: IDockviewPanelHeaderProps) {
       <span>{api.title}</span>
       <button
         type="button"
-        aria-label="Fechar diff"
+        aria-label={t('git.closeDiff')}
         onClick={(e) => {
           e.stopPropagation()
           closeDiff(api.id)

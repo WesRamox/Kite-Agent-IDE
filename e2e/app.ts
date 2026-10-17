@@ -35,6 +35,7 @@ export interface LaunchOptions {
   // Reaproveita um perfil (para testar fechar e reabrir). Não é apagado no cleanup.
   userData?: string
   env?: Record<string, string>
+  lang?: string
 }
 
 export async function makeWorkspace(files: Record<string, string | Buffer>): Promise<string> {
@@ -51,7 +52,8 @@ export async function launch(workspace: string, opts: LaunchOptions = {}): Promi
   const userData = opts.userData ?? (await mkdtemp(path.join(tmpdir(), 'kite-profile-')))
   const app = await electron.launch({
     // password-store=basic: não toca no chaveiro do sistema durante os testes.
-    args: [path.join(__dirname, '..'), '--password-store=basic'],
+    // --lang fixa o idioma do sistema (o padrão do Kite): os testes rodam em português.
+    args: [path.join(__dirname, '..'), '--password-store=basic', `--lang=${opts.lang ?? 'pt-BR'}`],
     env: {
       ...process.env,
       ...GIT_TEST_ENV,

@@ -1,6 +1,7 @@
 import type { DeliverResult, Task, TaskReview } from '@shared/types'
 import { useState } from 'react'
 import { deliverTask } from './review.actions'
+import { t, useT } from '../../lib/i18n'
 
 // Commit em lote e PRs da tarefa (Fase 9). Fora do canvas: segue o estilo dos diálogos do app.
 
@@ -9,8 +10,12 @@ const INPUT =
 const LABEL = 'text-[11px] font-semibold uppercase tracking-[0.08em] text-fg-muted'
 
 function defaultBody(task: Task): string {
-  const lines = [`Tarefa: ${task.key === task.name ? task.key : `${task.key} · ${task.name}`}`]
-  if (task.cardUrl) lines.push(`Card: ${task.cardUrl}`)
+  const lines = [
+    t('deliver.bodyTask', {
+      task: task.key === task.name ? task.key : `${task.key} · ${task.name}`,
+    }),
+  ]
+  if (task.cardUrl) lines.push(t('deliver.bodyCard', { url: task.cardUrl }))
   return lines.join('\n')
 }
 
@@ -23,6 +28,7 @@ export function DeliverDialog(props: {
 }) {
   const { task, review } = props
   const [chosen, setChosen] = useState<Set<string>>(new Set(props.initial))
+  const tr = useT()
   const [message, setMessage] = useState('')
   const [title, setTitle] = useState(
     task.key === task.name ? task.name : `${task.key} ${task.name}`,
@@ -66,23 +72,27 @@ export function DeliverDialog(props: {
     >
       <div
         role="dialog"
-        aria-label={props.openPRs ? 'Commit e PRs da tarefa' : 'Commit da tarefa'}
+        aria-label={props.openPRs ? tr('deliver.labelPRs') : tr('deliver.labelCommit')}
         className="flex h-fit max-h-[80vh] w-[620px] flex-col gap-4 overflow-y-auto rounded-[10px] border border-border bg-surface-1 p-5 font-geist text-[13px] text-fg shadow-2xl"
       >
         <h2 className="text-base font-semibold">
-          {props.openPRs ? 'Commit e PRs' : 'Commit'} · {task.name}
+          {props.openPRs
+            ? tr('deliver.titlePRs', { name: task.name })
+            : tr('deliver.titleCommit', { name: task.name })}
         </h2>
 
         {results ? (
           <>
-            <ul aria-label="Resultado" className="flex flex-col gap-2">
+            <ul aria-label={tr('deliver.result')} className="flex flex-col gap-2">
               {results.map((r) => (
                 <li
                   key={r.worktree}
                   className="flex flex-wrap items-center gap-2 rounded-lg border border-border bg-surface-0 px-3 py-2"
                 >
                   <span className="font-geist-mono font-medium">{r.repoName}</span>
-                  {r.committed && <span className="text-xs text-success">commit feito</span>}
+                  {r.committed && (
+                    <span className="text-xs text-success">{tr('deliver.committed')}</span>
+                  )}
                   {r.pr && (
                     <a
                       href={r.pr.url}
@@ -90,8 +100,9 @@ export function DeliverDialog(props: {
                       rel="noreferrer"
                       className="text-xs text-accent"
                     >
-                      PR #{r.pr.number}
-                      {r.pr.created ? ' aberto' : ' atualizado'}
+                      {r.pr.created
+                        ? tr('deliver.prOpened', { number: r.pr.number })
+                        : tr('deliver.prUpdated', { number: r.pr.number })}
                     </a>
                   )}
                   {r.error && <span className="w-full text-xs text-danger">{r.error}</span>}
@@ -104,14 +115,14 @@ export function DeliverDialog(props: {
                 onClick={props.onClose}
                 className="h-8 rounded-[7px] bg-accent px-3.5 font-semibold text-accent-fg hover:bg-accent/85"
               >
-                Fechar
+                {tr('deliver.close')}
               </button>
             </div>
           </>
         ) : (
           <>
             <fieldset className="m-0 flex flex-col gap-2 border-0 p-0">
-              <legend className={`mb-2 ${LABEL}`}>Repositórios</legend>
+              <legend className={`mb-2 ${LABEL}`}>{tr('deliver.repos')}</legend>
               {review.repos.map((r) => (
                 <label key={r.worktree} className="flex flex-wrap items-center gap-2.5">
                   <input
@@ -130,15 +141,17 @@ export function DeliverDialog(props: {
                   />
                   <span className="w-20 font-geist-mono font-medium">{r.repoName}</span>
                   <span className="flex-1 text-xs text-fg-muted">
-                    {r.uncommitted} não {r.uncommitted === 1 ? 'commitado' : 'commitados'} ·{' '}
-                    {r.ahead} {r.ahead === 1 ? 'commit' : 'commits'} à frente
+                    {tr('deliver.repoState', { uncommitted: r.uncommitted, ahead: r.ahead })}
                     {r.pr
-                      ? ` · PR #${r.pr.number} ${r.pr.state === 'open' ? 'aberto' : r.pr.state}`
+                      ? tr('deliver.prState', {
+                          number: r.pr.number,
+                          state: tr(`details.pr.${r.pr.state}`),
+                        })
                       : ''}
                   </span>
                   {props.openPRs && !(r.pr?.state === 'open') && (
                     <input
-                      aria-label={`Base de ${r.repoName}`}
+                      aria-label={tr('deliver.base', { repo: r.repoName })}
                       value={bases[r.worktree] ?? ''}
                       onChange={(e) => setBases((b) => ({ ...b, [r.worktree]: e.target.value }))}
                       className={`h-7 w-28 font-geist-mono text-xs ${INPUT}`}
@@ -150,7 +163,7 @@ export function DeliverDialog(props: {
 
             {needsMessage && (
               <label className="flex flex-col gap-1.5">
-                <span className={LABEL}>Mensagem do commit</span>
+                <span className={LABEL}>{tr('deliver.message')}</span>
                 <textarea
                   value={message}
                   onChange={(e) => setMessage(e.target.value)}
@@ -164,7 +177,7 @@ export function DeliverDialog(props: {
             {props.openPRs && (
               <>
                 <label className="flex flex-col gap-1.5">
-                  <span className={LABEL}>Título do PR</span>
+                  <span className={LABEL}>{tr('deliver.prTitle')}</span>
                   <input
                     value={title}
                     onChange={(e) => setTitle(e.target.value)}
@@ -172,16 +185,14 @@ export function DeliverDialog(props: {
                   />
                 </label>
                 <label className="flex flex-col gap-1.5">
-                  <span className={LABEL}>Descrição</span>
+                  <span className={LABEL}>{tr('deliver.description')}</span>
                   <textarea
                     value={body}
                     onChange={(e) => setBody(e.target.value)}
                     rows={4}
                     className={`resize-y py-2 ${INPUT}`}
                   />
-                  <span className="text-xs text-fg-muted">
-                    Com mais de um repo, cada PR ganha no fim os links dos outros PRs da tarefa.
-                  </span>
+                  <span className="text-xs text-fg-muted">{tr('deliver.crossLinks')}</span>
                 </label>
                 <label className="flex items-center gap-2 text-xs">
                   <input
@@ -190,7 +201,7 @@ export function DeliverDialog(props: {
                     onChange={(e) => setDraft(e.target.checked)}
                     className="accent-accent"
                   />
-                  Abrir como rascunho
+                  {tr('deliver.draft')}
                 </label>
               </>
             )}
@@ -202,7 +213,7 @@ export function DeliverDialog(props: {
                 onClick={props.onClose}
                 className="h-8 rounded-[7px] px-3 text-fg-muted hover:text-fg"
               >
-                Cancelar
+                {tr('common.cancel')}
               </button>
               {props.openPRs && (
                 <button
@@ -211,7 +222,7 @@ export function DeliverDialog(props: {
                   onClick={() => void submit(false)}
                   className="h-8 rounded-[7px] border border-border bg-surface-2 px-3 text-fg hover:bg-surface-3 disabled:opacity-50"
                 >
-                  Só commitar
+                  {tr('deliver.commitOnly')}
                 </button>
               )}
               <button
@@ -220,7 +231,11 @@ export function DeliverDialog(props: {
                 onClick={() => void submit(props.openPRs)}
                 className="h-8 rounded-[7px] bg-accent px-3.5 font-semibold text-accent-fg hover:bg-accent/85 disabled:opacity-50"
               >
-                {busy ? 'Enviando…' : props.openPRs ? 'Commit e abrir PRs' : 'Commitar'}
+                {busy
+                  ? tr('deliver.sending')
+                  : props.openPRs
+                    ? tr('deliver.commitAndPRs')
+                    : tr('deliver.commit')}
               </button>
             </div>
           </>

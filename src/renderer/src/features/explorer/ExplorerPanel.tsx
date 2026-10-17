@@ -10,6 +10,7 @@ import { FileTree } from './FileTree'
 import { TaskExplorer } from '../tasks/TaskExplorer'
 import { useTasksStore } from '../tasks/tasks.store'
 import type { TreeNodeData } from './tree-data'
+import { useT } from '../../lib/i18n'
 
 function IconButton(props: { label: string; onClick: () => void; children: React.ReactNode }) {
   return (
@@ -28,6 +29,7 @@ function IconButton(props: { label: string; onClick: () => void; children: React
 export function ExplorerPanel() {
   const root = useWorkspaceStore((s) => s.root)
   const taskOpen = useTasksStore((s) => s.activeTaskId !== null)
+  const t = useT()
   const treeRef = useRef<TreeApi<TreeNodeData> | null>(null)
 
   if (root && taskOpen) return <TaskExplorer />
@@ -35,13 +37,13 @@ export function ExplorerPanel() {
   if (!root) {
     return (
       <div className="flex flex-1 flex-col items-center justify-center gap-3 px-6 text-center text-fg-muted">
-        <p>Nenhuma pasta aberta.</p>
+        <p>{t('explorer.noFolder')}</p>
         <button
           type="button"
           onClick={() => void openFolder()}
           className="flex items-center gap-2 rounded-md bg-accent px-3 py-1.5 text-accent-fg hover:bg-accent/85"
         >
-          <FolderOpen size={14} /> Abrir pasta
+          <FolderOpen size={14} /> {t('explorer.openFolder')}
         </button>
       </div>
     )
@@ -59,19 +61,19 @@ export function ExplorerPanel() {
         <span className="flex-1 truncate text-[11px] font-semibold tracking-[0.08em] text-fg uppercase">
           {basename(root)}
         </span>
-        <IconButton label="Novo arquivo" onClick={() => createAtSelection('file')}>
+        <IconButton label={t('explorer.newFile')} onClick={() => createAtSelection('file')}>
           <FilePlus size={14} />
         </IconButton>
-        <IconButton label="Nova pasta" onClick={() => createAtSelection('directory')}>
+        <IconButton label={t('explorer.newFolder')} onClick={() => createAtSelection('directory')}>
           <FolderPlus size={14} />
         </IconButton>
         <IconButton
-          label="Atualizar"
+          label={t('explorer.refresh')}
           onClick={() => void explorer().refresh(Object.keys(explorer().children))}
         >
           <RefreshCw size={14} />
         </IconButton>
-        <IconButton label="Recolher tudo" onClick={() => treeRef.current?.closeAll()}>
+        <IconButton label={t('explorer.collapseAll')} onClick={() => treeRef.current?.closeAll()}>
           <ListCollapse size={14} />
         </IconButton>
       </div>

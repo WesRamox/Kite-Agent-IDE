@@ -64,6 +64,21 @@ To add an IPC channel: declare it in `src/shared/ipc-contract.ts` (in `InvokeCha
 `Api`), register the handler with a zod schema in `src/main/ipc/<domain>.ipc.ts`, and expose the
 function in `src/preload/index.ts`.
 
+## Translations
+
+Every user-facing string lives in a typed catalog under `src/shared/i18n/messages/`, one file per
+area (`shell`, `agents`, `tasks`, `workbench`, `settings`, `main`). Each file defines the
+Portuguese text (the source) and the English text side by side, so TypeScript flags a missing key
+or a parameter mismatch.
+
+- In React components, use `const t = useT()` and `t('area.key', { params })`.
+- In actions and stores, import `t` from `src/renderer/src/lib/i18n.ts`; in the main process, from
+  `src/main/lib/i18n.ts`.
+- To add a language: add it to `Lang` in `src/shared/i18n/types.ts`, give `messages()` a third
+  argument in each area file (or switch the catalog shape to a record of languages), register it
+  in `src/shared/i18n/index.ts` and the settings schema, and add it to the language list in the
+  settings page.
+
 ## Conventions
 
 - TypeScript strict, no `any`: use `unknown` and validate it.

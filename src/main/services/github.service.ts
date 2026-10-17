@@ -14,6 +14,7 @@ import type {
 import { AppException } from '../lib/errors'
 import { gitAuthEnv, parseGitHubRemote, type RemoteRef } from '../lib/github-remote'
 import type { GitService } from './git.service'
+import { t } from '../lib/i18n'
 
 export type OctokitFactory = (token: string) => Octokit
 
@@ -109,11 +110,11 @@ export class GitHubService {
   // Envia a branch atual e abre o PR a partir dela.
   async createPR(root: string, input: CreatePullInput): Promise<{ number: number; url: string }> {
     const status = await this.deps.git.status(root)
-    if (!status.isRepo) throw new AppException('NOT_A_REPO', 'A pasta não é um repositório Git')
+    if (!status.isRepo) throw new AppException('NOT_A_REPO', t('error.notARepo'))
     const branch = status.branch
-    if (!branch) throw new AppException('GIT_ERROR', 'HEAD destacado: crie uma branch antes do PR')
+    if (!branch) throw new AppException('GIT_ERROR', t('error.detachedHead'))
     if (branch === input.base) {
-      throw new AppException('INVALID_ARGS', `A branch atual já é a base (${branch})`)
+      throw new AppException('INVALID_ARGS', t('error.branchIsBase', { branch }))
     }
     const ctx = await this.context(root)
     await this.deps.git.push(root, branch, this.authEnv(ctx))
@@ -160,7 +161,7 @@ export class GitHubService {
   async pushCurrent(root: string): Promise<void> {
     const status = await this.deps.git.status(root)
     if (!status.isRepo || !status.branch) {
-      throw new AppException('GIT_ERROR', 'HEAD destacado: crie uma branch antes do PR')
+      throw new AppException('GIT_ERROR', t('error.detachedHead'))
     }
     const ctx = await this.context(root)
     await this.deps.git.push(root, status.branch, this.authEnv(ctx))
@@ -224,7 +225,7 @@ export class GitHubService {
   private async context(root: string, known?: RemoteRef): Promise<Context> {
     const ref = known ?? (await this.remote(root))
     if (!ref) {
-      throw new AppException('NOT_GITHUB_REPO', 'O remote origin não é um repositório do GitHub')
+      throw new AppException('NOT_GITHUB_REPO', t('error.github.notGitHubRepo'))
     }
     const token = await this.deps.getToken()
     return { ref, token, api: this.deps.octokit(token) }
@@ -322,18 +323,14 @@ async function call<T>(fn: () => Promise<T>): Promise<T> {
     ).response
     const detail = response?.data?.errors?.[0]?.message ?? response?.data?.message
     if (status === 401)
-      throw new AppException('NOT_AUTHENTICATED', 'Sessão do GitHub expirada; entre de novo')
-    if (status === 404)
-      throw new AppException('NOT_FOUND', 'Não encontrado no GitHub (ou sem acesso)')
+      throw new AppException('NOT_AUTHENTICATED', t('error.github.sessionExpired'))
+    if (status === 404) throw new AppException('NOT_FOUND', t('error.github.notFound'))
     if (status === 403) {
-      throw new AppException(
-        'GITHUB_ERROR',
-        detail ?? 'Acesso negado pelo GitHub (permissões ou limite de requisições)',
-      )
+      throw new AppException('GITHUB_ERROR', detail ?? t('error.github.forbidden'))
     }
     if (typeof status === 'number') {
-      throw new AppException('GITHUB_ERROR', detail ?? `Erro do GitHub (${status})`)
+      throw new AppException('GITHUB_ERROR', detail ?? t('error.github.status', { status }))
     }
-    throw new AppException('GITHUB_ERROR', 'Sem conexão com o GitHub')
+    throw new AppException('GITHUB_ERROR', t('error.github.offline'))
   }
 }

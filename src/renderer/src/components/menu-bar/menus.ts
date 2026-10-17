@@ -18,6 +18,7 @@ import { useThemeStore } from '../../stores/theme.store'
 import { useWorkspaceStore } from '../../stores/workspace.store'
 import { tildePath } from '../../features/agents/session-format'
 import { openSettings } from '../../features/settings/settings.actions'
+import { t } from '../../lib/i18n'
 
 // Menus da barra superior: só ações do Kite (pastas, tarefas, agentes, terminais e visual).
 // Os atalhos mostrados são os que o app já trata (use-keybindings.ts).
@@ -67,8 +68,12 @@ async function showAbout(): Promise<void> {
   const { name, version, versions } = res.data
   await window.api.dialog.confirm({
     message: `${name} ${version}`,
-    detail: `IDE para trabalhar com agentes de IA.\n\nElectron ${versions.electron}\nChromium ${versions.chrome}\nNode ${versions.node}`,
-    buttons: ['OK'],
+    detail: t('menu.aboutDetail', {
+      electron: versions.electron,
+      chrome: versions.chrome,
+      node: versions.node,
+    }),
+    buttons: [t('menu.ok')],
   })
 }
 
@@ -85,51 +90,54 @@ export function buildMenus(): MenuDef[] {
   return [
     {
       id: 'file',
-      label: 'Arquivo',
+      label: t('menu.file'),
       items: [
-        item('Abrir pasta…', () => void openFolder()),
+        item(t('menu.openFolder'), () => void openFolder()),
         {
           kind: 'sub',
-          label: 'Abrir recente',
+          label: t('menu.openRecent'),
           disabled: recent.length === 0,
           items: recent.slice(0, 10).map((p) => item(tildePath(p), () => void openRecent(p))),
         },
         sep,
-        item('Abrir arquivo…', () => useQuickOpenStore.getState().show(), {
+        item(t('menu.openFile'), () => useQuickOpenStore.getState().show(), {
           shortcut: `${mod}P`,
           disabled: !root,
         }),
-        item('Salvar', () => void saveActive(), { shortcut: `${mod}S`, disabled: !root }),
-        item('Fechar aba', () => void closeActive(), { shortcut: `${mod}W`, disabled: !root }),
+        item(t('menu.save'), () => void saveActive(), { shortcut: `${mod}S`, disabled: !root }),
+        item(t('menu.closeTab'), () => void closeActive(), {
+          shortcut: `${mod}W`,
+          disabled: !root,
+        }),
         sep,
-        item('Configurações…', openSettings, { shortcut: `${mod},` }),
+        item(t('menu.settings'), openSettings, { shortcut: `${mod},` }),
         sep,
-        item('Sair', () => window.close(), { shortcut: isMac ? '⌘Q' : undefined }),
+        item(t('menu.quit'), () => window.close(), { shortcut: isMac ? '⌘Q' : undefined }),
       ],
     },
     {
       id: 'view',
-      label: 'Ver',
+      label: t('menu.view'),
       items: [
         ...VIEWS.map((v) =>
-          item(v.label, () => showView(v.id), {
+          item(t(v.label), () => showView(v.id), {
             checked: layout.sidebarVisible && layout.activeView === v.id,
           }),
         ),
         sep,
         item(
-          layout.sidebarVisible ? 'Ocultar barra lateral' : 'Mostrar barra lateral',
+          layout.sidebarVisible ? t('menu.hideSidebar') : t('menu.showSidebar'),
           () => useLayoutStore.getState().toggleSidebar(),
           { shortcut: `${mod}B` },
         ),
-        item('Abrir Central de atenção', openCentral),
+        item(t('menu.openCentral'), openCentral),
         sep,
         {
           kind: 'sub',
-          label: 'Tema',
-          items: THEMES.map((t) =>
-            item(t.label, () => useThemeStore.getState().setTheme(t.id), {
-              checked: theme === t.id,
+          label: t('menu.theme'),
+          items: THEMES.map((th) =>
+            item(t(`theme.${th.id}`), () => useThemeStore.getState().setTheme(th.id), {
+              checked: theme === th.id,
             }),
           ),
         },
@@ -137,55 +145,55 @@ export function buildMenus(): MenuDef[] {
     },
     {
       id: 'task',
-      label: 'Tarefa',
+      label: t('menu.task'),
       items: [
-        item('Nova tarefa…', newTask, { disabled: !root }),
-        item('Trocar de tarefa…', () => useTaskSwitcherStore.getState().show(), {
+        item(t('menu.newTask'), newTask, { disabled: !root }),
+        item(t('menu.switchTask'), () => useTaskSwitcherStore.getState().show(), {
           shortcut: `${mod}K`,
           disabled: !tasks.workspace,
         }),
-        item('Descobrir tarefas…', openDiscover, { disabled: !root }),
+        item(t('menu.discover'), openDiscover, { disabled: !root }),
         sep,
-        item('Revisar mudanças da tarefa', () => activeTask && void openTaskReview(activeTask), {
+        item(t('menu.reviewTask'), () => activeTask && void openTaskReview(activeTask), {
           disabled: !activeTask,
         }),
-        item('Voltar ao workspace', showWorkspace, { disabled: !activeTask }),
+        item(t('menu.backToWorkspace'), showWorkspace, { disabled: !activeTask }),
         sep,
-        item('Próximo agente esperando', jumpToNextWaiting, { shortcut: `${mod}J` }),
+        item(t('menu.nextWaiting'), jumpToNextWaiting, { shortcut: `${mod}J` }),
       ],
     },
     {
       id: 'terminal',
-      label: 'Terminal',
+      label: t('menu.terminal'),
       items: [
-        item('Novo terminal', () => void openTerminal(), {
+        item(t('menu.newTerminal'), () => void openTerminal(), {
           shortcut: `${mod}${shift}\``,
           disabled: !root,
         }),
-        item('Ir para o terminal', focusOrCreateTerminal, {
+        item(t('menu.goToTerminal'), focusOrCreateTerminal, {
           shortcut: `${mod}\``,
           disabled: !root,
         }),
         {
           kind: 'sub',
-          label: 'Novo agente na tarefa',
+          label: t('menu.newAgentInTask'),
           disabled: !activeTask || presets.length === 0,
           items: presets.map((p) =>
             item(p.name, () => activeTask && void startAgentInTask(activeTask, p.id)),
           ),
         },
         sep,
-        item('Conectar agentes…', openConnectAgents),
+        item(t('menu.connectAgents'), openConnectAgents),
       ],
     },
     {
       id: 'help',
-      label: 'Ajuda',
+      label: t('menu.help'),
       items: [
-        item('Documentação', () => window.open(`${REPO_URL}#readme`, '_blank')),
-        item('Relatar um problema', () => window.open(`${REPO_URL}/issues/new`, '_blank')),
+        item(t('menu.docs'), () => window.open(`${REPO_URL}#readme`, '_blank')),
+        item(t('menu.reportIssue'), () => window.open(`${REPO_URL}/issues/new`, '_blank')),
         sep,
-        item('Sobre o Kite', () => void showAbout()),
+        item(t('menu.about'), () => void showAbout()),
       ],
     },
   ]

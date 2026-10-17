@@ -6,6 +6,7 @@ import { useActiveTask } from '../tasks/tasks.store'
 import { openFile } from '../editor/editor.actions'
 import { FileIcon } from '../explorer/FileIcon'
 import { useQuickOpenStore, type QuickOpenRoot } from './quick-open.store'
+import { useT } from '../../lib/i18n'
 
 function Highlighted({ text, positions }: { text: string; positions: Set<number> }) {
   return (
@@ -35,6 +36,7 @@ export function QuickOpen() {
 }
 
 function QuickOpenDialog({ roots }: { roots: QuickOpenRoot[] }) {
+  const t = useT()
   const files = useQuickOpenStore((s) => s.files)
   const loading = useQuickOpenStore((s) => s.loading)
   const hide = useQuickOpenStore((s) => s.hide)
@@ -78,14 +80,14 @@ function QuickOpenDialog({ roots }: { roots: QuickOpenRoot[] }) {
     >
       <div
         role="dialog"
-        aria-label="Abrir arquivo"
+        aria-label={t('quickOpen.label')}
         onMouseDown={(e) => e.stopPropagation()}
         className="flex h-fit max-h-[60vh] w-[600px] flex-col overflow-hidden rounded-lg border border-border bg-surface-2 shadow-2xl"
       >
         <input
           autoFocus
           value={query}
-          placeholder="Buscar arquivo pelo nome"
+          placeholder={t('quickOpen.placeholder')}
           spellCheck={false}
           onChange={(e) => {
             setQuery(e.target.value)
@@ -104,9 +106,11 @@ function QuickOpenDialog({ roots }: { roots: QuickOpenRoot[] }) {
           className="border-b border-border bg-transparent px-3 py-2 text-fg outline-none"
         />
         <ul ref={listRef} className="overflow-y-auto py-1">
-          {loading && files === null && <li className="px-3 py-1 text-fg-muted">Carregando…</li>}
+          {loading && files === null && (
+            <li className="px-3 py-1 text-fg-muted">{t('common.loading')}</li>
+          )}
           {!loading && items.length === 0 && (
-            <li className="px-3 py-1 text-fg-muted">Nenhum arquivo encontrado.</li>
+            <li className="px-3 py-1 text-fg-muted">{t('quickOpen.none')}</li>
           )}
           {items.map(({ item, match }, i) => {
             const name = basename(item.path)

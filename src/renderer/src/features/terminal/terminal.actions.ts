@@ -14,6 +14,7 @@ import {
   TERMINAL_PREFIX,
 } from './terminals'
 import { closeModal } from '../../stores/modal.store'
+import { t } from '../../lib/i18n'
 
 export const TERMINAL_COMPONENT = 'terminal'
 const INITIAL_HEIGHT = 280
@@ -56,7 +57,7 @@ export function openTerminal(opts: OpenTerminalOptions = {}): string | null {
   const root = useWorkspaceStore.getState().root
   if (!dock) return null
   if (!root) {
-    toast.info('Abra uma pasta para usar o terminal.')
+    toast.info(t('terminal.openFolder'))
     return null
   }
 
@@ -72,7 +73,7 @@ export function openTerminal(opts: OpenTerminalOptions = {}): string | null {
     id,
     component: TERMINAL_COMPONENT,
     tabComponent: TERMINAL_COMPONENT,
-    title: opts.restore?.title ?? opts.title ?? `Terminal ${counter}`,
+    title: opts.restore?.title ?? opts.title ?? t('terminal.title', { n: counter }),
     params,
   }
 
@@ -130,14 +131,14 @@ export function closeTerminal(id: string): void {
 // Shell encerrado: fecha a aba se saiu normalmente, senão mostra o código e mantém.
 export function handleTerminalExit(id: string, { exitCode }: PtyExitEvent): void {
   if (isAgentPanel(id)) {
-    getSession(id)?.write(`\r\n\x1b[2m[agente encerrado com código ${exitCode}]\x1b[0m\r\n`)
+    getSession(id)?.write(`\r\n\x1b[2m${t('terminal.agentExited', { code: exitCode })}\x1b[0m\r\n`)
     return
   }
   if (exitCode === 0) {
     closeTerminal(id)
     return
   }
-  getSession(id)?.write(`\r\n\x1b[2m[processo encerrado com código ${exitCode}]\x1b[0m\r\n`)
+  getSession(id)?.write(`\r\n\x1b[2m${t('terminal.processExited', { code: exitCode })}\x1b[0m\r\n`)
 }
 
 // Terminais do workspace (os das tarefas não são restaurados ao reabrir).
@@ -155,7 +156,7 @@ export async function saveTerminalSessions(root: string): Promise<void> {
   const keep = useSettingsStore.getState().settings.restoreTerminals
   await attempt(
     window.api.terminal.saveSessions(root, keep ? collectSessions() : []),
-    'Erro ao salvar terminais',
+    t('terminal.saveError'),
   )
 }
 
@@ -167,6 +168,6 @@ export function closeAllTerminals(): void {
 
 export async function restoreTerminalSessions(root: string): Promise<void> {
   if (!useSettingsStore.getState().settings.restoreTerminals) return
-  const saved = await attempt(window.api.terminal.loadSessions(root), 'Erro ao restaurar terminais')
+  const saved = await attempt(window.api.terminal.loadSessions(root), t('terminal.restoreError'))
   for (const session of saved ?? []) openTerminal({ restore: session })
 }

@@ -12,6 +12,7 @@ import { agentPanelId, isAgentPanel, isTerminalPanel } from '../terminal/termina
 import { useAgentsStore } from './agents.store'
 import { useAttentionStore } from './attention.store'
 import { closeModal } from '../../stores/modal.store'
+import { t } from '../../lib/i18n'
 
 export const REVIEW_COMPONENT = 'agent-review'
 export const AGENT_TAB_COMPONENT = 'agent-terminal'
@@ -53,7 +54,7 @@ export function useAgentsSync(): void {
 }
 
 export async function startAgent(input: StartAgentInput): Promise<boolean> {
-  const task = await attempt(window.api.agent.start(input), 'Erro ao iniciar o agente')
+  const task = await attempt(window.api.agent.start(input), t('agents.startError'))
   if (!task) return false
   store().upsert(task)
   store().set({ focused: task.id })
@@ -101,11 +102,11 @@ export function openAgentTerminal(taskId: string): void {
 }
 
 export function stopAgent(taskId: string) {
-  return attempt(window.api.agent.stop(taskId), 'Erro ao parar o agente')
+  return attempt(window.api.agent.stop(taskId), t('agents.stopError'))
 }
 
 export async function restartAgent(taskId: string): Promise<void> {
-  const task = await attempt(window.api.agent.restart(taskId), 'Erro ao reiniciar o agente')
+  const task = await attempt(window.api.agent.restart(taskId), t('agents.restartError'))
   if (!task) return
   store().upsert(task)
   // O terminal antigo assistia o processo anterior: reabre conectado ao novo.
@@ -117,15 +118,15 @@ export async function removeAgent(taskId: string): Promise<void> {
   const task = store().tasks.find((t) => t.id === taskId)
   if (!task) return
   const answer = await window.api.dialog.confirm({
-    message: `Remover a tarefa "${task.name}"?`,
-    detail: `Worktree: ${task.worktreePath}\nBranch: ${task.branch} (a branch é mantida)`,
-    buttons: ['Remover tarefa e worktree', 'Remover só da lista', 'Cancelar'],
+    message: t('agents.removeConfirm', { name: task.name }),
+    detail: t('agents.removeDetail', { worktree: task.worktreePath, branch: task.branch }),
+    buttons: [t('agents.removeWithWorktree'), t('agents.removeFromList'), t('common.cancel')],
     kind: 'warning',
   })
   if (!answer.ok || answer.data === 2) return
   const ok = await attempt(
     window.api.agent.remove(taskId, answer.data === 0),
-    'Erro ao remover a tarefa',
+    t('agents.removeError'),
   )
   if (ok === null) return
   closeTerminal(agentPanelId(taskId))
@@ -149,15 +150,15 @@ export function openReview(taskId: string): void {
     id,
     component: REVIEW_COMPONENT,
     tabComponent: REVIEW_TAB_COMPONENT,
-    title: `Revisão: ${task.name}`,
+    title: t('agentReview.tabTitle', { name: task.name }),
     params: { taskId },
   })
 }
 
 export async function savePresets(presets: AgentPreset[]): Promise<boolean> {
-  const saved = await attempt(window.api.agent.savePresets(presets), 'Erro ao salvar presets')
+  const saved = await attempt(window.api.agent.savePresets(presets), t('presets.saveError'))
   if (!saved) return false
   store().set({ presets: saved })
-  toast.info('Presets salvos.')
+  toast.info(t('presets.saved'))
   return true
 }

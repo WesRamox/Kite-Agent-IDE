@@ -5,6 +5,7 @@ import { AppException } from '../lib/errors'
 import { MAX_EDITABLE_BYTES } from '../lib/file-content'
 import { parseBranches, parseStatusV2, parseWorktrees, worktreeDirName } from '../lib/git-parse'
 import { isInside, type WorkspaceGuard } from '../lib/workspace-guard'
+import { t } from '../lib/i18n'
 
 // Executa `git <args>` em `cwd` e devolve o stdout. Falhas viram exceção com a mensagem do git.
 // `env` extra é usado para autenticação (nunca vai para a linha de comando).
@@ -100,10 +101,10 @@ export class GitService {
 
   async commit(root: string, message: string): Promise<{ hash: string }> {
     const repo = await this.repo(root)
-    if (message.trim() === '') throw new AppException('INVALID_ARGS', 'Mensagem de commit vazia')
+    if (message.trim() === '') throw new AppException('INVALID_ARGS', t('error.emptyCommitMessage'))
     const status = await this.status(root)
     if (status.isRepo && !status.files.some((f) => f.staged)) {
-      throw new AppException('GIT_ERROR', 'Nada no stage para commitar')
+      throw new AppException('GIT_ERROR', t('error.nothingStaged'))
     }
     await this.git(repo.toplevel, ['commit', '-q', '-m', message])
     const hash = (await this.git(repo.toplevel, ['rev-parse', '--short', 'HEAD'])).trim()
@@ -148,7 +149,7 @@ export class GitService {
     const repo = await this.repo(root)
     await this.validateBranchName(repo, branch)
     const main = (await this.worktrees(root)).find((w) => w.isMain)
-    if (!main) throw new AppException('GIT_ERROR', 'Worktree principal não encontrada')
+    if (!main) throw new AppException('GIT_ERROR', t('error.mainWorktreeNotFound'))
     const dir = path.join(
       path.dirname(main.path),
       `${path.basename(main.path)}-worktrees`,
@@ -160,7 +161,7 @@ export class GitService {
         () => false,
       )
     ) {
-      throw new AppException('ALREADY_EXISTS', `A pasta ${dir} já existe`)
+      throw new AppException('ALREADY_EXISTS', t('error.folderExists', { dir }))
     }
     const args = createBranch
       ? ['worktree', 'add', '-b', branch, dir, 'HEAD']
@@ -172,11 +173,9 @@ export class GitService {
   async removeWorktree(root: string, target: string, force: boolean): Promise<void> {
     const repo = await this.repo(root)
     const wt = (await this.worktrees(root)).find((w) => w.path === target)
-    if (!wt) throw new AppException('NOT_FOUND', 'Worktree não encontrada')
-    if (wt.isMain)
-      throw new AppException('FORBIDDEN_PATH', 'A worktree principal não pode ser removida')
-    if (wt.isCurrent)
-      throw new AppException('FORBIDDEN_PATH', 'Não é possível remover a worktree aberta')
+    if (!wt) throw new AppException('NOT_FOUND', t('error.worktreeNotFound'))
+    if (wt.isMain) throw new AppException('FORBIDDEN_PATH', t('error.cannotRemoveMainWorktree'))
+    if (wt.isCurrent) throw new AppException('FORBIDDEN_PATH', t('error.cannotRemoveOpenWorktree'))
     await this.git(repo.toplevel, ['worktree', 'remove', ...(force ? ['--force'] : []), wt.path])
   }
 
@@ -222,7 +221,8 @@ export class GitService {
     env?: Record<string, string>,
   ): Promise<void> {
     const repo = await this.repo(root)
-    if (!Number.isInteger(pull) || pull <= 0) throw new AppException('INVALID_ARGS', 'PR inválido')
+    if (!Number.isInteger(pull) || pull <= 0)
+      throw new AppException('INVALID_ARGS', t('error.invalidPR'))
     await this.validateBranchName(repo, localBranch)
     await this.git(
       repo.toplevel,
@@ -242,7 +242,7 @@ export class GitService {
     base: string,
   ): Promise<{ mergeBase: string; files: { path: string; status: GitChangeKind }[] }> {
     const mergeBase = (await this.git(worktree, ['merge-base', base, 'HEAD'])).trim()
-    if (!mergeBase) throw new AppException('GIT_ERROR', `Sem ancestral comum com ${base}`)
+    if (!mergeBase) throw new AppException('GIT_ERROR', t('error.noCommonAncestor', { base }))
     const diff = await this.git(worktree, [
       'diff',
       '--name-status',
@@ -345,7 +345,7 @@ export class GitService {
   async diffSince(worktree: string, mergeBase: string, rel: string): Promise<GitDiff> {
     const normalized = path.posix.normalize(rel)
     if (path.isAbsolute(rel) || normalized.startsWith('..') || rel.includes('\0')) {
-      throw new AppException('FORBIDDEN_PATH', 'Caminho inválido')
+      throw new AppException('FORBIDDEN_PATH', t('error.invalidPath'))
     }
     const repo: Repo = { root: worktree, toplevel: worktree }
     const original = await this.showOrEmpty(repo, `${mergeBase}:${normalized}`)
@@ -354,7 +354,7 @@ export class GitService {
     try {
       const info = await stat(full)
       if (info.size > MAX_EDITABLE_BYTES)
-        throw new AppException('FILE_TOO_LARGE', 'Arquivo maior que 5 MB')
+        throw new AppException('FILE_TOO_LARGE', t('error.fileTooLarge'))
       modified = await readFile(full, 'utf8')
     } catch (err) {
       if (err instanceof AppException) throw err
@@ -379,13 +379,13 @@ export class GitService {
 
   private async repo(root: string): Promise<Repo> {
     if (!this.deps.guard.isRoot(root)) {
-      throw new AppException('FORBIDDEN_PATH', 'Não é uma pasta aberta')
+      throw new AppException('FORBIDDEN_PATH', t('error.notAnOpenFolder'))
     }
     let top: string
     try {
       top = (await this.git(root, ['rev-parse', '--show-toplevel'])).trim()
     } catch {
-      throw new AppException('NOT_A_REPO', 'A pasta não é um repositório Git')
+      throw new AppException('NOT_A_REPO', t('error.notARepo'))
     }
     return { root, toplevel: await realpath(top) }
   }
@@ -402,13 +402,13 @@ export class GitService {
 
   // Caminho relativo à raiz do repositório (com '/'), exigindo que esteja na pasta aberta.
   private rel(repo: Repo, file: string): string {
-    if (!path.isAbsolute(file)) throw new AppException('FORBIDDEN_PATH', 'Caminho inválido')
+    if (!path.isAbsolute(file)) throw new AppException('FORBIDDEN_PATH', t('error.invalidPath'))
     const normalized = path.resolve(file)
     if (!isInside(repo.root, normalized) || !isInside(repo.toplevel, normalized)) {
-      throw new AppException('FORBIDDEN_PATH', 'Caminho fora das pastas abertas')
+      throw new AppException('FORBIDDEN_PATH', t('error.outsideRoots'))
     }
     const rel = path.relative(repo.toplevel, normalized)
-    if (rel === '') throw new AppException('INVALID_ARGS', 'Caminho é a raiz do repositório')
+    if (rel === '') throw new AppException('INVALID_ARGS', t('error.pathIsRepoRoot'))
     return rel.split(path.sep).join('/')
   }
 
@@ -434,8 +434,7 @@ export class GitService {
     } catch {
       return '' // não existe nessa versão (novo, removido ou repositório sem commits)
     }
-    if (size > MAX_EDITABLE_BYTES)
-      throw new AppException('FILE_TOO_LARGE', 'Arquivo maior que 5 MB')
+    if (size > MAX_EDITABLE_BYTES) throw new AppException('FILE_TOO_LARGE', t('error.fileTooLarge'))
     return this.git(repo.toplevel, ['show', object])
   }
 
@@ -443,7 +442,7 @@ export class GitService {
     try {
       const real = await this.deps.guard.resolveExisting(file)
       if ((await stat(real)).size > MAX_EDITABLE_BYTES) {
-        throw new AppException('FILE_TOO_LARGE', 'Arquivo maior que 5 MB')
+        throw new AppException('FILE_TOO_LARGE', t('error.fileTooLarge'))
       }
       return await readFile(real, 'utf8')
     } catch (err) {
@@ -455,12 +454,12 @@ export class GitService {
   private async validateBranchName(repo: Repo, branch: string): Promise<void> {
     // Nada que comece com '-' (seria lido como opção) e nome aceito pelo próprio git.
     if (branch.startsWith('-') || branch.trim() !== branch || branch.length > 200) {
-      throw new AppException('INVALID_ARGS', `Nome de branch inválido: ${branch}`)
+      throw new AppException('INVALID_ARGS', t('error.invalidBranch', { branch }))
     }
     try {
       await this.git(repo.toplevel, ['check-ref-format', '--branch', branch])
     } catch {
-      throw new AppException('INVALID_ARGS', `Nome de branch inválido: ${branch}`)
+      throw new AppException('INVALID_ARGS', t('error.invalidBranch', { branch }))
     }
   }
 

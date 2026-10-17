@@ -3,11 +3,13 @@ import type { IssueDetail } from '@shared/types'
 import { ExternalLink } from 'lucide-react'
 import { useEffect, useState } from 'react'
 import { useWorkspaceStore } from '../../stores/workspace.store'
+import { useT } from '../../lib/i18n'
 
 export function IssuePanel({ params }: IDockviewPanelProps<{ number: number }>) {
   const root = useWorkspaceStore((s) => s.root)
   const [issue, setIssue] = useState<IssueDetail | null>(null)
   const [error, setError] = useState<string | null>(null)
+  const t = useT()
 
   useEffect(() => {
     let alive = true
@@ -24,7 +26,10 @@ export function IssuePanel({ params }: IDockviewPanelProps<{ number: number }>) 
   }, [root, params.number])
 
   if (error) return <p className="p-6 text-danger">{error}</p>
-  if (!issue) return <p className="p-6 text-fg-muted">Carregando issue #{params.number}…</p>
+  if (!issue)
+    return (
+      <p className="p-6 text-fg-muted">{t('github.loadingIssue', { number: params.number })}</p>
+    )
 
   return (
     <div className="h-full overflow-y-auto">
@@ -34,9 +39,9 @@ export function IssuePanel({ params }: IDockviewPanelProps<{ number: number }>) 
         </h1>
         <p className="mt-1 flex flex-wrap items-center gap-2 text-fg-muted">
           <span className="rounded-full bg-surface-3 px-2 text-[11px] text-fg">
-            {issue.state === 'open' ? 'Aberta' : 'Fechada'}
+            {issue.state === 'open' ? t('github.issue.open') : t('github.issue.closed')}
           </span>
-          aberta por {issue.author ?? '?'} · {issue.comments} comentário(s)
+          {t('github.issueBy', { author: issue.author ?? '?', n: issue.comments })}
           {issue.labels.map((l) => (
             <span
               key={l.name}
@@ -52,10 +57,10 @@ export function IssuePanel({ params }: IDockviewPanelProps<{ number: number }>) 
           onClick={() => window.open(issue.url, '_blank')}
           className="mt-4 flex items-center gap-1.5 rounded-md border border-border px-3 py-1 hover:bg-surface-2"
         >
-          <ExternalLink size={14} /> Abrir no GitHub
+          <ExternalLink size={14} /> {t('github.openOnGitHub')}
         </button>
         <div className="mt-6 rounded-md border border-border bg-surface-1 p-4 whitespace-pre-wrap text-fg select-text">
-          {issue.body.trim() || <span className="text-fg-muted">Sem descrição.</span>}
+          {issue.body.trim() || <span className="text-fg-muted">{t('github.noDescription')}</span>}
         </div>
       </article>
     </div>

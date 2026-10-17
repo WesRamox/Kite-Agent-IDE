@@ -1,6 +1,7 @@
 import { ArrowDown, ArrowUp, X } from 'lucide-react'
 import { useState } from 'react'
 import type { TerminalSession } from './terminal-session'
+import { useT } from '../../lib/i18n'
 
 interface Props {
   session: TerminalSession
@@ -10,6 +11,7 @@ interface Props {
 export function TerminalSearch({ session, onClose }: Props) {
   const [query, setQuery] = useState('')
   const [notFound, setNotFound] = useState(false)
+  const t = useT()
 
   const find = (forward: boolean) => {
     if (!query) return
@@ -27,7 +29,7 @@ export function TerminalSearch({ session, onClose }: Props) {
       <input
         autoFocus
         value={query}
-        placeholder="Buscar no terminal"
+        placeholder={t('terminal.search')}
         spellCheck={false}
         onChange={(e) => {
           setQuery(e.target.value)
@@ -43,7 +45,7 @@ export function TerminalSearch({ session, onClose }: Props) {
       />
       <button
         type="button"
-        aria-label="Anterior"
+        aria-label={t('terminal.previous')}
         onClick={() => find(false)}
         className="text-fg-muted hover:text-fg"
       >
@@ -51,7 +53,7 @@ export function TerminalSearch({ session, onClose }: Props) {
       </button>
       <button
         type="button"
-        aria-label="Próximo"
+        aria-label={t('terminal.next')}
         onClick={() => find(true)}
         className="text-fg-muted hover:text-fg"
       >
@@ -59,7 +61,7 @@ export function TerminalSearch({ session, onClose }: Props) {
       </button>
       <button
         type="button"
-        aria-label="Fechar busca"
+        aria-label={t('terminal.closeSearch')}
         onClick={close}
         className="text-fg-muted hover:text-fg"
       >
