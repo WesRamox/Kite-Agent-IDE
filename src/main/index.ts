@@ -1,3 +1,4 @@
+import { homedir } from 'node:os'
 import { join } from 'node:path'
 import { subscribe } from '@parcel/watcher'
 import { Octokit } from '@octokit/rest'
@@ -15,8 +16,9 @@ import { spawn as spawnPty } from 'node-pty'
 import { z } from 'zod'
 import type { EventChannel, EventChannels } from '@shared/ipc-contract'
 import { DEFAULT_THEME, themeInfo, type ThemeId } from '@shared/themes'
-import type { AgentTask, AppSettings } from '@shared/types'
+import type { AgentSession, AgentTask, AppSettings } from '@shared/types'
 import { registerAgentIpc } from './ipc/agent.ipc'
+import { registerAgentSessionIpc } from './ipc/agent-session.ipc'
 import { registerAppIpc } from './ipc/app.ipc'
 import { registerDialogIpc } from './ipc/dialog.ipc'
 import { registerFsIpc } from './ipc/fs.ipc'
@@ -28,6 +30,7 @@ import { registerTerminalIpc } from './ipc/terminal.ipc'
 import { registerWorkspaceIpc } from './ipc/workspace.ipc'
 import { JsonStore } from './lib/json-store'
 import { agentStateSchema } from './lib/agent-schemas'
+import { wrapperScript } from './lib/claude-settings'
 import { createGitRunner } from './lib/git-runner'
 import { migrateLegacyProfile } from './lib/legacy-profile'
 import { logger } from './lib/logger'
@@ -36,7 +39,9 @@ import { defaultShell, type ShellSpec } from './lib/shell'
 import { listShells, which } from './lib/which'
 import { WorkspaceGuard } from './lib/workspace-guard'
 import { installMenu } from './menu'
+import { AgentEventService } from './services/agent-events.service'
 import { AgentService, type AgentState } from './services/agent.service'
+import { HooksService } from './services/hooks.service'
 import { AppService } from './services/app.service'
 import { FsService } from './services/fs.service'
 import { GitWatchService } from './services/git-watch.service'
@@ -139,6 +144,31 @@ function notifyAgent(task: AgentTask): void {
     mainWindow.show()
     mainWindow.focus()
     emit('agent:focus', { id: task.id })
+  })
+  notification.show()
+}
+
+const SESSION_MESSAGES: Record<string, (s: AgentSession) => [string, string]> = {
+  permission: (s) => [
+    'Claude pede permissão',
+    s.pending ? `${s.pending.tool}: ${s.pending.detail}`.trim() : (s.lastMessage ?? ''),
+  ],
+  turn: (s) => ['Claude terminou e espera você', s.lastMessage ?? ''],
+  input: (s) => ['Claude precisa de uma resposta', s.lastMessage ?? ''],
+}
+
+// Notificação de uma sessão vista pelos hooks (agente dentro ou fora do Kite).
+function notifySession(session: AgentSession): void {
+  const message = session.waitReason ? SESSION_MESSAGES[session.waitReason] : undefined
+  if (!message || !Notification.isSupported()) return
+  const [title, body] = message(session)
+  const notification = new Notification({ title, body: body.slice(0, 180) })
+  notification.on('click', () => {
+    if (!mainWindow) return
+    if (mainWindow.isMinimized()) mainWindow.restore()
+    mainWindow.show()
+    mainWindow.focus()
+    emit('agentSession:focus', { id: session.id })
   })
   notification.show()
 }
@@ -275,7 +305,28 @@ function createServices() {
     notify: notifyAgent,
   })
   const agentService = agents
+  // Hooks do Claude Code (Fase 6). KITE_CLAUDE_SETTINGS isola o settings.json nos testes.
+  const spoolDir = join(app.getPath('userData'), 'agent-events')
+  const hooksService = new HooksService({
+    settingsPath:
+      process.env['KITE_CLAUDE_SETTINGS'] ?? join(homedir(), '.claude', 'settings.json'),
+    wrapperPath: join(app.getPath('userData'), 'kite-hook.sh'),
+    wrapperContent: wrapperScript(process.execPath, join(__dirname, 'kite-hook.js'), spoolDir),
+    home: homedir(),
+    log: log.child('hooks'),
+  })
+  const agentEvents = new AgentEventService({
+    spoolDir,
+    subscribe,
+    emit: (session) => emit('agentSession:changed', session),
+    onWaiting: notifySession,
+    isLiveAgent: (id) => agentService.isLive(id),
+    onAgentStatus: (id, status) => agentService.applyHookStatus(id, status),
+    log: log.child('agent-events'),
+  })
   return {
+    hooksService,
+    agentEvents,
     settingsService,
     agentService,
     appService,
@@ -336,6 +387,13 @@ void app.whenReady().then(async () => {
   registerGitIpc(services.gitService, services.gitWatchService, ipcLog)
   registerGitHubIpc(services.githubAuth, services.githubService, ipcLog)
   registerAgentIpc(services.agentService, ipcLog)
+  registerAgentSessionIpc(services.agentEvents, services.hooksService, ipcLog)
+  services.hooksService.ensureWrapper().catch((err: unknown) => {
+    log.warn('não foi possível criar o kite-hook.sh', { error: (err as Error).message })
+  })
+  services.agentEvents.init().catch((err: unknown) => {
+    log.warn('não foi possível ler o spool de agentes', { error: (err as Error).message })
+  })
   registerSettingsIpc(services.settingsService, ipcLog)
   void services.agentService.init()
   const agentTicker = setInterval(() => services.agentService.tick(), 500)
@@ -369,6 +427,7 @@ void app.whenReady().then(async () => {
       mainWindow = null
       clearInterval(agentTicker)
       void services.agentService.shutdown()
+      void services.agentEvents.dispose()
       services.ptyService.killAll()
       void services.watchService.unwatchAll()
       void services.gitWatchService.unwatchAll()

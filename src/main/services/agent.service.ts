@@ -54,6 +54,8 @@ interface Runtime {
   end: number
   // Prompt a digitar quando o agente ficar pronto (presets no modo 'type').
   pendingPrompt: string | null
+  // O CLI manda hooks ao Kite: o status vem deles, não da heurística do terminal.
+  hooked: boolean
 }
 
 const COLS = 120
@@ -212,7 +214,7 @@ export class AgentService {
     rt.history = (rt.history + event.data).slice(-limit)
     rt.end = event.end
     const next = rt.detector.output(event.data, this.now())
-    if (next) this.update(task, next)
+    if (next && !rt.hooked) this.update(task, next)
   }
 
   onPtyExit(event: PtyExitEvent): void {
@@ -239,8 +241,23 @@ export class AgentService {
         rt.detector.output('prompt enviado', now)
         continue
       }
-      this.update(task, next)
+      if (!rt.hooked) this.update(task, next)
     }
+  }
+
+  isLive(id: string): boolean {
+    return (
+      this.state.tasks.some((t) => t.id === id && t.alive) && Boolean(this.runtimes.get(id)?.ptyId)
+    )
+  }
+
+  // Status vindo dos hooks do CLI (Fase 6): a partir do primeiro, a heurística é ignorada.
+  applyHookStatus(id: string, status: 'running' | 'waiting'): void {
+    const task = this.state.tasks.find((t) => t.id === id)
+    const rt = this.runtimes.get(id)
+    if (!task?.alive || !rt) return
+    rt.hooked = true
+    if (task.status !== status) this.update(task, status)
   }
 
   // App fechando: os processos vão morrer junto. Marca e salva antes.
@@ -269,7 +286,8 @@ export class AgentService {
       args: proc.args,
       cols: COLS,
       rows: ROWS,
-      env: { KITE_AGENT_TASK: task.name },
+      // KITE_AGENT_ID chega aos hooks do CLI e liga a sessão a esta tarefa.
+      env: { KITE_AGENT_TASK: task.name, KITE_AGENT_ID: task.id },
     })
     this.runtimes.set(task.id, {
       ptyId: id,
@@ -277,6 +295,7 @@ export class AgentService {
       history: '',
       end: 0,
       pendingPrompt: preset.promptMode === 'type' && prompt.trim() ? prompt.trim() : null,
+      hooked: false,
     })
     this.deps.emit(task)
     this.schedulePersist()

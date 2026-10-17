@@ -9,6 +9,13 @@ import {
   REVIEW_TAB_COMPONENT,
 } from '../features/agents/agents.actions'
 import { AgentTab } from '../features/agents/AgentTab'
+import { ConnectAgentsPanel } from '../features/agents/ConnectAgentsPanel'
+import { ConnectAgentsTab } from '../features/agents/ConnectAgentsTab'
+import {
+  CONNECT_COMPONENT,
+  CONNECT_TAB_COMPONENT,
+  isConnectPanel,
+} from '../features/agents/sessions.actions'
 import { ReviewPanel } from '../features/agents/ReviewPanel'
 import { ReviewTab } from '../features/agents/ReviewTab'
 import { EDITOR_COMPONENT } from '../features/editor/editor.actions'
@@ -45,6 +52,7 @@ const components = {
   [ISSUE_COMPONENT]: IssuePanel,
   [CREATE_PR_COMPONENT]: CreatePullPanel,
   [REVIEW_COMPONENT]: ReviewPanel,
+  [CONNECT_COMPONENT]: ConnectAgentsPanel,
 }
 const tabComponents = {
   [EDITOR_COMPONENT]: EditorTab,
@@ -53,13 +61,19 @@ const tabComponents = {
   [GITHUB_TAB_COMPONENT]: GitHubTab,
   [AGENT_TAB_COMPONENT]: AgentTab,
   [REVIEW_TAB_COMPONENT]: ReviewTab,
+  [CONNECT_TAB_COMPONENT]: ConnectAgentsTab,
 }
 
 // Painéis de editor são identificados pelo caminho do arquivo; os demais têm prefixo.
 function isEditorPanel(id: string): boolean {
-  return ![isTerminalPanel, isAgentPanel, isDiffPanel, isGitHubPanel, isReviewPanel].some((is) =>
-    is(id),
-  )
+  return ![
+    isTerminalPanel,
+    isAgentPanel,
+    isDiffPanel,
+    isGitHubPanel,
+    isReviewPanel,
+    isConnectPanel,
+  ].some((is) => is(id))
 }
 
 export function MainArea() {

@@ -247,3 +247,41 @@ Decisões fáceis de desfazer, não cobertas pelo `AGENTS.md`. Mais recente no f
   escurecido para contraste). Ficam em TS porque são só do editor; fundo, texto comum e UI do
   Monaco continuam vindo do CSS. Inclui as cores dos pares de colchetes.
 - **Favicon** (`src/renderer/public/favicon.svg`) é só o cubo do logo, sem fundo e sem o nome.
+
+## Fase 6 — Eventos de agentes (hooks do Claude Code)
+
+- **Spool em arquivo em vez de socket/HTTP.** O hook só acrescenta uma linha JSON em
+  `userData/agent-events/<session_id>.jsonl`; o Kite observa a pasta com `@parcel/watcher` e lê
+  só o que é novo. Funciona com o Kite fechado (o estado é reconstruído ao abrir), não abre
+  porta nem precisa de token, e o hook nunca espera pelo Kite.
+- **`kite-hook.js` roda no binário do Electron** com `ELECTRON_RUN_AS_NODE=1`, sem depender de
+  Node instalado. É um segundo ponto de entrada do build do main. Um script `kite-hook.sh` na
+  pasta de perfil guarda os caminhos (Electron, script, spool) e é recriado a cada abertura, já
+  que os caminhos mudam entre versões e em dev. O comando gravado no `settings.json` é
+  `[ -x '<kite-hook.sh>' ] && '<kite-hook.sh>'; exit 0`: se o Kite for desinstalado sem remover
+  os hooks, o Claude Code não mostra erro.
+- **Hook passivo:** nunca imprime nada (em `SessionStart`/`UserPromptSubmit` a saída viraria
+  contexto do agente), sempre sai com 0, tem timeout de 10 s e corta a si mesmo em 5 s.
+- **Eventos usados:** `SessionStart`, `UserPromptSubmit`, `PreToolUse`, `PermissionRequest`,
+  `PostToolUse`, `Notification`, `Stop` (traz `last_assistant_message`) e `SessionEnd`.
+  `PermissionRequest` e `Notification(permission_prompt)` viram "pede permissão"; `Stop` e
+  `idle_prompt` viram "sua vez"; diálogos (`elicitation_*`, `agent_needs_input`) viram "precisa
+  de resposta". Arquivos tocados vêm de `PostToolUse` de `Edit`, `Write`, `MultiEdit` e
+  `NotebookEdit`.
+- **Privacidade:** o registro guarda só caminhos, nome da ferramenta, o comando do Bash (no pedido
+  de permissão), o texto do aviso, o início do primeiro pedido e um trecho da última resposta,
+  todos cortados. Nunca `tool_response` nem conteúdo de arquivo.
+- **Agentes abertos pelo Kite** recebem `KITE_AGENT_ID` no ambiente; o hook repassa o id e, a
+  partir do primeiro evento, o status deles vem dos hooks (a heurística do terminal fica só para
+  CLIs sem integração). A notificação desses agentes continua sendo a do `AgentService`, para não
+  duplicar.
+- **Tela "Conectar agentes" fiel ao canvas**, com três diferenças necessárias nesta fase: Codex e
+  Gemini aparecem como "Em breve" com o botão desabilitado (adaptadores na Fase 10); "Vincular
+  a…" fica desabilitado até existirem tarefas (Fase 8); sessões abertas pelo Kite mostram
+  "Aberta pelo Kite · <tarefa>" e "Abrir terminal". O trecho do `settings.json` mostra só o nome
+  `kite-hook.sh`, como no desenho; o caminho completo está no arquivo.
+- **Fonte Geist** (`@fontsource-variable/geist` e `geist-mono`) empacotada localmente, usada nas
+  telas desenhadas no canvas (`font-geist`, `font-geist-mono`).
+- **A verificar em outros SOs:** o comando do hook é POSIX (no Windows o Claude Code usa Git Bash
+  ou PowerShell; precisa de um `.cmd`); no app empacotado do macOS, o fuse `runAsNode` precisa
+  continuar ligado e o `kite-hook.js` precisa ser legível fora do asar.

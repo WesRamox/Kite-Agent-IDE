@@ -20,6 +20,8 @@
     "postinstall": "install-electron && electron-rebuild -f -w node-pty"
   },
   "dependencies": {
+    "@fontsource-variable/geist": "^5.3.0",
+    "@fontsource-variable/geist-mono": "^5.3.0",
     "@monaco-editor/react": "^4.7.0",
     "@octokit/rest": "^22.0.1",
     "@parcel/watcher": "^2.6.0",

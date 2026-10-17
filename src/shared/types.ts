@@ -16,6 +16,7 @@ export type ErrorCode =
   | 'NOT_GITHUB_REPO'
   | 'GITHUB_ERROR'
   | 'NOT_IMPLEMENTED'
+  | 'INVALID_SETTINGS'
   | 'INTERNAL'
 
 export interface AppError {
@@ -305,4 +306,45 @@ export interface AgentReview {
   base: string
   mergeBase: string
   files: { path: string; status: GitChangeKind }[]
+}
+
+// Sessão de um agente vista pelos hooks do CLI (Fase 6). Pode estar rodando dentro ou fora do
+// Kite; `agentTaskId` liga a sessão a um agente aberto pelo Kite.
+export type AgentCli = 'claude'
+
+export type SessionStatus = 'idle' | 'running' | 'waiting' | 'ended'
+
+// permission: pediu para usar uma ferramenta; turn: terminou o turno e espera o próximo pedido;
+// input: pediu outra informação (diálogo do CLI).
+export type WaitReason = 'permission' | 'turn' | 'input'
+
+export interface AgentSession {
+  id: string
+  cli: AgentCli
+  cwd: string
+  status: SessionStatus
+  waitReason: WaitReason | null
+  waitingSince: number | null
+  // Ferramenta que o agente quer usar (pedido de permissão), ex.: Bash + o comando.
+  pending: { tool: string; detail: string } | null
+  // Texto do aviso ou trecho da última resposta do agente.
+  lastMessage: string | null
+  firstPrompt: string | null
+  // Arquivos editados pelo agente (os mais recentes primeiro, limitado).
+  touchedPaths: string[]
+  touchedCount: number
+  agentTaskId: string | null
+  startedAt: number
+  lastEventAt: number
+  endedAt: number | null
+}
+
+export interface HooksStatus {
+  cli: AgentCli
+  installed: boolean
+  // Caminho do settings.json para exibição (com ~).
+  settingsPath: string
+  // Trecho JSON que o Kite adiciona ao settings.json.
+  snippet: string
+  error: string | null
 }

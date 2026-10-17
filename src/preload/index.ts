@@ -55,6 +55,16 @@ const api: Api = {
     onStatus: subscribe('agent:status'),
     onFocus: subscribe('agent:focus'),
   },
+  agentSession: {
+    list: invoke('agentSession:list'),
+    onChanged: subscribe('agentSession:changed'),
+    onFocus: subscribe('agentSession:focus'),
+  },
+  hooks: {
+    status: invoke('hooks:status'),
+    install: invoke('hooks:install'),
+    uninstall: invoke('hooks:uninstall'),
+  },
   github: {
     me: invoke('github:me'),
     startDeviceFlow: invoke('github:startDeviceFlow'),

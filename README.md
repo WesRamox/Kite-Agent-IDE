@@ -114,6 +114,22 @@ PATH do seu `.bashrc`/`.zshrc` vale (ex.: CLIs instalados via nvm).
 
 Os CLIs precisam estar instalados e autenticados por conta própria.
 
+### Saber quando um agente espera você (Claude Code)
+
+Em **Agents → Conectar agentes** (ícone de tomada) ou clicando em "Conectar Claude Code" na
+status bar, o Kite instala hooks no `~/.claude/settings.json`. A partir daí, toda sessão do
+Claude Code (aberta no Kite ou em qualquer outro terminal) avisa o Kite quando pede permissão,
+termina o turno ou edita arquivos. As sessões aparecem na mesma tela, o número de agentes
+esperando você fica na activity bar e na status bar, e chega uma notificação nativa.
+
+- Vale para sessões abertas depois de conectar.
+- Os hooks existentes são mantidos; o original fica em `settings.json.kite-backup`. "Remover"
+  tira só o que o Kite adicionou.
+- O hook chama `kite-hook.sh` (na pasta de perfil do Kite), que grava os eventos em
+  `agent-events/` na mesma pasta. Ficam só caminhos de arquivo e trechos das mensagens do agente,
+  nunca o conteúdo dos arquivos. Arquivos sem eventos há 7 dias são apagados.
+- `KITE_CLAUDE_SETTINGS`: troca o caminho do `settings.json` (usado nos testes).
+
 ## Estrutura
 
 ```

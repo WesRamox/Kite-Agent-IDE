@@ -23,6 +23,9 @@
   --color-merged: #a78bfa;
   --font-sans: 'Inter', system-ui, -apple-system, 'Segoe UI', sans-serif;
   --font-mono: 'JetBrains Mono', ui-monospace, 'SF Mono', Menlo, Consolas, monospace;
+  /* Telas desenhadas no canvas (Fases 6+): Geist, empacotada localmente. */
+  --font-geist: 'Geist Variable', 'Geist', system-ui, sans-serif;
+  --font-geist-mono: 'Geist Mono Variable', 'Geist Mono', ui-monospace, monospace;
 }
 
 /* Kite: cores do logo. Grafite quente com destaque âmbar. */

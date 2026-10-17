@@ -1,5 +1,8 @@
 import { Bot, FolderGit2, GitBranch, SquareTerminal } from 'lucide-react'
 import { useAgentsStore } from '../features/agents/agents.store'
+import { waitingCount } from '../features/agents/session-format'
+import { openConnectAgents } from '../features/agents/sessions.actions'
+import { useSessionsStore } from '../features/agents/sessions.store'
 import { useEditorStore } from '../features/editor/editor.store'
 import { useGitStore } from '../features/git/git.store'
 import { focusOrCreateTerminal } from '../features/terminal/terminal.actions'
@@ -13,9 +16,10 @@ export function StatusBar() {
   const root = useWorkspaceStore((s) => s.root)
   const status = useGitStore((s) => s.status)
   const running = useAgentsStore((s) => s.tasks.filter((t) => t.alive).length)
-  const waiting = useAgentsStore(
-    (s) => s.tasks.filter((t) => t.alive && t.status === 'waiting').length,
-  )
+  const tasks = useAgentsStore((s) => s.tasks)
+  const sessions = useSessionsStore((s) => s.sessions)
+  const hooksInstalled = useSessionsStore((s) => s.hooks?.installed ?? false)
+  const waiting = waitingCount(sessions, tasks)
   const showGit = () => {
     const layout = useLayoutStore.getState()
     if (layout.activeView !== 'git' || !layout.sidebarVisible) layout.selectView('git')
@@ -56,8 +60,8 @@ export function StatusBar() {
       >
         <Bot size={12} />
         {running} {running === 1 ? 'agente' : 'agentes'}
-        {waiting > 0 && <span className="text-warning">({waiting} aguardando)</span>}
       </button>
+      {waiting > 0 && <span className="text-accent">● {waiting} esperando você</span>}
       {root && (
         <button
           type="button"
@@ -69,6 +73,9 @@ export function StatusBar() {
         </button>
       )}
       <span className="ml-auto flex gap-4">
+        <button type="button" onClick={openConnectAgents} className="hover:text-fg">
+          {hooksInstalled ? 'Claude Code conectado' : 'Conectar Claude Code'}
+        </button>
         {cursor && (
           <span>
             Ln {cursor.line}, Col {cursor.column}

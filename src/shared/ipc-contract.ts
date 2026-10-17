@@ -21,7 +21,9 @@ import type {
   AgentAttach,
   AgentPreset,
   AgentReview,
+  AgentSession,
   AgentTask,
+  HooksStatus,
   StartAgentInput,
   DeviceFlowPoll,
   DeviceFlowStart,
@@ -121,6 +123,11 @@ export interface InvokeChannels {
   'agent:attach': { args: [id: string]; result: AgentAttach }
   'agent:review': { args: [id: string]; result: AgentReview }
   'agent:reviewDiff': { args: [id: string, path: string]; result: GitDiff }
+  // Sessões vistas pelos hooks dos CLIs (Fase 6).
+  'agentSession:list': { args: []; result: AgentSession[] }
+  'hooks:status': { args: []; result: HooksStatus }
+  'hooks:install': { args: []; result: HooksStatus }
+  'hooks:uninstall': { args: []; result: HooksStatus }
 
   // Resposta ao evento `app:closeRequested`: o renderer terminou de salvar e o app pode fechar.
   'app:confirmClose': { args: []; result: void }
@@ -136,6 +143,9 @@ export interface EventChannels {
   'agent:status': AgentTask & { removed?: boolean }
   // Clique na notificação de um agente.
   'agent:focus': { id: string }
+  'agentSession:changed': AgentSession
+  // Clique na notificação de uma sessão.
+  'agentSession:focus': { id: string }
 }
 
 export type InvokeChannel = keyof InvokeChannels
@@ -176,6 +186,16 @@ export interface Api {
     reviewDiff: Fn<'agent:reviewDiff'>
     onStatus: (listener: (task: AgentTask & { removed?: boolean }) => void) => Unsubscribe
     onFocus: (listener: (event: { id: string }) => void) => Unsubscribe
+  }
+  agentSession: {
+    list: Fn<'agentSession:list'>
+    onChanged: (listener: (session: AgentSession) => void) => Unsubscribe
+    onFocus: (listener: (event: { id: string }) => void) => Unsubscribe
+  }
+  hooks: {
+    status: Fn<'hooks:status'>
+    install: Fn<'hooks:install'>
+    uninstall: Fn<'hooks:uninstall'>
   }
   github: {
     me: Fn<'github:me'>

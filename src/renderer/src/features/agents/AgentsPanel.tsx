@@ -1,8 +1,9 @@
-import { Plus, Settings2 } from 'lucide-react'
+import { Plug, Plus, Settings2 } from 'lucide-react'
 import { useState } from 'react'
 import { useAgentsStore } from './agents.store'
 import { NewTaskForm } from './NewTaskForm'
 import { PresetEditor } from './PresetEditor'
+import { openConnectAgents } from './sessions.actions'
 import { TaskCard } from './TaskCard'
 
 export function AgentsPanel() {
@@ -29,6 +30,15 @@ export function AgentsPanel() {
           className="rounded-md border border-border px-2 text-fg-muted hover:bg-surface-2 hover:text-fg"
         >
           <Settings2 size={14} />
+        </button>
+        <button
+          type="button"
+          title="Conectar agentes (saber quando esperam você)"
+          aria-label="Conectar agentes"
+          onClick={openConnectAgents}
+          className="rounded-md border border-border px-2 text-fg-muted hover:bg-surface-2 hover:text-fg"
+        >
+          <Plug size={14} />
         </button>
       </div>
       {mode === 'new' && <NewTaskForm onDone={() => setMode('list')} />}

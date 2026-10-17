@@ -129,7 +129,7 @@ test('aceite: 3 agentes em paralelo em 3 worktrees, status de cada um e revisão
         'Tarefa C está aguardando você',
       ]),
     )
-  await expect(page.locator('footer')).toContainText(/3 agentes\s*\(3 aguardando\)/)
+  await expect(page.locator('footer')).toContainText(/3 agentes\s*● 3 esperando você/)
 
   // Respostas diferentes: A termina bem, B falha, C continua esperando.
   await typeInAgent(page, 'Tarefa A', 'sair')
@@ -140,7 +140,7 @@ test('aceite: 3 agentes em paralelo em 3 worktrees, status de cada um e revisão
   await expect
     .poll(() => notes(ctx.app))
     .toEqual(expect.arrayContaining(['Tarefa A terminou', 'Tarefa B falhou']))
-  await expect(page.locator('footer')).toContainText(/1 agente\s*\(1 aguardando\)/)
+  await expect(page.locator('footer')).toContainText(/1 agente\s*● 1 esperando você/)
 
   // Tempo rodando aparece e congela quando o agente termina.
   await expect(card(page, 'Tarefa A').getByLabel('Tempo rodando')).toHaveText(/^\d+s$|^\d+m \d+s$/)

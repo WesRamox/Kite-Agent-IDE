@@ -137,6 +137,24 @@ describe('AgentService', () => {
     expect(emitted.at(-1)?.id).toBe(task.id)
   })
 
+  it('com hooks, o status vem do CLI e a heurística do terminal é ignorada', async () => {
+    const task = await svc.start({ root: repo, name: 't', presetId: 'claude', prompt: '' })
+    expect(spawned[0]?.env).toMatchObject({ KITE_AGENT_ID: task.id })
+    expect(svc.isLive(task.id)).toBe(true)
+    svc.applyHookStatus(task.id, 'waiting')
+    expect(svc.list()[0]?.status).toBe('waiting')
+    expect(notified).toEqual([['t', 'waiting']])
+    // Saída no terminal não volta para running: só um hook faz isso.
+    svc.onPtyData({ id: 'pty-1', data: 'redesenhando a tela', end: 19 })
+    expect(svc.list()[0]?.status).toBe('waiting')
+    svc.applyHookStatus(task.id, 'running')
+    clock = 5000
+    svc.tick()
+    expect(svc.list()[0]?.status).toBe('running')
+    svc.onPtyExit({ id: 'pty-1', exitCode: 0 })
+    expect(svc.isLive(task.id)).toBe(false)
+  })
+
   it('código de saída diferente de zero vira error', async () => {
     await svc.start({ root: repo, name: 't', presetId: 'claude', prompt: '' })
     svc.onPtyExit({ id: 'pty-1', exitCode: 2 })
