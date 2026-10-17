@@ -53,11 +53,14 @@ export function showAttentionView(): void {
   if (layout.activeView !== 'attention' || !layout.sidebarVisible) layout.selectView('attention')
 }
 
-// Destaca o item na Central; se ele roda num terminal do Kite, vai até o terminal.
+// Destaca o item na Central e abre o terminal em que ele roda: a aba de um agente do Kite
+// (mesmo encerrado, para ver o que ele fez) ou o terminal do Kite de uma sessão viva.
 export function focusItem(item: AttentionItem): void {
   useAttentionStore.getState().set({ highlighted: item.id })
   openCentral()
-  if (item.inKite && item.group === 'waiting') respond(item)
+  if (item.task) openAgentTerminal(item.task.id)
+  else if (item.session?.ptyId && item.session.status !== 'ended')
+    focusTerminalByPty(item.session.ptyId)
 }
 
 // "Responder no terminal": a aba do agente ou o terminal do Kite em que ele roda.

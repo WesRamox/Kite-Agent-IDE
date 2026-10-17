@@ -143,7 +143,9 @@ export class TerminalSession {
       if (part) this.term.write(part)
     }
     if (!ptyId || !snap.data.ptyId) {
-      this.term.write('\r\n\x1b[2m[agente encerrado]\x1b[0m\r\n')
+      this.term.write(
+        '\r\n\x1b[2m[agente encerrado · para continuar, use "Reiniciar agente" no menu da tarefa]\x1b[0m\r\n',
+      )
       unroute?.()
       return
     }
