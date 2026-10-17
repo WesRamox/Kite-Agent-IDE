@@ -129,8 +129,8 @@ Kite is in early development and has no installers yet, so you run it from sourc
 **Run it**
 
 ```bash
-git clone https://github.com/WesRamox/AiController.git kite
-cd kite
+git clone https://github.com/WesRamox/Kite-Agent-IDE.git
+cd Kite-Agent-IDE
 pnpm install   # also downloads Electron and rebuilds node-pty
 pnpm dev
 ```

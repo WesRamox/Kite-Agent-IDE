@@ -130,8 +130,8 @@ código-fonte.
 **Rodar**
 
 ```bash
-git clone https://github.com/WesRamox/AiController.git kite
-cd kite
+git clone https://github.com/WesRamox/Kite-Agent-IDE.git
+cd Kite-Agent-IDE
 pnpm install   # também baixa o Electron e recompila o node-pty
 pnpm dev
 ```

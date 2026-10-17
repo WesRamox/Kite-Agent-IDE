@@ -6,7 +6,7 @@
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "https://github.com/WesRamox/AiController.git"
+    "url": "https://github.com/WesRamox/Kite-Agent-IDE.git"
   },
   "private": true,
   "main": "./out/main/index.js",

@@ -41,7 +41,7 @@ export interface MenuDef {
 
 const mod = isMac ? '⌘' : 'Ctrl+'
 const shift = isMac ? '⇧' : 'Shift+'
-const REPO_URL = 'https://github.com/WesRamox/AiController'
+const REPO_URL = 'https://github.com/WesRamox/Kite-Agent-IDE'
 
 const item = (
   label: string,
