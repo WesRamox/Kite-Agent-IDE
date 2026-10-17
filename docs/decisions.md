@@ -455,3 +455,9 @@ Decisões fáceis de desfazer, não cobertas pelo `AGENTS.md`. Mais recente no f
 - A sidebar abre com os 288 px do canvas e pode ser ajustada arrastando a borda direita (200 a
   640 px), pelas setas do teclado com a borda focada, ou voltar ao padrão com duplo clique. A
   largura é uma conveniência por usuário: fica no `localStorage` do renderer, gravada ao soltar.
+
+## Botão "Descobrir" na Central
+
+- A tela 4 só abria sozinha na primeira vez ou pelo Ctrl+K. A pedido do usuário, o cabeçalho da
+  Central ganhou um botão "Descobrir" ao lado do "+ Nova" (só com uma pasta aberta), um desvio
+  combinado do canvas.

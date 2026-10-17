@@ -24,7 +24,7 @@ import { NewTaskForm } from './NewTaskForm'
 import { PresetEditor } from './PresetEditor'
 import { tildePath } from './session-format'
 import { openTaskReview } from '../tasks/review.actions'
-import { openTask, setTaskHidden } from '../tasks/tasks.actions'
+import { openDiscover, openTask, setTaskHidden } from '../tasks/tasks.actions'
 import { useTasksStore } from '../tasks/tasks.store'
 import { useAttentionItems } from './use-attention'
 
@@ -88,14 +88,26 @@ export function AttentionSidebar() {
           <span className="text-[11px] font-semibold tracking-[0.08em] text-fg-muted uppercase">
             Tarefas
           </span>
-          <button
-            type="button"
-            aria-pressed={mode === 'new'}
-            onClick={() => setMode(mode === 'new' ? 'list' : 'new')}
-            className="h-[26px] rounded-md border border-border bg-surface-2 px-2.5 text-xs text-fg hover:bg-surface-3"
-          >
-            + Nova
-          </button>
+          <div className="flex items-center gap-1.5">
+            {root && (
+              <button
+                type="button"
+                title="Agrupamento das worktrees e worktrees soltas"
+                onClick={openDiscover}
+                className="h-[26px] rounded-md border border-border bg-transparent px-2.5 text-xs text-fg-muted hover:bg-surface-2 hover:text-fg"
+              >
+                Descobrir
+              </button>
+            )}
+            <button
+              type="button"
+              aria-pressed={mode === 'new'}
+              onClick={() => setMode(mode === 'new' ? 'list' : 'new')}
+              className="h-[26px] rounded-md border border-border bg-surface-2 px-2.5 text-xs text-fg hover:bg-surface-3"
+            >
+              + Nova
+            </button>
+          </div>
         </div>
         <button
           type="button"

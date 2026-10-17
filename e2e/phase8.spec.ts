@@ -73,6 +73,12 @@ test('tarefas multi-repo: descobrir, abrir, editar dois repos, trocar e ligar se
     await expect(idle).not.toContainText('SEO-4')
     await expect(sidebar(page)).toContainText('3 repos')
 
+    // "Descobrir" na Central reabre a tela de descoberta.
+    await sidebar(page).getByRole('button', { name: 'Descobrir', exact: true }).click()
+    await expect(page.getByText('Encontramos 3 repositórios e 6 worktrees.')).toBeVisible()
+    await page.getByRole('button', { name: 'Fechar Descobrir tarefas' }).click()
+    await expect(page.getByText('Encontramos 3 repositórios')).toBeHidden()
+
     // Abrir a tarefa: explorer com uma raiz por worktree e detalhes à direita.
     await idle.getByRole('button', { name: 'Tarefa Checkout com Pix' }).click()
     await expect(page.getByRole('button', { name: 'Trocar de tarefa' })).toContainText(
