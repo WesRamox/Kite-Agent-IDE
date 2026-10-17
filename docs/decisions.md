@@ -449,3 +449,9 @@ Decisões fáceis de desfazer, não cobertas pelo `AGENTS.md`. Mais recente no f
 - **Canal leve `review:changes`.** O `review:task` calcula +/- e consulta o PR no GitHub; para
   atualizar a lista a cada mudança no git das worktrees, o novo canal só lista os arquivos.
 - **Arquivo removido** não abre no editor: o clique leva para a revisão da tarefa, onde está o diff.
+
+## Sidebar ajustável
+
+- A sidebar abre com os 288 px do canvas e pode ser ajustada arrastando a borda direita (200 a
+  640 px), pelas setas do teclado com a borda focada, ou voltar ao padrão com duplo clique. A
+  largura é uma conveniência por usuário: fica no `localStorage` do renderer, gravada ao soltar.

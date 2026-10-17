@@ -178,3 +178,13 @@ body {
   visibility: hidden !important;
   pointer-events: none !important;
 }
+
+/* Arrastando a borda da sidebar: cursor fixo e sem selecionar texto nem capturar o mouse nos
+   iframes/terminais embaixo. */
+body.kite-resizing {
+  cursor: col-resize;
+  user-select: none;
+}
+body.kite-resizing *:not([role='separator']) {
+  pointer-events: none;
+}
