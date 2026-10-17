@@ -3,6 +3,11 @@
   "productName": "Kite",
   "version": "0.1.0",
   "description": "Kite: IDE desktop para trabalhar com agentes de IA",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/WesRamox/AiController.git"
+  },
   "private": true,
   "main": "./out/main/index.js",
   "packageManager": "pnpm@12.11.2",

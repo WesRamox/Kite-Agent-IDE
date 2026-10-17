@@ -1,220 +1,219 @@
+<div align="center">
+
+<img src="resources/icon.svg" alt="Kite logo" width="96" height="96">
+
 # Kite
 
-IDE desktop para trabalhar com agentes de IA (Claude Code, Codex, Gemini CLI…), com arquivos,
-terminais, Git/worktrees e GitHub. Especificação completa em [`AGENTS.md`](AGENTS.md).
+**A desktop IDE for working with AI coding agents.**
+Know which agent is waiting for you, and work on tasks that span several repositories in one window.
 
-**Status:** MVP completo (fases 0 a 5): arquivos, editor, terminais, Git/worktrees, GitHub e agentes.
+[![License: MIT](https://img.shields.io/badge/license-MIT-ffb224?style=flat-square)](LICENSE)
+![Status: alpha](https://img.shields.io/badge/status-alpha-45423e?style=flat-square)
+![Platforms](https://img.shields.io/badge/platforms-Linux%20%C2%B7%20macOS%20%C2%B7%20Windows-2c2a27?style=flat-square)
+![Electron](https://img.shields.io/badge/Electron-44-2c2a27?style=flat-square&logo=electron&logoColor=white)
+![TypeScript](https://img.shields.io/badge/TypeScript-strict-2c2a27?style=flat-square&logo=typescript&logoColor=white)
 
-O que já funciona:
+English · [Português](README.pt-BR.md)
 
-- Abrir pasta (diálogo nativo) e pastas recentes
-- Árvore de arquivos virtualizada: criar, renomear (F2), mover para a lixeira (Delete), com
-  `.git`, `node_modules`, `dist`, `build`, `.next` e o `.gitignore` respeitados
-- Atualização automática quando arquivos mudam fora da IDE
-- Editor Monaco com abas, indicador de "não salvo", detecção de linguagem e Ln/Col
-- Recarga de arquivos alterados no disco (pergunta se houver alterações locais)
-- Quick open com busca fuzzy
-- Terminais reais (PTY) com o shell padrão do SO, em abas e splits (botões no cabeçalho do
-  grupo), WebGL, busca (`Ctrl/Cmd+F`), links clicáveis e copiar/colar (`Ctrl+Shift+C/V`;
-  `Cmd+C/V` no macOS)
-- Git: status colorido na árvore (M/U/A/D), painel com stage/unstage por arquivo, commit
-  (`Ctrl/Cmd+Enter`), diff lado a lado no Monaco, criar e trocar de branch
-- Worktrees: listar, criar em `../<repo>-worktrees/<branch>`, abrir como workspace e remover;
-  branch e worktree atuais na status bar
-- O painel Git acompanha commits e checkouts feitos fora da IDE (terminal, agentes)
-- GitHub: login por Device Flow, PRs e issues do repositório (filtro por estado), detalhes do PR
-  com checks, "Abrir em worktree" e "Criar PR da branch atual" (faz o push e abre o PR)
-- Agentes: "Nova tarefa" cria a branch `agent/<nome>` e uma worktree própria e roda o CLI
-  (Claude Code, Codex, Gemini CLI, OpenCode ou comando customizado) com o prompt inicial. O
-  painel mostra status (trabalhando / aguardando você / concluído / erro), branch, worktree e
-  tempo. Notificação nativa quando um agente para ou termina. "Revisar" mostra o diff da
-  worktree contra a branch de origem.
-- Histórico dos terminais salvo ao fechar o app (ou trocar de pasta) e restaurado ao reabrir
-- Ao fechar a janela: pergunta sobre arquivos não salvos e encerra todos os processos
-- Temas: Kite (padrão, grafite com âmbar, nas cores do logo), Escuro (preto total),
-  Meia-noite, Meio-termo, Claro e Papel, no ícone de paleta da barra lateral. A escolha vale para editor, terminais e diálogos
-  nativos e é lembrada entre sessões
-- Atalhos: `Ctrl/Cmd+S` salvar, `Ctrl/Cmd+P` quick open, `Ctrl/Cmd+W` fechar aba,
-  ``Ctrl/Cmd+` `` abrir/focar terminal, ``Ctrl/Cmd+Shift+` `` novo terminal. No Linux/Windows,
-  com o foco no terminal, `Ctrl+S` e `Ctrl+W` vão para o shell.
+<img src="docs/images/central.png" alt="Kite's attention center: agents waiting for you, with the permission each one asks for" width="900">
 
-## Requisitos
+</div>
 
-- Node.js 24+
-- Git 2.23+ no PATH
-- pnpm (via corepack: `corepack enable pnpm`)
-- Toolchain de compilação para o `node-pty`:
-  - Linux: `build-essential` e `python3`
+## Why Kite
+
+If you run several coding agents at once, one task each, you know the drill: a dozen terminals,
+no idea which agent is stuck waiting for a "yes", and an editor window for every worktree of every
+repository the task touches.
+
+Kite is built around that workflow:
+
+- **It watches the flow you already have.** Agents started in any terminal and worktrees created by
+  your own scripts or skills show up on their own. You don't have to start anything from Kite.
+- **It tells you who needs you.** Claude Code, Codex and Gemini CLI report through hooks when they
+  ask for permission or finish a turn, so the attention center always knows who is waiting, and
+  for how long.
+- **A task is more than one repo.** Worktrees from different repositories are grouped into one
+  task, which you open, edit, review and ship in a single window.
+
+## Features
+
+### Attention center
+
+The home screen groups every agent session into **Waiting for you**, **Working**, **To review**
+and **No agent**, ordered by how long each one has been waiting. Each card shows the command an
+agent wants to run, or its last message. From there you can:
+
+- jump to the agent's terminal;
+- resume an external session inside Kite (`claude --resume`, `codex resume`, `gemini --resume`);
+- open the task, or review its changes.
+
+Press `Ctrl/Cmd+J` to go to the next agent that is waiting. Waiting agents also show up as a badge
+and as a native notification.
+
+### Multi-repo tasks
+
+<img src="docs/images/task.png" alt="A task with two repositories: only the changed files, the editor and the task details" width="900">
+
+Open the folder that holds your repositories and Kite finds them, lists every worktree and groups
+the worktrees into tasks. It groups worktrees that share a task folder (`.worktrees/PAY-412/{api,web}`)
+or a branch name (ignoring prefixes such as `feat/`). You can also group them by a folder pattern,
+or by hand: your adjustments always win over the heuristics.
+
+- **Changed files first.** A task's explorer opens on the files that changed in each worktree
+  against its base branch. "All" switches back to the full tree.
+- **One window per task.** Quick open searches every repo in the task, tabs show which repo a
+  file belongs to, and terminals open in the task folder.
+- **Switch with `Ctrl/Cmd+K`.** Each task keeps its own tabs and terminals.
+- **Card and notes.** A `TASK.md` or `.kite-task.json` in the task folder gives the task its title
+  and card link. The details panel also has private notes.
+- **No script? Use Kite.** "+ New" creates a worktree per repository following your folder
+  pattern, then starts an agent in the task folder with an optional first prompt.
+
+<p align="center">
+  <img src="docs/images/discover.png" alt="Discovering tasks: worktrees grouped by task folder" width="900">
+</p>
+
+### Review and ship
+
+<img src="docs/images/review.png" alt="Reviewing a task: changed files per repository and a diff against the merge-base" width="900">
+
+The review screen groups the changed files by repository, each diffed against its merge-base with
+the base branch, including uncommitted work. From there:
+
+- commit every repo with one message, push, and open one PR per repo. When a task has several
+  PRs, each one links to the others in its description;
+- send a follow-up to the agent ("Ask the agent for a change") straight into its prompt.
+
+### Connect your agents
+
+<img src="docs/images/connect.png" alt="Connecting Claude Code, Codex and Gemini CLI, with the sessions Kite detected" width="900">
+
+One click installs Kite's hooks for **Claude Code** (`~/.claude/settings.json`), **Codex**
+(`~/.codex/hooks.json`) or **Gemini CLI** (`~/.gemini/settings.json`):
+
+- Your existing hooks are preserved and the original file is backed up.
+- You see a preview of the change before anything is written, and "Remove" undoes exactly what
+  Kite added.
+- The hook is passive: it never blocks or changes what the agent does.
+
+Other CLIs (OpenCode, or any command you configure) still work, with status guessed from the
+terminal output.
+
+### And the IDE basics
+
+- Monaco editor with tabs and a fuzzy quick open.
+- Real terminals (PTY) with splits, search, and scrollback restored when you reopen the app.
+- Git: status in the file tree, stage and commit, side-by-side diffs, branches and worktrees.
+- GitHub: Device Flow login, PRs and issues with check status, "Open in worktree" for a PR, and
+  opening PRs.
+- Six themes, from the default amber-on-graphite to light and paper ones, applied to the editor,
+  the terminals and native dialogs.
+
+> [!NOTE]
+> The interface is currently in Portuguese (pt-BR). Translations are welcome, see
+> [Contributing](#contributing).
+
+## Getting started
+
+Kite is in early development and has no installers yet, so you run it from source.
+
+**Requirements**
+
+- Node.js 24+, and pnpm (`corepack enable pnpm`)
+- Git 2.23+
+- A build toolchain for `node-pty`:
+  - Linux: `build-essential` and `python3`
   - macOS: Xcode Command Line Tools
-  - Windows: Visual Studio Build Tools (workload "Desktop development with C++")
+  - Windows: Visual Studio Build Tools, with "Desktop development with C++"
 
-## Como rodar
+**Run it**
 
 ```bash
-pnpm install   # instala, baixa o binário do Electron e recompila o node-pty
-pnpm dev       # abre o app em modo desenvolvimento (com HMR)
+git clone https://github.com/WesRamox/AiController.git kite
+cd kite
+pnpm install   # also downloads Electron and rebuilds node-pty
+pnpm dev
 ```
 
-| Script           | O que faz                                    |
-| ---------------- | -------------------------------------------- |
-| `pnpm dev`       | App em modo desenvolvimento                  |
-| `pnpm build`     | Typecheck + build de produção em `out/`      |
-| `pnpm preview`   | Roda o build de produção                     |
-| `pnpm lint`      | ESLint                                       |
-| `pnpm typecheck` | `tsc` nos projetos node (main/preload) e web |
-| `pnpm test`      | Testes unitários (Vitest)                    |
-| `pnpm format`    | Prettier                                     |
+Then:
 
-Variáveis de ambiente (também podem ficar num arquivo `.env`, veja `.env.example`):
+1. **Open the folder that holds your repositories** (File → Open folder). Pick the workspace,
+   not a single worktree: Kite scans it two levels deep for repos and finds their worktrees
+   wherever they live.
+2. **Connect your agents** (status bar → "Conectar Claude Code"). This only affects sessions
+   started after you connect.
+3. Work as usual. Kite lists your sessions and tasks as they appear.
 
-- `GITHUB_CLIENT_ID`: Client ID do OAuth App usado no login com GitHub (veja abaixo).
-- `GITHUB_API_URL`, `GITHUB_OAUTH_URL`, `GITHUB_HOST`: para GitHub Enterprise (padrões:
-  `https://api.github.com`, `https://github.com`, `github.com`).
-- `KITE_USER_DATA_DIR`: troca a pasta de perfil (usado nos testes).
-- `KITE_DEVTOOLS=1`: libera o DevTools (Ctrl+Shift+I) em `pnpm dev`. Ignorado no app empacotado.
-- `LOG_LEVEL`: `debug` | `info` (padrão) | `warn` | `error`. Em `debug`, o console do renderer
-  também aparece no terminal.
+**GitHub login (optional).** Create an [OAuth App](https://github.com/settings/applications/new)
+with **Enable Device Flow** checked, then put its client ID in a `.env` file:
 
-## Login com GitHub
-
-O login usa o OAuth **Device Flow**, então o app não precisa de client secret.
-
-1. Em <https://github.com/settings/developers> → **OAuth Apps** → **New OAuth App**.
-   - _Homepage URL_: qualquer URL (ex.: a do seu repositório).
-   - _Authorization callback URL_: obrigatório no formulário, mas não é usado pelo Device
-     Flow (ex.: `http://127.0.0.1/callback`).
-2. Na página do app, marque **Enable Device Flow** e salve.
-3. Copie o **Client ID** e coloque num `.env` na pasta do projeto (fica fora do git):
-
-   ```bash
-   cp .env.example .env   # e preencha GITHUB_CLIENT_ID=Ov23li...
-   pnpm dev
-   ```
-
-   No app instalado, o `.env` fica na pasta de perfil (Linux: `~/.config/Kite/.env`). Também
-   dá para passar na linha de comando, que vence o arquivo: `GITHUB_CLIENT_ID=Ov23li... pnpm dev`.
-
-4. Na aba GitHub, clique em **Entrar com GitHub**. O código é copiado para a área de
-   transferência e o navegador abre a página para colá-lo.
-
-O token (escopo `repo`) é guardado criptografado com o cofre do sistema (`safeStorage`). Se o
-sistema não tiver um cofre (ex.: Linux sem gnome-keyring/kwallet), o token fica só em memória e
-o login vale até fechar o app. Ele nunca é gravado em texto puro.
-
-## Agentes
-
-Os presets ficam em Conectar agentes → Outros CLIs → Ajustar e podem ser editados: comando e como o prompt
-inicial é passado (como argumento, com flag opcional, ou digitado no terminal quando o agente
-fica pronto). O comando roda no seu shell como shell interativo de login (`$SHELL -ilc`), então o
-PATH do seu `.bashrc`/`.zshrc` vale (ex.: CLIs instalados via nvm).
-
-| Preset      | Comando padrão | Prompt          |
-| ----------- | -------------- | --------------- |
-| Claude Code | `claude`       | argumento       |
-| Codex       | `codex`        | argumento       |
-| Gemini CLI  | `gemini`       | `-i "<prompt>"` |
-| OpenCode    | `opencode`     | digitado        |
-| Customizado | (defina)       | digitado        |
-
-Os CLIs precisam estar instalados e autenticados por conta própria.
-
-### Tarefas multi-repo
-
-Abra a pasta que reúne os seus repositórios (ex.: `~/projetos`). O Kite acha os repos (até dois
-níveis), lista as worktrees de cada um e agrupa em **tarefas**, sem você precisar criá-las por ele:
-
-- **Automático:** worktrees de repos diferentes na mesma pasta (ex.: `.worktrees/PAY-412/api` e
-  `.worktrees/PAY-412/web`) ou com o mesmo nome de branch, ignorando prefixos como `feat/`.
-- **Por padrão de pasta** (ex.: `.worktrees/{tarefa}/{repo}`) ou **manual**.
-
-Na primeira vez aparece a tela **Descobrir tarefas** para conferir, renomear, desmarcar e decidir o
-que fazer com worktrees soltas; para voltar a ela, `Ctrl/Cmd+K` → "Descobrir tarefas…". Um
-`TASK.md` (primeiro título) ou `.kite-task.json` (`{ "title", "url" }`) na pasta da tarefa dá o
-título e o link do card. Worktrees criadas depois, por qualquer script ou skill, entram sozinhas.
-
-Abrir uma tarefa (na Central ou `Ctrl/Cmd+K`) mostra um explorer com uma raiz por worktree, o
-quick open busca em todos os repos dela, as abas mostram o repo do arquivo e os terminais abrem
-na pasta da tarefa (botão direito numa raiz: "Abrir terminal aqui"). Cada tarefa guarda as
-próprias abas e terminais: trocar de tarefa não fecha nada. À direita ficam o card, a situação de
-cada repo, as sessões de agente e notas. Uma sessão do Claude Code é ligada à tarefa pelo cwd ou
-pelos arquivos que edita (mesmo aberta na raiz do workspace); em Conectar agentes dá para
-vincular à mão.
-
-### Revisar e entregar uma tarefa
-
-"Revisar" (na Central, ou botão direito na tarefa → "Revisar mudanças") abre a revisão da tarefa:
-os arquivos alterados agrupados por repo, com `+/-`, contra o merge-base com a branch base de
-cada repo (a padrão do `origin`, senão `main`/`master`), e o diff de cada arquivo (em linha ou
-lado a lado). Inclui o que ainda não foi commitado.
-
-- **Commit e PR nos N repos:** uma mensagem de commit para todos, título e descrição do PR, base
-  por repo e rascunho opcional. Cada repo é commitado (`git add -A`), enviado ao `origin` e ganha
-  um PR; com mais de um repo, cada PR recebe no fim da descrição os links dos outros PRs da
-  tarefa. Um PR já aberto para a branch só é atualizado com o push. "Commit em <repo>" e "Abrir
-  PR" fazem o mesmo para um repo só. Requer login no GitHub (seção acima).
-- **Pedir ajuste ao agente:** o texto vai direto para o prompt da sessão ligada à tarefa, se ela
-  roda num terminal do Kite; se roda fora, o Kite oferece "Retomar aqui".
-- Os detalhes da tarefa mostram o PR de cada repo ("sem PR", "PR #42 aberto"...).
-
-### Central de atenção
-
-O primeiro ícone da activity bar abre a **Central de atenção**: na sidebar, as tarefas e sessões
-agrupadas em Esperando você, Trabalhando, Para revisar e Sem agente; na área principal, o que
-cada agente parado pede (o comando que quer rodar ou a última mensagem), o que os outros estão
-fazendo e o que terminou. Com o Claude Code conectado, o app já abre nela.
-
-- `Ctrl/Cmd+K` troca de tarefa (no terminal, `Ctrl+Shift+K`).
-- `Ctrl/Cmd+J` vai para o próximo agente que espera, do que espera há mais tempo. Com o foco num
-  terminal, use `Ctrl+Shift+J` (lá `Ctrl+J` é quebra de linha).
-- "Responder no terminal" vai até a aba do agente, inclusive quando o `claude` foi aberto à mão
-  num terminal do Kite.
-- "Retomar aqui" abre `claude --resume <sessão>` num terminal do Kite, na pasta da sessão (que
-  precisa estar dentro da pasta aberta); o botão `claude --resume` copia o comando.
-- Botão direito numa tarefa do Kite: terminal, revisar, parar/reiniciar e remover. Os presets dos
-  agentes ficam em Conectar agentes → Outros CLIs → Ajustar.
-
-### Nova tarefa pelo Kite
-
-Na Central, "+ Nova": nome da tarefa, branch (sugerida a partir do nome), os repositórios, o agente
-e um prompt inicial opcional. O Kite cria uma worktree por repo na branch escolhida, seguindo o
-padrão de pasta do workspace (`.worktrees/{tarefa}/{repo}` por padrão, com um `TASK.md` com o
-título), abre a tarefa e inicia o agente na pasta dela. Quando a pasta aberta é um repositório só,
-a worktree vai para `../<repo>-worktrees/<branch>`. Escolher "Nenhum" no agente só cria a tarefa.
-Numa tarefa aberta, o ícone de robô no cabeçalho dos terminais abre mais um agente na pasta dela.
-
-### Saber quando um agente espera você (Claude Code, Codex, Gemini CLI)
-
-Em Conectar agentes (status bar → "Conectar Claude Code"), cada CLI tem o seu botão: o Kite
-instala hooks no `~/.claude/settings.json`, no `~/.codex/hooks.json` ou no
-`~/.gemini/settings.json`. A partir daí, toda sessão do CLI (aberta no Kite ou em qualquer outro terminal) avisa o Kite quando pede permissão,
-termina o turno ou edita arquivos. As sessões aparecem na mesma tela, o número de agentes
-esperando você fica na activity bar e na status bar, e chega uma notificação nativa.
-
-- Vale para sessões abertas depois de conectar.
-- Os hooks existentes são mantidos; o original fica em `settings.json.kite-backup`. "Remover"
-  tira só o que o Kite adicionou.
-- O hook chama `kite-hook.sh` (na pasta de perfil do Kite), que grava os eventos em
-  `agent-events/` na mesma pasta. Ficam só caminhos de arquivo e trechos das mensagens do agente,
-  nunca o conteúdo dos arquivos. Arquivos sem eventos há 7 dias são apagados.
-- O Codex pede para revisar e confiar nos hooks na primeira sessão depois de conectar.
-- `KITE_CLAUDE_SETTINGS`, `KITE_CODEX_HOOKS`, `KITE_GEMINI_SETTINGS`: trocam o caminho de cada
-  arquivo (usado nos testes).
-
-## Estrutura
-
-```
-src/
-  main/       processo principal: janela, serviços, handlers IPC
-  preload/    expõe window.api (só funções nomeadas)
-  shared/     contrato IPC e tipos compartilhados
-  renderer/   UI React
-e2e/        testes e2e (Playwright dirigindo o Electron)
-docs/decisions.md   decisões tomadas fora do AGENTS.md
+```bash
+cp .env.example .env   # set GITHUB_CLIENT_ID=...
 ```
 
-Para adicionar um canal IPC: declare em `src/shared/ipc-contract.ts` (em `InvokeChannels` e em
-`Api`), registre o handler com schema zod em `src/main/ipc/<dominio>.ipc.ts` e exponha a função
-em `src/preload/index.ts`.
+No client secret is needed. The token is encrypted with the OS keychain (`safeStorage`) and is
+never written in plain text.
 
-O app se chamava AiController. Na primeira execução como Kite, os dados do perfil antigo
-(`~/.config/ai-controller` no Linux) são copiados para o novo (`~/.config/Kite`).
+The [detailed guide](docs/guide.pt-BR.md) covers every screen (in Portuguese).
+
+## Keyboard shortcuts
+
+| Shortcut                    | Action                                   |
+| --------------------------- | ---------------------------------------- |
+| `Ctrl/Cmd+J`                | Next agent waiting for you               |
+| `Ctrl/Cmd+K`                | Switch task                              |
+| `Ctrl/Cmd+P`                | Quick open (every repo of the open task) |
+| ``Ctrl/Cmd+` ``             | Focus or open a terminal                 |
+| ``Ctrl/Cmd+Shift+` ``       | New terminal                             |
+| `Ctrl/Cmd+B`                | Show or hide the sidebar                 |
+| `Ctrl/Cmd+S` / `Ctrl/Cmd+W` | Save / close tab                         |
+
+When a terminal has focus on Linux and Windows, keys the shell needs go to the shell: use
+`Ctrl+Shift+J` and `Ctrl+Shift+K` there.
+
+## How it works
+
+```mermaid
+flowchart LR
+  A["Agent CLI<br/>(any terminal)"] -- "hook event (JSON)" --> H["kite-hook<br/>(passive, exit 0)"]
+  H -- "append" --> S[("spool<br/>agent-events/*.jsonl")]
+  S -- "file watcher" --> K["Kite<br/>AgentEventService"]
+  G["git worktree list<br/>(each repo)"] --> T["TaskService<br/>groups worktrees"]
+  K --> C["Attention center"]
+  T --> C
+```
+
+- **Hooks**: each event is appended to a local spool file. The hook runs with Electron's own
+  binary (`ELECTRON_RUN_AS_NODE`), so Node doesn't need to be installed, and it exits in well
+  under 100 ms. Kite reads the spool incrementally, so after a restart it rebuilds every session
+  from disk.
+- **Privacy**: only file paths and a short excerpt of the agent's last message are kept, locally.
+  File contents are never stored or logged.
+- **Security**: the renderer runs sandboxed with context isolation. It can only call named,
+  zod-validated IPC functions, and file access is limited to the folders you opened.
+
+**Built with** Electron, React, TypeScript (strict), Zustand, Tailwind CSS, Monaco, xterm.js,
+node-pty, dockview, simple-git and Octokit, with Vitest and Playwright for tests.
+
+## Status
+
+Kite is **alpha**: it works day to day, but expect rough edges.
+
+- Developed and tested on **Linux**. macOS and Windows builds are not verified yet: the hook
+  command is a POSIX shell script, so Windows needs work.
+- No packaged releases yet.
+
+Design decisions are recorded in [`docs/decisions.md`](docs/decisions.md).
+
+## Contributing
+
+Issues and pull requests are welcome. [CONTRIBUTING.md](CONTRIBUTING.md) explains the project
+structure, the scripts and the tests. Good places to start:
+
+- English translation of the interface
+- Windows support for the hooks
+- Packaging and releases for macOS, Windows and Linux
+
+## License
+
+[MIT](LICENSE) © WesRamox
