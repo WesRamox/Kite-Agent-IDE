@@ -200,13 +200,21 @@ Decisões fáceis de desfazer, não cobertas pelo `AGENTS.md`. Mais recente no f
   token do GitHub pode não decifrar depois da troca de nome; nesse caso basta entrar de novo.
   Variáveis internas `AIC_*` viraram `KITE_*`. A pasta do repositório não foi renomeada.
 - **Ícone** em `resources/icon.svg` (e o PNG gerado a partir dele), usado na janela em dev. O
-  ícone do instalador fica para quando houver empacotamento.
+  ícone do instalador fica para quando houver empacotamento. O desenho é o cubo isométrico com
+  topo âmbar (`#FFB224`) do canvas "Kite Logo"; as cores do logo são da marca e não seguem o
+  tema, com a variante clara (`#F59E0B`, `#3A3734`, `#161514`) nos temas claros. O PNG foi
+  renderizado a partir do SVG com o próprio Electron (janela offscreen + `capturePage`).
 - **Temas por variáveis CSS:** cada tema redefine os tokens do Tailwind (`--color-surface-*`,
   `fg`, `accent` e os semânticos `success`, `warning`, `danger`, `info`, `merged`) em
   `[data-theme="<id>"]`. Cores fixas da UI (amber, emerald, red...) viraram tokens semânticos,
   senão ficariam ilegíveis nos temas claros. Ícones de arquivo usam a variante `light:`.
-- **Kite (padrão)** usa a paleta da maquete da IDE em onorca.dev: fundos neutros `#111112`,
-  `#171719`, `#242428`, bordas a 9% de branco, texto `#f5f5f5`/`#a3a3a3`, destaque `#3b82f6`.
+- **Kite (padrão)** usa as cores do logo: fundos grafite quentes `#0b0b0c`, `#111110`,
+  `#181715`, `#22201d`, borda `#2c2a27` (a lateral escura do cubo), texto `#ededec`/`#a3a09a`,
+  destaque âmbar `#ffb224`. Branco sobre âmbar não tem contraste, então há um token
+  `--color-accent-fg` para o texto dos botões primários (escuro no Kite, branco nos demais).
+  O id `kite` continua sendo o padrão, então quem tinha o Kite salvo passa para o novo.
+- **Escuro** é a antiga paleta do Kite (estilo onorca.dev) levada ao preto total: fundos
+  `#000000`, `#050505`, `#0c0c0c`, `#161616`, bordas a 8% de branco, destaque `#3b82f6`.
   "Meia-noite" é a paleta original do app; "Meio-termo" é um escuro acinzentado de menor
   contraste; "Claro" e "Papel" (claro quente) são os claros.
 - **Monaco e xterm leem as cores do CSS**, sem paletas duplicadas em TS. Um elemento oculto com
@@ -217,3 +225,25 @@ Decisões fáceis de desfazer, não cobertas pelo `AGENTS.md`. Mais recente no f
 - **Persistência:** a escolha fica no main (`userData/settings.json`), que também ajusta o fundo
   da janela e `nativeTheme` (diálogos e menus nativos claros ou escuros). O renderer guarda uma
   cópia em `localStorage` para aplicar o tema antes do primeiro paint.
+- **Sem menu e sem DevTools:** no Windows/Linux a janela não tem barra de menu
+  (`Menu.setApplicationMenu(null)` + `removeMenu()`); no macOS fica só o menu do app e o Edit,
+  necessários para Cmd+Q e para copiar/colar em campos de texto. `webPreferences.devTools` é
+  `false`, então Ctrl+Shift+I/F12 não abrem o inspetor. Para depurar em dev:
+  `KITE_DEVTOOLS=1 pnpm dev` (ignorado no app empacotado).
+- **TypeScript no Monaco só com validação sintática.** O worker do Monaco vê cada arquivo
+  isolado (sem tsconfig, `node_modules` nem os outros arquivos), então a validação semântica
+  marcava todo import e todo JSX como erro. Fica só a sintática, com `jsx: ReactJSX` para
+  `.tsx`. Erros de tipo de verdade ficam para o LSP (fora do MVP).
+- **Cores do Monaco por tema** incluem seleção, realces de palavra/busca, colchetes, guias de
+  indentação e scrollbar, derivadas do accent e do `fg-muted`; antes ficavam no azul padrão.
+- **Temas do Monaco definidos sob demanda.** Em dev o Vite injeta o `styles.css` depois dos
+  módulos JS; definir os temas no carregamento do `monaco-setup` lia variáveis CSS vazias, que
+  viravam `#000000` (identificadores e números de linha invisíveis, só no `pnpm dev`). Agora os
+  temas são definidos na primeira montagem de um editor, e `paletteOf` não guarda em cache uma
+  paleta lida antes do CSS carregar.
+- **Cores de sintaxe por tema** (`features/editor/syntax-themes.ts`), adaptadas de temas
+  populares do VS Code: Kite ← Ayu Dark, Escuro ← One Dark Pro, Meia-noite ← Tokyo Night,
+  Meio-termo ← GitHub Dark Dimmed, Claro ← GitHub Light, Papel ← Gruvbox Light (comentário
+  escurecido para contraste). Ficam em TS porque são só do editor; fundo, texto comum e UI do
+  Monaco continuam vindo do CSS. Inclui as cores dos pares de colchetes.
+- **Favicon** (`src/renderer/public/favicon.svg`) é só o cubo do logo, sem fundo e sem o nome.

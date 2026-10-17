@@ -31,8 +31,8 @@ O que já funciona:
   worktree contra a branch de origem.
 - Histórico dos terminais salvo ao fechar o app (ou trocar de pasta) e restaurado ao reabrir
 - Ao fechar a janela: pergunta sobre arquivos não salvos e encerra todos os processos
-- Temas: Kite (padrão, escuro neutro no estilo do Orca), Meia-noite, Meio-termo, Claro e
-  Papel, no ícone de paleta da barra lateral. A escolha vale para editor, terminais e diálogos
+- Temas: Kite (padrão, grafite com âmbar, nas cores do logo), Escuro (preto total),
+  Meia-noite, Meio-termo, Claro e Papel, no ícone de paleta da barra lateral. A escolha vale para editor, terminais e diálogos
   nativos e é lembrada entre sessões
 - Atalhos: `Ctrl/Cmd+S` salvar, `Ctrl/Cmd+P` quick open, `Ctrl/Cmd+W` fechar aba,
   ``Ctrl/Cmd+` `` abrir/focar terminal, ``Ctrl/Cmd+Shift+` `` novo terminal. No Linux/Windows,
@@ -71,6 +71,7 @@ Variáveis de ambiente:
 - `GITHUB_API_URL`, `GITHUB_OAUTH_URL`, `GITHUB_HOST`: para GitHub Enterprise (padrões:
   `https://api.github.com`, `https://github.com`, `github.com`).
 - `KITE_USER_DATA_DIR`: troca a pasta de perfil (usado nos testes).
+- `KITE_DEVTOOLS=1`: libera o DevTools (Ctrl+Shift+I) em `pnpm dev`. Ignorado no app empacotado.
 - `LOG_LEVEL`: `debug` | `info` (padrão) | `warn` | `error`. Em `debug`, o console do renderer
   também aparece no terminal.
 
