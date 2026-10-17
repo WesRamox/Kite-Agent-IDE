@@ -1,0 +1,44 @@
+# Gera os instaladores de Linux e Windows e anexa a uma release (rascunho) do GitHub.
+# Dispara ao enviar uma tag v* (ex.: git tag v0.1.0 && git push origin v0.1.0).
+# Cada SO compila na sua máquina: o node-pty é nativo e não dá para cruzar Linux → Windows.
+name: Release
+
+on:
+  push:
+    tags: ['v*']
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: ubuntu-latest
+            target: --linux
+          - os: windows-latest
+            target: --win
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: pnpm
+
+      - name: Instalar dependências (baixa o Electron e compila o node-pty)
+        run: pnpm install --frozen-lockfile
+
+      - name: Typecheck e build
+        run: pnpm build
+
+      - name: Empacotar e anexar à release
+        run: pnpm exec electron-builder ${{ matrix.target }} --publish always
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}

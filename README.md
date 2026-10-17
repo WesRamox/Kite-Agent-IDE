@@ -116,7 +116,20 @@ terminal output.
 
 ## Getting started
 
-Kite is in early development and has no installers yet, so you run it from source.
+### Download
+
+Get the latest version from the [Releases page](https://github.com/WesRamox/Kite-Agent-IDE/releases/latest):
+
+| System  | File                                                                    |
+| ------- | ----------------------------------------------------------------------- |
+| Linux   | `Kite-<version>-x86_64.AppImage` (any distro) or `.deb` (Debian/Ubuntu) |
+| Windows | `Kite-<version>-setup.exe` (installer) or the `.zip`                    |
+
+- **AppImage:** make it executable (`chmod +x Kite-*.AppImage`) and run it.
+- **Windows:** the installer isn't signed yet, so SmartScreen may warn about it. Choose "More info"
+  → "Run anyway". The Windows build is **experimental**, see [Status](#status).
+
+### Run from source
 
 **Requirements**
 
@@ -200,9 +213,11 @@ node-pty, dockview, simple-git and Octokit, with Vitest and Playwright for tests
 
 Kite is **alpha**: it works day to day, but expect rough edges.
 
-- Developed and tested on **Linux**. macOS and Windows builds are not verified yet: the hook
-  command is a POSIX shell script, so Windows needs work.
-- No packaged releases yet.
+- Developed and tested on **Linux**, where the packaged builds are tested too.
+- **Windows** builds are produced by CI but not tested on a real machine yet. The agent hooks call
+  a POSIX shell script: Claude Code runs hooks through Git Bash on Windows, so they may work, but
+  this is unverified.
+- No macOS build yet, and the builds aren't code-signed.
 
 Design decisions are recorded in [`docs/decisions.md`](docs/decisions.md).
 

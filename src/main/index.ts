@@ -1,5 +1,6 @@
 import { homedir } from 'node:os'
-import { join } from 'node:path'
+import { cpSync, mkdirSync, rmSync } from 'node:fs'
+import { dirname, join } from 'node:path'
 import { subscribe } from '@parcel/watcher'
 import { Octokit } from '@octokit/rest'
 import {
@@ -184,6 +185,26 @@ function notifySession(session: AgentSession): void {
   notification.show()
 }
 
+// Executável e script que o kite-hook.sh chama. No app empacotado, o script (fora do asar, via
+// asarUnpack) é copiado para a pasta de perfil: o AppImage é montado num caminho novo a cada
+// execução, e os hooks precisam funcionar com o Kite fechado. Nele, o executável é o próprio
+// arquivo .AppImage (variável APPIMAGE), que tem caminho estável.
+function hookBundle(): { exec: string; script: string } {
+  const built = join(__dirname, 'kite-hook.js').replace(/app\.asar([\\/])/, 'app.asar.unpacked$1')
+  if (!app.isPackaged) return { exec: process.execPath, script: built }
+  const dir = join(app.getPath('userData'), 'hook')
+  try {
+    rmSync(dir, { recursive: true, force: true })
+    mkdirSync(dir, { recursive: true })
+    cpSync(built, join(dir, 'kite-hook.js'))
+    cpSync(join(dirname(built), 'chunks'), join(dir, 'chunks'), { recursive: true })
+    return { exec: process.env['APPIMAGE'] ?? process.execPath, script: join(dir, 'kite-hook.js') }
+  } catch (err) {
+    log.warn('não foi possível copiar o kite-hook', { error: (err as Error).message })
+    return { exec: process.execPath, script: built }
+  }
+}
+
 function createServices() {
   const guard = new WorkspaceGuard()
   // Idioma padrão: o do sistema (português para pt-*, inglês para o resto).
@@ -351,7 +372,8 @@ function createServices() {
   // Um serviço por CLI (Claude Code, Codex, Gemini), todos com o mesmo kite-hook.sh.
   // KITE_CLAUDE_SETTINGS / KITE_CODEX_HOOKS / KITE_GEMINI_SETTINGS isolam os arquivos nos testes.
   const wrapperPath = join(app.getPath('userData'), 'kite-hook.sh')
-  const wrapperContent = wrapperScript(process.execPath, join(__dirname, 'kite-hook.js'), spoolDir)
+  const hook = hookBundle()
+  const wrapperContent = wrapperScript(hook.exec, hook.script, spoolDir)
   const overrides: Record<AgentCli, string | undefined> = {
     claude: process.env['KITE_CLAUDE_SETTINGS'],
     codex: process.env['KITE_CODEX_HOOKS'],

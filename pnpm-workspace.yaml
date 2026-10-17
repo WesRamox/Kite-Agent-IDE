@@ -6,6 +6,8 @@ allowBuilds:
   esbuild: true
   node-pty: true
   '@parcel/watcher': true
+  # instalador Squirrel, que o Kite não usa (Windows sai em NSIS)
+  electron-winstaller: false
 
 minimumReleaseAgeExclude:
   - electron@44.7.1

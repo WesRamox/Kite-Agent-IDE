@@ -116,8 +116,21 @@ deduzido pela saída do terminal.
 
 ## Como começar
 
-O Kite está no começo do desenvolvimento e ainda não tem instaladores, então ele roda a partir do
-código-fonte.
+### Baixar
+
+Pegue a versão mais recente na [página de releases](https://github.com/WesRamox/Kite-Agent-IDE/releases/latest):
+
+| Sistema | Arquivo                                                                     |
+| ------- | --------------------------------------------------------------------------- |
+| Linux   | `Kite-<versão>-x86_64.AppImage` (qualquer distro) ou `.deb` (Debian/Ubuntu) |
+| Windows | `Kite-<versão>-setup.exe` (instalador) ou o `.zip`                          |
+
+- **AppImage:** dê permissão de execução (`chmod +x Kite-*.AppImage`) e rode.
+- **Windows:** o instalador ainda não é assinado, então o SmartScreen pode avisar. Escolha "Mais
+  informações" → "Executar assim mesmo". A versão de Windows é **experimental**, veja
+  [Situação](#situação).
+
+### Rodar a partir do código
 
 **Requisitos**
 
@@ -201,9 +214,11 @@ node-pty, dockview, simple-git e Octokit, com Vitest e Playwright nos testes.
 
 O Kite está em **alpha**: dá para usar no dia a dia, mas espere arestas.
 
-- Desenvolvido e testado no **Linux**. macOS e Windows ainda não foram verificados: o comando do
-  hook é um script de shell POSIX, então o Windows precisa de ajustes.
-- Ainda não há versões empacotadas.
+- Desenvolvido e testado no **Linux**, onde as versões empacotadas também são testadas.
+- As versões de **Windows** saem do CI, mas ainda não foram testadas numa máquina de verdade. Os
+  hooks dos agentes chamam um script de shell POSIX: no Windows, o Claude Code roda os hooks pelo
+  Git Bash, então podem funcionar, mas isso não foi verificado.
+- Ainda não há versão para macOS, e as versões não são assinadas.
 
 As decisões de projeto ficam em [`docs/decisions.md`](docs/decisions.md).
 

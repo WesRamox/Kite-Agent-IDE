@@ -517,3 +517,15 @@ Decisões fáceis de desfazer, não cobertas pelo `AGENTS.md`. Mais recente no f
   Os e2e fixam `--lang=pt-BR`.
 - **Padrão de pasta:** `{task}` vale o mesmo que `{tarefa}`, para a interface em inglês.
 - **Imagens do README** geradas nos dois idiomas (`docs/images/en` e `docs/images/pt-BR`).
+
+## Empacotamento e releases
+
+- **electron-builder** (dependência de desenvolvimento). Linux: AppImage e .deb; Windows: instalador
+  NSIS e .zip. As releases saem do GitHub Actions, cada SO na sua máquina, porque o `node-pty` é
+  nativo; o workflow anexa tudo a uma release em rascunho.
+- **kite-hook no app empacotado:** o script fica fora do asar (`asarUnpack`) e, ao iniciar, é
+  copiado para a pasta de perfil (`hook/`). O AppImage é montado num caminho novo a cada execução,
+  e os hooks precisam funcionar com o Kite fechado; nele o `kite-hook.sh` chama o próprio arquivo
+  `.AppImage` (variável `APPIMAGE`). Verificado: eventos gerados com o Kite fechado aparecem ao
+  reabrir.
+- **Windows:** gerado pelo CI, ainda não testado numa máquina real. Sem assinatura de código.

@@ -64,6 +64,14 @@ To add an IPC channel: declare it in `src/shared/ipc-contract.ts` (in `InvokeCha
 `Api`), register the handler with a zod schema in `src/main/ipc/<domain>.ipc.ts`, and expose the
 function in `src/preload/index.ts`.
 
+## Releases
+
+`pnpm dist:linux` (or `dist:win`, on Windows) builds the installers locally in `release/`.
+Published releases come from CI: bump `version` in `package.json`, then push a tag
+(`git tag v0.2.0 && git push origin v0.2.0`). `.github/workflows/release.yml` builds Linux
+(AppImage, .deb) and Windows (NSIS installer, .zip), each on its own OS because `node-pty` is
+native, and attaches them to a draft release to review and publish.
+
 ## Translations
 
 Every user-facing string lives in a typed catalog under `src/shared/i18n/messages/`, one file per

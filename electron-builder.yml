@@ -1,0 +1,49 @@
+# Empacotamento (electron-builder). Linux: AppImage e .deb; Windows: instalador NSIS e .zip.
+# As releases saem pelo GitHub Actions (.github/workflows/release.yml), cada SO na sua máquina,
+# porque o node-pty é nativo e não dá para compilar para Windows a partir do Linux.
+appId: dev.wesramox.kite
+productName: Kite
+copyright: Copyright © 2026 WesRamox
+directories:
+  output: release
+  buildResources: resources
+files:
+  - out/**
+  - resources/**
+  - package.json
+  - '!**/*.map'
+# O kite-hook roda fora do app (ELECTRON_RUN_AS_NODE), chamado pelos hooks dos CLIs: fica fora do
+# asar junto com os chunks que ele importa.
+asarUnpack:
+  - out/main/kite-hook.js
+  - out/main/chunks/**
+  - resources/**
+npmRebuild: true
+linux:
+  target:
+    - AppImage
+    - deb
+  category: Development
+  syncDesktopName: true
+  icon: resources/icon.png
+  maintainer: WesRamox
+  synopsis: A desktop IDE for working with AI coding agents
+  artifactName: Kite-${version}-${arch}.${ext}
+win:
+  target:
+    - nsis
+    - zip
+  icon: resources/icon.png
+  artifactName: Kite-${version}-${arch}-setup.${ext}
+nsis:
+  oneClick: false
+  allowToChangeInstallationDirectory: true
+  artifactName: Kite-${version}-setup.${ext}
+deb:
+  depends:
+    - git
+publish:
+  provider: github
+  owner: WesRamox
+  repo: Kite-Agent-IDE
+  releaseType: draft
