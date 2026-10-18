@@ -100,7 +100,7 @@ or a parameter mismatch.
 - Before opening a PR, run `pnpm lint`, `pnpm typecheck` and `pnpm test`, plus the e2e tests if you
   changed the UI.
 
-The product spec and the phases it was built in are in [`AGENTS.md`](AGENTS.md). Decisions not
+The project definition and coding standards (in Portuguese) are in [`AGENTS.md`](AGENTS.md). Decisions not
 covered there are recorded in [`docs/decisions.md`](docs/decisions.md). New screens follow the
 approved design. If a change departs from it, say so in the PR.
 

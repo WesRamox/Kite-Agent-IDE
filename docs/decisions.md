@@ -633,3 +633,10 @@ Decisões fáceis de desfazer, não cobertas pelo `AGENTS.md`. Mais recente no f
 - Os diálogos de entrega e de pedir ajuste ao agente são renderizados no `body` (como o menu de
   contexto): dentro do painel do dockview, `position: fixed` ficava preso ao painel, e com a barra
   de ações o botão de confirmar saía da área visível. O de entrega também fecha com Esc.
+
+## AGENTS.md como definição do projeto e padrões
+
+- O `AGENTS.md` deixou de ser o plano de construção por fases (já concluídas) e passou a ser a
+  definição do produto, a arquitetura e os padrões de código, fonte única para qualquer agente.
+  O `CLAUDE.md` só importa o `AGENTS.md` (`@AGENTS.md`) e acrescenta o que é específico do
+  Claude Code. O histórico das fases continua neste arquivo e no git.

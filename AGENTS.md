@@ -1,332 +1,400 @@
-# AGENTS.md — IDE de IA (MVP)
+# AGENTS.md — Kite
 
-> Este arquivo é o ponto de partida para o agente de IA que vai construir o projeto.
-> Leia tudo antes de escrever código. Siga as fases **em ordem** e não avance sem cumprir os critérios de aceite da fase atual.
+Definição do projeto e padrões de código. Vale para qualquer pessoa ou agente (Claude Code, Codex,
+Gemini, opencode) que mexa neste repositório. Leia antes de escrever código.
 
----
+Documentos relacionados:
 
-## 1. Visão do produto
-
-Uma IDE desktop focada em trabalhar **com agentes de IA** (Claude Code, Codex, Gemini CLI etc.), inspirada no Orca (https://www.onorca.dev, código em https://github.com/stablyai/orca).
-
-O MVP precisa de:
-
-1. **Arquivos**: abrir uma pasta, navegar na árvore, abrir, editar e salvar arquivos.
-2. **Terminais**: vários terminais reais (PTY) com splits.
-3. **Git**: status, diff, commit, branches e **worktrees**.
-4. **GitHub**: login, listar PRs e issues, criar worktree a partir de PR, abrir PR.
-5. **Agentes**: rodar um CLI de agente dentro de uma worktree isolada, cada um no seu terminal.
-
-Plataformas: macOS, Windows e Linux.
+- `docs/decisions.md`: decisões já tomadas e o motivo de cada uma. Consulte antes de "corrigir"
+  algo que parece estranho.
+- `docs/refactor-plan.md`: refatoração em andamento, em etapas.
+- `CONTRIBUTING.md`: setup, variáveis de ambiente, releases e traduções.
 
 ---
 
-## 2. Stack (obrigatória)
+## 1. O que é o Kite
+
+IDE desktop (macOS, Windows, Linux) para quem trabalha **com agentes de IA de linha de comando**
+(Claude Code, Codex, Gemini CLI, opencode) em várias tarefas ao mesmo tempo, cada uma mexendo em
+vários repositórios. Inspirado no Orca (https://github.com/stablyai/orca).
+
+O problema que resolve: com vários agentes em paralelo, a pessoa perde o controle de qual está
+esperando resposta e precisa abrir uma janela de editor por worktree. O Kite junta numa janela só
+os arquivos, terminais, Git e GitHub de cada tarefa, e mostra quem precisa de atenção.
+
+### Conceitos
+
+| Conceito | Definição |
+|---|---|
+| **Workspace** | Pasta aberta no Kite. Pode ser um repo ou uma pasta com vários repos (detectados até 2 níveis), mais repos de outras pastas adicionados à mão. |
+| **Tarefa** | Grupo de worktrees de repos diferentes que formam uma unidade de trabalho (ex.: `PAY-412` em `api` e `web`). |
+| **Sessão** | Um agente rodando, dentro de um terminal do Kite ou fora dele, ligado a uma tarefa. |
+| **Preset de agente** | Comando configurável que inicia um CLI de agente (`claude`, `codex`, `gemini`, `opencode` ou customizado). |
+
+### Princípios do produto
+
+- **O Kite observa, não exige.** Worktrees criadas por scripts, skills ou à mão, e agentes abertos
+  em terminais externos, funcionam igual aos criados pelo Kite.
+- **Nada específico de empresa ou layout de pastas.** Agrupamento por heurísticas genéricas, com
+  padrão configurável; o ajuste manual do usuário sempre vence a heurística.
+- **Nunca atrapalhar o agente.** A integração (hooks) não bloqueia, não altera o comportamento do
+  CLI e, em erro, simplesmente não reporta.
+- **Privacidade local.** Mensagens de agente e conteúdo de arquivos nunca saem da máquina nem vão
+  para log; guarda-se só caminhos e um trecho da última mensagem.
+
+### Capacidades
+
+- **Arquivos:** árvore virtualizada (ignora `.git`, `node_modules`, `dist`, `build`, `.next` e
+  respeita `.gitignore`), Monaco com abas, quick open fuzzy, watcher com recarga ou pergunta
+  quando há alterações locais. Binários e arquivos acima de 5 MB não abrem no editor.
+- **Terminais:** PTYs reais com o shell do SO, abas e splits (dockview), WebGL com fallback,
+  busca, links, scrollback persistido. Nenhum processo órfão ao fechar.
+- **Git:** status na árvore, diff no Monaco, stage, commit, branches e worktrees (padrão
+  `../<repo>-worktrees/<branch>`).
+- **GitHub:** login por OAuth Device Flow (`GITHUB_CLIENT_ID`), PRs, issues, checks, abrir PR em
+  worktree, criar PR. Suporta GitHub Enterprise.
+- **Tarefas multi-repo:** descoberta por `git worktree list --porcelain`, agrupada por (1) pasta
+  pai comum que não é repo, (2) mesmo nome de branch ignorando prefixos (`feat/`, `fix/`), (3)
+  padrão `{tarefa}`/`{repo}` configurável, (4) manual. Ajustes em `userData/tasks.json`. Título
+  opcional por `TASK.md`/`.kite-task.json`.
+- **Central de atenção:** grupos *Esperando você* (ordenado por tempo), *Trabalhando*, *Para
+  revisar* e *Sem tarefa*; responder, retomar (`claude --resume`), abrir tarefa, revisar.
+- **Revisão e entrega:** diff por repo contra o merge-base da branch base, commit por repo ou em
+  lote, push e PRs com links cruzados entre os repos da mesma tarefa.
+
+---
+
+## 2. Stack
 
 | Área | Escolha |
 |---|---|
-| Runtime | Electron (versão estável mais recente) |
-| Linguagem | TypeScript em modo `strict` em todo o projeto |
+| Runtime | Electron |
+| Linguagem | TypeScript `strict` + `noUncheckedIndexedAccess` |
 | Build | `electron-vite` |
-| UI | React 18+ |
-| Estado | Zustand |
-| Estilo | Tailwind CSS, tema escuro como padrão |
-| Editor | `monaco-editor` (via `@monaco-editor/react`) |
-| Terminal (UI) | `@xterm/xterm` + `@xterm/addon-fit`, `@xterm/addon-webgl`, `@xterm/addon-search`, `@xterm/addon-serialize`, `@xterm/addon-web-links` |
-| Terminal (processo) | `node-pty` |
-| File watcher | `@parcel/watcher` |
-| Árvore de arquivos | `react-arborist` (virtualizada) |
-| Layout / splits | `dockview` |
-| Git | `simple-git` |
-| GitHub | `@octokit/rest` + OAuth Device Flow |
-| Segredos | `safeStorage` do Electron |
-| Testes | Vitest (unidade) e Playwright (e2e do Electron) |
-| Lint/format | ESLint + Prettier |
-| Pacotes | pnpm |
+| UI | React 19, Zustand, Tailwind CSS v4 |
+| Editor | `monaco-editor` via `@monaco-editor/react` |
+| Terminal | `@xterm/xterm` (+ addons fit, webgl, search, serialize, web-links) e `node-pty` |
+| Layout / árvore | `dockview-react`, `react-arborist` |
+| Watcher | `@parcel/watcher` |
+| Git / GitHub | `simple-git`, `@octokit/rest` |
+| Validação | `zod` |
+| Ícones / fontes | `lucide-react`, Geist e Geist Mono locais |
+| Testes | Vitest (unidade), Playwright (e2e do Electron) |
+| Qualidade | ESLint, Prettier |
+| Pacotes | pnpm (`nodeLinker: hoisted`) |
 
-Não troque nenhuma dessas escolhas sem perguntar antes.
+Não troque nem adicione dependência de runtime sem perguntar. Versões fixadas por
+compatibilidade estão explicadas em `docs/decisions.md`.
 
 ---
 
 ## 3. Arquitetura
 
 ```
-┌─────────────── Renderer (React) ───────────────┐
-│ FileTree │ Editor (Monaco) │ Terminal (xterm)  │
-│ GitPanel │ GitHubPanel     │ AgentsPanel       │
-└──────────────────┬─────────────────────────────┘
-                   │ IPC tipado via preload (contextBridge)
-┌──────────────────┴── Main (Node) ──────────────┐
-│ FsService      leitura, escrita, watcher       │
-│ PtyManager     cria/mata PTYs, resize, I/O     │
-│ GitService     status, diff, commit, worktree  │
-│ GitHubService  Octokit + token criptografado   │
-│ AgentService   roda CLIs de agente em PTYs     │
-└────────────────────────────────────────────────┘
+┌─────────────── Renderer (React, sandbox) ───────────────┐
+│ features/: explorer, editor, terminal, git, github,      │
+│            agents, tasks, quick-open, settings           │
+└──────────────────────────┬───────────────────────────────┘
+                           │ window.api (preload, contextBridge)
+                           │ contrato tipado em shared/ipc-contract.ts
+┌──────────────────────────┴── Main (Node) ────────────────┐
+│ ipc/        valida (zod) e delega                        │
+│ services/   regras de negócio, deps injetadas            │
+│ lib/        funções puras e utilitários                  │
+│ hook/       kite-hook, chamado pelos CLIs de agente      │
+└──────────────────────────────────────────────────────────┘
 ```
+
+### Direção das dependências
+
+```
+renderer ──(window.api)──▶ preload ──(IPC)──▶ main/ipc ──▶ main/services ──▶ main/lib
+    └──────────────── todos podem importar ────────────────▶ shared
+```
+
+- `shared/` não importa de `main`, `preload` ou `renderer`, nem Node, Electron ou DOM.
+- `main/services/` e `main/lib/` **não importam `electron`**. `dialog`, `shell`, `safeStorage`,
+  `BrowserWindow` e `Notification` entram por injeção de dependência.
+- Só `main/index.ts`, `main/app/*` (composição, janela, notificações), `main/menu.ts` e
+  `main/ipc/register.ts` falam com o Electron diretamente.
+- `renderer/` só importa de `shared/` e de si mesmo.
+- Uma feature do renderer não importa arquivos internos de outra, só `*.actions.ts`,
+  `*.store.ts` e `use-*.ts` expostos de propósito. Componente compartilhado vai para
+  `components/`.
 
 ### Estrutura de pastas
 
 ```
 src/
   main/
-    index.ts              # cria a janela, registra handlers IPC
-    ipc/                  # um arquivo de handlers por serviço
-    services/
-      fs.service.ts
-      pty.service.ts
-      git.service.ts
-      github.service.ts
-      agent.service.ts
-    lib/                  # utilitários (paths, logger, validação)
-  preload/
-    index.ts              # expõe window.api com funções específicas
+    index.ts            # bootstrap do app
+    app/                # composição dos serviços, janela, notificações, ciclo de vida
+    ipc/                # <dominio>.ipc.ts, handle.ts, register.ts, schemas.ts
+    services/           # <dominio>.service.ts (+ .test.ts)
+    lib/                # funções puras, guard, logger, stores JSON
+    hook/               # kite-hook.ts
+  preload/index.ts      # window.api
   shared/
-    ipc-contract.ts       # tipos de TODOS os canais IPC (fonte única)
-    types.ts
-  renderer/
-    src/
-      app/                # layout raiz, providers
-      features/
-        explorer/
-        editor/
-        terminal/
-        git/
-        github/
-        agents/
-      stores/             # stores Zustand
-      components/         # UI genérica
-      lib/
+    ipc-contract.ts     # todos os canais IPC (fonte única)
+    types/              # tipos por domínio
+    i18n/messages/      # catálogos pt-BR + en por área
+    themes.ts, settings.ts
+  renderer/src/
+    app/                # layout raiz, providers
+    features/<feature>/ # UI, hooks, actions e store de cada área
+    stores/             # estado global (layout, tema, toasts, modal, contexto)
+    components/         # UI genérica
+    lib/                # utilitários do renderer
+e2e/                    # specs Playwright
+docs/                   # decisões, plano de refatoração, guia
 ```
 
-### Regras de segurança (inegociáveis)
-
-- `contextIsolation: true`, `nodeIntegration: false`, `sandbox: true` no renderer.
-- O preload expõe **apenas funções nomeadas** definidas em `shared/ipc-contract.ts`. Nunca exponha `fs`, `child_process`, `ipcRenderer` ou `shell` inteiros.
-- Todo handler IPC no main **valida os argumentos** (use `zod`).
-- Operações de arquivo só podem acontecer **dentro das pastas abertas pelo usuário** (workspace roots). Rejeite paths fora delas, inclusive via `..` e symlinks.
-- Token do GitHub criptografado com `safeStorage`. Nunca em texto puro, nunca em log.
-- CSP restritiva no `index.html` do renderer.
-
-### Contrato IPC
-
-Todos os canais ficam tipados em `src/shared/ipc-contract.ts`. Padrão:
-
-- Request/response: `ipcMain.handle` / `ipcRenderer.invoke`, nomes no formato `dominio:acao` (ex.: `fs:readFile`).
-- Eventos do main para o renderer (saída de PTY, mudanças em arquivos): `webContents.send`, nomes no formato `dominio:evento` (ex.: `pty:data`, `fs:changed`).
-
-Canais mínimos:
-
-```ts
-// fs
-'fs:openFolderDialog'  () => string | null
-'fs:readDir'           (path) => DirEntry[]
-'fs:readFile'          (path) => { content: string; encoding: string }
-'fs:writeFile'         (path, content) => void
-'fs:create' | 'fs:rename' | 'fs:delete'
-'fs:watch' / 'fs:unwatch'
-event 'fs:changed'     { root, events: { type, path }[] }
-
-// pty
-'pty:create'           ({ cwd, shell?, cols, rows, env? }) => { id }
-'pty:write'            (id, data) => void
-'pty:resize'           (id, cols, rows) => void
-'pty:kill'             (id) => void
-event 'pty:data'       { id, data }
-event 'pty:exit'       { id, exitCode }
-
-// git
-'git:status' | 'git:diff' | 'git:stage' | 'git:unstage' | 'git:commit'
-'git:branches' | 'git:checkout'
-'git:worktreeList' | 'git:worktreeAdd' | 'git:worktreeRemove'
-
-// github
-'github:startDeviceFlow' | 'github:pollDeviceFlow' | 'github:logout' | 'github:me'
-'github:listPRs' | 'github:listIssues' | 'github:getPR' | 'github:createPR'
-
-// agents
-'agent:list' | 'agent:start' | 'agent:stop'
-event 'agent:status'   { id, status: 'running' | 'waiting' | 'done' | 'error' }
-```
+`main/app/` e `shared/types/` são o destino da refatoração (ver `docs/refactor-plan.md`);
+enquanto não existirem, o equivalente está em `main/index.ts` e `shared/types.ts`.
 
 ---
 
-## 4. Layout da interface
+## 4. Padrões do main process
+
+### Serviços
+
+- Uma classe por domínio, `export interface <Nome>ServiceDeps` e
+  `constructor(private readonly deps: <Nome>ServiceDeps)`.
+- Deps são interfaces mínimas (só os métodos usados). Testável sem Electron, sem rede.
+- Sem estado global de módulo. Timers, watchers e PTYs são liberados no fechamento
+  (`dispose()`/`killAll()`).
+- Lógica pura (parse, agrupamento, montagem de comando) vai para `lib/`, testada sem mocks.
+- ~300 linhas por arquivo. Acima de 400, divida por responsabilidade antes de acrescentar.
+
+### IPC
+
+Canal novo, nesta ordem:
+
+1. Tipo em `shared/ipc-contract.ts` (`InvokeChannels` e `Api`). Nome `dominio:acao` para
+   request/response e `dominio:evento` para eventos do main.
+2. Handler em `main/ipc/<dominio>.ipc.ts`: `registerHandler(canal, z.tuple([...]), fn, log)`.
+3. Função nomeada em `preload/index.ts`.
+
+- O handler só valida e delega; nenhuma regra de negócio em `.ipc.ts`.
+- Todo argumento do renderer é hostil: zod com limites (`max` em strings e arrays). Schemas
+  reaproveitáveis (`absPath` etc.) ficam em `ipc/schemas.ts`.
+- Validação de domínio (branch, ref, URL, shell) numa função única em `lib/`, chamada pelo
+  serviço. Não duplique regex de validação.
+- Eventos para o renderer só pelo `emit()` tipado.
+
+### Erros
+
+- Erro esperado: `throw new AppException(code, t('error.xxx'))`. O `createHandler` devolve
+  `{ ok: false, error: { code, message } }`; erro inesperado vira `INTERNAL` sem detalhes para o
+  renderer, com detalhes no log do main.
+- Proibido engolir erro em silêncio. `.catch(() => {})` ou `catch {}` só com comentário dizendo
+  por que é seguro, e com `log.warn`/`log.debug` quando a falha ajudar a diagnosticar.
+- `err as Error` só depois de `err instanceof Error`; senão, `String(err)`.
+
+### Logs
+
+- Sempre pelo `logger` (`log.child('<area>')`), com níveis `debug`, `info`, `warn`, `error`.
+  Nunca `console.*` no main.
+- Logue ids, códigos, contagens e caminhos. **Nunca** conteúdo de arquivo, prompts, mensagens de
+  agente, tokens, valores do `.env` ou cabeçalhos HTTP.
+
+---
+
+## 5. Segurança (inegociável)
+
+- `BrowserWindow` com `contextIsolation: true`, `nodeIntegration: false`, `sandbox: true`,
+  `webSecurity: true`. Navegação para fora do bundle bloqueada; janelas novas negadas.
+- O preload expõe só funções nomeadas do contrato. Nunca `ipcRenderer`, `fs`, `child_process`,
+  `shell` ou um `invoke(canal)` genérico.
+- **Arquivos:** todo caminho vindo do renderer passa pelo `WorkspaceGuard`: `resolveExisting`
+  para ler e escrever, `resolveEntry` para criar, renomear e excluir. Fora das raízes abertas
+  (inclusive via `..` e symlinks) é recusado. A raiz não pode ser renomeada nem excluída; excluir
+  move para a lixeira. Métodos internos sem guarda (`spawnAt` etc.) nunca recebem caminho cru do
+  renderer.
+- **Processos:** nunca monte linha de comando concatenando dado externo. Use array de argumentos;
+  quando o shell for inevitável, `shQuote`/`psQuote` (`lib/agent-command.ts`). Argumento de git
+  vindo de fora não pode começar com `-`; use `--` antes de paths.
+- **Ambiente:** variáveis vindas do renderer passam por allowlist (nunca `LD_PRELOAD`,
+  `NODE_OPTIONS`, `ELECTRON_RUN_AS_NODE`, `BASH_ENV` etc.).
+- `shell.openExternal` só com `http:`/`https:` validado.
+- **Segredos:** token do GitHub só via `TokenStore` (`safeStorage`). Nunca em JSON de perfil,
+  `localStorage` ou log.
+- **CSP** restritiva no `renderer/index.html`. Sem `unsafe-eval`, CDN ou host novo sem decisão
+  registrada.
+- **Arquivos de terceiros** (`~/.claude/settings.json`, hooks do Codex e Gemini): merge que
+  preserva o resto, idempotente, com backup e prévia, só com confirmação. Remover a integração
+  devolve o arquivo ao original.
+
+---
+
+## 6. Padrões do renderer
+
+### Organização de uma feature
+
+```
+features/<feature>/
+  <Componente>.tsx       # UI: recebe dados e callbacks, quase sem lógica
+  use-<algo>.ts          # hooks: assinaturas de eventos, dados derivados
+  <feature>.actions.ts   # chamam window.api, atualizam stores, mostram toasts
+  <feature>.store.ts     # estado Zustand da feature
+  <feature>.ts           # lógica pura e testável
+```
+
+- **Componentes não chamam `window.api`.** Isso fica em `*.actions.ts` ou `use-*.ts`, usando
+  `attempt()` (`lib/ipc.ts`), que transforma `{ ok: false }` em toast amigável.
+- Estado global (layout, tema, toasts, modal) em `stores/`; estado de uma feature, nela.
+- Seletores finos do Zustand (`useStore((s) => s.campo)`), nunca o store inteiro.
+- Componente com mais de ~200 linhas ou mais de um `useEffect` de dados: extraia hook ou
+  subcomponente.
+- `eslint-disable` de `react-hooks/exhaustive-deps` é proibido. Use `useEffectEvent`, ref estável
+  ou mova a lógica para uma action.
+
+### Interface
 
 ```
 ┌────┬──────────────┬──────────────────────────────────┐
-│ A  │  Sidebar     │  Área principal (dockview)        │
-│ c  │  (troca pelo │  ┌──────────────┬───────────────┐ │
-│ t  │  activity    │  │ Editor/abas  │ Editor/abas   │ │
-│ i  │  bar):       │  ├──────────────┴───────────────┤ │
-│ v  │  Explorer    │  │ Terminais (abas + splits)    │ │
-│ i  │  Git         │  └──────────────────────────────┘ │
-│ t  │  GitHub      │                                   │
-│ y  │  Agents      │                                   │
+│ A  │  Sidebar     │  Barra de ações                  │
+│ c  │  Central     ├──────────────────────────────────┤
+│ t  │  Explorer    │  Área principal (dockview):      │
+│ i  │  Git         │  editores, diffs, terminais,     │
+│ v  │  GitHub      │  revisão, em abas e splits       │
+│ .  │  Config.     │                                  │
 ├────┴──────────────┴──────────────────────────────────┤
-│ Status bar: branch, worktree, nº de agentes, linha/col │
-└───────────────────────────────────────────────────────┘
+│ Status bar: branch, worktree, agentes esperando…     │
+└──────────────────────────────────────────────────────┘
 ```
 
-Atalhos mínimos: `Ctrl/Cmd+S` salvar, `Ctrl/Cmd+P` quick open, `Ctrl/Cmd+`` ` abrir terminal, `Ctrl/Cmd+W` fechar aba, `Ctrl/Cmd+Shift+F` busca no projeto (fase futura).
+- Janela sem moldura do sistema: a barra de menus do Kite arrasta e tem os botões da janela
+  (no macOS, botões nativos embutidos).
+- **Telas multi-repo seguem o canvas aprovado à risca**: "Kite — Tarefas multi-repo"
+  (https://claude.ai/artifact/Ebc9UREpgS9uAxuwZ9fbTu). Mesma estrutura, ordem, tamanhos,
+  espaçamentos, raios, pesos, textos e estados. Antes de mexer numa tela, leia o
+  `project/<Tela>.dc.html` dela. Os dados do canvas são só ilustração. Qualquer desvio é
+  combinado antes e registrado em `docs/decisions.md`.
+- Cores só por tokens do tema (`surface-*`, `border`, `fg`, `fg-muted`, `accent`, `accent-fg`,
+  `info`, `success`, `danger`), para todos os temas (`kite`, `dark`, `midnight`, `dimmed`,
+  `light`, `paper`) funcionarem. Nada de hex ou cor do Tailwind solta.
+- Fontes Geist e Geist Mono empacotadas localmente; ícones de `lucide-react`.
+- **i18n:** todo texto visível passa por `t()`, com chave nos catálogos de
+  `shared/i18n/messages/` em pt-BR (fonte) e en.
+
+### Atalhos
+
+| Atalho | Ação |
+|---|---|
+| `Ctrl/Cmd+S` | Salvar |
+| `Ctrl/Cmd+P` | Quick open |
+| `` Ctrl/Cmd+` `` | Abrir terminal |
+| `Ctrl/Cmd+W` | Fechar aba |
+| `Ctrl/Cmd+J` | Próxima sessão esperando |
+| `Ctrl/Cmd+K` | Trocar de tarefa (guarda abas e terminais de cada uma) |
+
+Atalho novo não pode colidir com estes nem com os do Monaco e do terminal.
 
 ---
 
-## 5. Fases e critérios de aceite
+## 7. Integração com agentes
 
-Ao terminar cada fase: rode lint, typecheck e testes, faça um commit `feat(fase-N): ...` e resuma o que foi feito antes de seguir.
-
-### Fase 0 — Fundação
-- Projeto com `electron-vite` + React + TS strict + Tailwind + ESLint/Prettier.
-- `@electron/rebuild` configurado para `node-pty` (script `postinstall`).
-- `shared/ipc-contract.ts` e preload tipado.
-- Scripts: `pnpm dev`, `pnpm build`, `pnpm lint`, `pnpm typecheck`, `pnpm test`.
-
-**Aceite:** `pnpm install && pnpm dev` abre a janela com o layout vazio (activity bar, sidebar, área principal, status bar).
-
-### Fase 1 — Arquivos e editor
-- Abrir pasta pelo diálogo nativo; lembrar as pastas recentes.
-- Árvore virtualizada com ícones, expandir/recolher, criar, renomear e excluir (com confirmação).
-- Ignorar `.git`, `node_modules`, `dist`, `build`, `.next` por padrão e respeitar `.gitignore`.
-- Watcher atualiza a árvore quando arquivos mudam fora da IDE.
-- Monaco com abas, indicador de "não salvo", detecção de linguagem pela extensão, `Ctrl+S`.
-- Se o arquivo mudar no disco com a aba aberta e sem alterações locais, recarregar; se houver alterações locais, perguntar.
-- Quick open (`Ctrl+P`) com busca fuzzy nos nomes de arquivo.
-- Arquivos binários e muito grandes (> 5 MB) não abrem no editor; mostrar aviso.
-
-**Aceite:** abrir um repo real (ex.: este próprio), editar e salvar arquivos, e ver mudanças externas refletidas sem travar a UI.
-
-### Fase 2 — Terminais
-- Criar vários terminais com o shell padrão do SO (`$SHELL`, ou `pwsh`/`powershell` no Windows), com `cwd` na pasta aberta.
-- Abas e splits horizontais/verticais pelo dockview.
-- Resize sincronizado (`addon-fit` → `pty:resize`), com debounce.
-- Renderização WebGL, com fallback para canvas se falhar.
-- Busca no scrollback, links clicáveis, copiar/colar.
-- Persistir o scrollback (`addon-serialize`) ao fechar e restaurar ao reabrir.
-- Matar todos os PTYs ao fechar a janela (nada de processos órfãos).
-
-**Aceite:** rodar `pnpm dev` de outro projeto num terminal, abrir 4 terminais em split, redimensionar sem quebrar o layout do texto, fechar e reabrir mantendo o histórico.
-
-### Fase 3 — Git local
-- Status com cores na árvore (modificado, novo, removido) e painel Git com listas de staged e unstaged.
-- Clicar num arquivo abre o **diff editor** do Monaco.
-- Stage/unstage por arquivo, commit com mensagem, troca e criação de branch.
-- Worktrees: listar, criar (`git worktree add`) numa pasta irmã padrão (`../<repo>-worktrees/<branch>`), remover e abrir uma worktree como workspace.
-- Branch e worktree atuais na status bar.
-
-**Aceite:** criar uma worktree nova, editar um arquivo nela, ver o diff, commitar, e a worktree original continuar intacta.
-
-### Fase 4 — GitHub
-- Login por OAuth Device Flow (mostrar o código e abrir o navegador). Client ID lido de variável de ambiente `GITHUB_CLIENT_ID`.
-- Detectar o repositório GitHub pelo `remote origin`.
-- Listar PRs e issues (abertos por padrão, filtro por estado), ver detalhes e status dos checks.
-- "Abrir em worktree" a partir de um PR: faz fetch da branch e cria a worktree.
-- Criar PR a partir da branch atual (título, descrição, base).
-
-**Aceite:** logar, ver PRs do repo, abrir um PR numa worktree e criar um PR novo a partir de uma branch local.
-
-### Fase 5 — Agentes
-- Agente = um CLI rodando num PTY dentro de uma worktree. Presets configuráveis: `claude`, `codex`, `gemini`, `opencode`, e um "comando customizado".
-- Fluxo "Nova tarefa": nome da tarefa → cria branch e worktree → abre terminal com o agente → envia o prompt inicial opcional.
-- Painel Agents lista todas as tarefas com worktree, branch, status e tempo rodando.
-- Status inicial por heurística: `running` enquanto há saída recente, `waiting` quando parado aguardando input, `done`/`error` pelo exit code. Deixe a detecção isolada num módulo para trocar depois por hooks dos CLIs.
-- Notificação nativa quando um agente passa para `waiting` ou `done`.
-- Ação "Revisar": abre o diff da worktree contra a branch base.
-
-**Aceite:** iniciar 3 agentes em paralelo em 3 worktrees, acompanhar o status de cada um e revisar o diff de um deles.
-
-### Fases 6 a 10 — Tarefas multi-repo e central de atenção
-
-Problema: quem trabalha em várias tarefas ao mesmo tempo, cada uma mexendo em vários repositórios, perde o controle de qual agente está esperando resposta e precisa abrir uma janela do editor por worktree. Telas aprovadas no canvas "Kite — Tarefas multi-repo" (https://claude.ai/artifact/Ebc9UREpgS9uAxuwZ9fbTu).
-
-Princípios:
-- O Kite **observa** o fluxo que já existe; não exige que as worktrees ou os agentes sejam criados por ele. Worktrees criadas por scripts, skills ou à mão, e agentes abertos em terminais externos, têm que funcionar.
-- Nada específico de uma empresa ou layout de pastas: agrupamento por heurísticas genéricas, com padrão configurável e ajuste manual que sempre vence a heurística.
-- Conceitos: **workspace** (pasta com vários repos), **tarefa** (grupo de worktrees de repos diferentes), **sessão** (um agente rodando, dentro ou fora do Kite, ligada a uma tarefa).
-- **O layout segue exatamente as telas do canvas**: mesma estrutura, ordem dos elementos, tamanhos, espaçamentos, raios, pesos de fonte, textos e estados. Antes de implementar uma tela, leia o `.dc.html` dela no canvas (`project/<Tela>.dc.html`) e use-o como especificação. As cores do canvas são as do tema Kite: no código, use os tokens do tema equivalentes (`surface-*`, `border`, `fg`, `fg-muted`, `accent`, `accent-fg`, `info`, `success`, `danger`), para que os outros temas continuem funcionando. Os dados de exemplo do canvas (tarefas, repos, mensagens) são só ilustração. Qualquer desvio do desenho precisa ser combinado antes.
-- Tipografia das telas novas como no canvas: Geist e Geist Mono, empacotadas localmente (sem CDN, por causa da CSP).
-
-### Fase 6 — Eventos de agentes (hooks do Claude Code)
-- `kite-hook`: script empacotado com o app, executado pelo binário do Electron com `ELECTRON_RUN_AS_NODE=1` (não depende de Node instalado). Lê o JSON do hook no stdin, acrescenta uma linha num spool `userData/agent-events/<session_id>.jsonl` e sai com código 0 em menos de 100 ms. Nunca bloqueia nem altera o comportamento do agente; em erro, só sai. Inclui `KITE_AGENT_ID` do ambiente quando o agente foi aberto num PTY do Kite.
-- `HooksService`: instala e remove os hooks (`SessionStart`, `UserPromptSubmit`, `PreToolUse`, `PostToolUse`, `Notification`, `Stop`, `SessionEnd`) no `~/.claude/settings.json`. Merge que preserva hooks existentes, idempotente, com backup e prévia do que muda. Só com confirmação do usuário.
-- `AgentEventService`: observa o spool (`@parcel/watcher`), valida cada evento com zod (evento desconhecido é ignorado) e mantém sessões `{ id, cli, cwd, status, lastMessage, pendingPermission, touchedPaths, transcriptPath, startedAt, lastEventAt, endedAt }`. Status: `UserPromptSubmit`/`PreToolUse`/`PostToolUse` → `running`; `Notification` → `waiting` (com o texto do pedido); `Stop` → `waiting` ("sua vez", última mensagem do agente lida do fim da transcrição); `SessionEnd` → `ended`. Como o spool fica em disco, o estado é reconstruído ao abrir o Kite.
-- Agentes abertos pelo Kite (Fase 5) que também mandam hooks usam o status dos hooks; a heurística do terminal fica como fallback para CLIs sem integração.
-- Badge persistente de "esperando" na activity bar e na status bar; notificação nativa ao entrar em `waiting`.
-- Tela "Conectar agentes" (canvas, tela 5).
-- Nunca logar mensagens do agente nem conteúdo de arquivos; guardar só caminhos e um trecho da última mensagem, apenas localmente.
-
-**Aceite:** com o Claude Code aberto num terminal fora do Kite, a sessão aparece no Kite; quando ele pede permissão, fica `waiting` em menos de 2 s com o texto do pedido; ao responder, volta para `running`; ao fechar e reabrir o Kite, as sessões voltam com o último estado; remover a integração deixa o `settings.json` igual ao original.
-
-### Fase 7 — Central de atenção
-- Primeiro, a moldura do app no visual do canvas, para as telas novas e as antigas: activity bar (logo do Kite no topo, botões de 36 px, badge), sidebars (largura, cabeçalhos, linhas), status bar (altura e itens como no desenho) e Geist como fonte da interface. Explorer, Git e GitHub ajustados para o mesmo estilo.
-- Nova view inicial (canvas, tela 1), com badge na activity bar: grupos **Esperando você** (ordenado por tempo de espera), **Trabalhando**, **Para revisar** e **Sem tarefa**.
-- Card de quem espera: pedido de permissão ou última mensagem do agente, tempo esperando, repos e número de arquivos alterados.
-- Ações: "Responder no terminal" (sessão num PTY do Kite: foca a aba), "Retomar aqui" (`claude --resume <id>` num PTY novo no cwd original; avisa se a sessão original ainda está aberta), "Abrir tarefa", "Revisar".
-- `Ctrl/Cmd+J`: vai para o próximo que espera.
-- O painel Agents da Fase 5 passa a ser esta view.
-
-**Aceite:** com 3 sessões em paralelo (2 externas, 1 aberta pelo Kite), a central mostra cada uma no grupo certo; `Ctrl+J` percorre as que esperam, em ordem; responder uma tira ela de "Esperando".
-
-### Fase 8 — Tarefas multi-repo
-- Workspace = pasta com vários repos: detecta subpastas com `.git` (até 2 níveis) e aceita repos de outras pastas. O `WorkspaceGuard` passa a ter uma raiz por repo e por worktree da tarefa aberta.
-- `TaskService`: lista worktrees com `git worktree list --porcelain` em cada repo e agrupa por (1) pasta pai em comum que não é um repo (ex.: `.worktrees/PAY-412/{api,web}`), (2) mesmo nome de branch em repos diferentes, ignorando prefixos como `feat/` e `fix/`, (3) padrão configurável `{tarefa}`/`{repo}`, (4) manual. Ajustes do usuário (renomear, juntar, separar, ignorar) ficam em `userData/tasks.json` e vencem a heurística nas próximas descobertas.
-- Observa `.git/worktrees` de cada repo: uma worktree nova entra na tarefa certa sozinha.
-- Ligação sessão ↔ tarefa: cwd dentro de uma worktree da tarefa; senão, a tarefa da maioria dos arquivos tocados; senão, manual. A escolha manual vence.
-- Nome da tarefa: pasta ou branch. Se houver um arquivo de metadados na pasta da tarefa (ex.: `TASK.md` ou `.kite-task.json`, nome configurável), lê título e link do card.
-- Tela "Descobrir tarefas" (canvas, tela 4) ao abrir um workspace.
-- Tela "Tarefa" (canvas, tela 2): explorer com uma raiz por worktree (branch, à frente/atrás, arquivos alterados), quick open em todas as raízes, abas com o nome do repo, terminais da tarefa com cwd escolhido, painel de detalhes (card, repos, sessões, notas do Kite).
-- `Ctrl/Cmd+K` troca de tarefa, guardando abas e terminais de cada uma.
-
-**Aceite:** num workspace com 3 repos, 3 tarefas criadas por fora com `git worktree add` em layouts diferentes são descobertas corretamente; uma worktree nova criada por fora aparece em menos de 3 s; dá para editar arquivos de 2 repos da mesma tarefa na mesma janela; a sessão de um agente aberto na raiz do workspace é ligada à tarefa certa quando ele edita arquivos dela.
-
-### Fase 9 — Revisão e entrega multi-repo
-- Tela "Revisão" (canvas, tela 3): arquivos alterados agrupados por repo, diff contra o merge-base com a branch base de cada repo.
-- Commit por repo ou em lote (mesma mensagem), push e PR por repo reaproveitando o `GitHubService`, com links cruzados entre os PRs da mesma tarefa na descrição.
-- "Pedir ajuste ao agente": envia um texto para a sessão (só sessões em PTY do Kite; nas externas, oferece "Retomar aqui").
-
-**Aceite:** revisar uma tarefa com 2 repos, commitar os dois em lote e abrir os 2 PRs, cada um com o link do outro.
-
-### Fase 10 — Outros agentes e nova tarefa pelo Kite
-- Interface de adaptador de eventos; adaptadores para Codex CLI (comando de notificação) e Gemini CLI (hooks), com a mesma tela de conectar.
-- "Nova tarefa" pelo Kite, para quem não tem script próprio: nome → repos → cria as worktrees no padrão configurado → abre o agente na pasta da tarefa → prompt inicial opcional. O fluxo de um repo só da Fase 5 vira um caso particular.
-
-**Aceite:** uma sessão do Codex aparece na central com o status certo; criar uma tarefa com 2 repos pelo Kite gera as worktrees no padrão configurado e abre o agente na pasta da tarefa.
-
-Estado: fases 6 a 10 implementadas (ver `docs/decisions.md`).
-
-Pontos que dependem do SO e precisam de verificação depois: caminho e aspas do comando do hook no Windows, `ELECTRON_RUN_AS_NODE` no app empacotado do macOS e permissões do spool.
+- **`kite-hook`** (`main/hook/`): executado pelo binário do Electron com
+  `ELECTRON_RUN_AS_NODE=1` (sem depender de Node instalado). Lê o JSON do hook no stdin, acrescenta
+  uma linha em `userData/agent-events/<session_id>.jsonl` e sai com código 0 em **menos de
+  100 ms**. Nunca bloqueia; em erro, só sai. Inclui `KITE_AGENT_ID`/`KITE_PTY_ID` quando o agente
+  roda num PTY do Kite.
+- **Eventos** são validados com zod; evento desconhecido é ignorado. O estado das sessões é
+  reconstruído do spool ao abrir o Kite.
+- **Status:** `UserPromptSubmit`/`PreToolUse`/`PostToolUse` → `running`; `Notification` →
+  `waiting` (com o pedido); `Stop` → `waiting` ("sua vez", com a última mensagem da transcrição);
+  `SessionEnd` → `ended`. Para CLIs sem hooks, a heurística do terminal (saída recente, exit
+  code) é o fallback, isolada no seu módulo.
+- Adaptador de CLI novo implementa a mesma interface de eventos e usa a mesma tela de conectar.
+- Ligação sessão ↔ tarefa: cwd dentro de uma worktree da tarefa; senão, a tarefa da maioria dos
+  arquivos tocados; senão, manual. A escolha manual vence.
 
 ---
 
-## 6. Fora do escopo do MVP
+## 8. TypeScript e estilo
 
-Não implemente agora (mas não feche portas na arquitetura):
-- Navegador embutido / design mode
-- SSH e worktrees remotas
-- App mobile
-- Integração com Linear
-- Comentários em diff enviados de volta ao agente
-- Sistema de extensões
-- LSP (autocomplete inteligente além do que o Monaco oferece)
-
----
-
-## 7. Convenções de código
-
-- Nada de `any`. Use `unknown` e valide.
-- Serviços do main são classes com dependências injetadas, testáveis sem Electron.
-- Componentes React pequenos; lógica em hooks e stores, não no JSX.
-- Erros do main chegam ao renderer como `{ ok: false, error: { code, message } }`; mostre toasts amigáveis.
-- Logs com níveis (`debug`, `info`, `warn`, `error`) via um logger único. Nunca logar conteúdo de arquivos ou tokens.
-- Commits no padrão Conventional Commits.
-- Toda função de serviço nova ganha teste unitário.
+- Sem `any`; use `unknown` e valide. Dado externo (IPC, JSON, arquivo, rede, stdin) sempre por
+  `schema.parse`/`safeParse`.
+- `as` só para estreitar algo já verificado ou em `as const`. Cast para "fazer compilar" é bug.
+- Tipos compartilhados em `shared/`, por domínio; tipo usado só de um lado fica nele.
+- Prefira união discriminada a combinações de flags booleanas.
+- Identificadores em inglês; comentários, logs, commits e docs em português.
+- Comentário explica o **porquê**, não o quê.
+- Arquivos em `kebab-case`; componentes React em `PascalCase.tsx`; testes `x.test.ts` ao lado
+  de `x.ts`.
+- Prettier formata (exceto este arquivo). Siga o idioma do código vizinho antes de inventar.
 
 ---
 
-## 8. Como trabalhar
+## 9. Testes
 
-1. Comece pela **Fase 0**.
-2. Antes de cada fase, escreva um plano curto (arquivos que vai criar/alterar) e então execute.
-3. Se uma decisão não estiver coberta aqui e for difícil de desfazer, pergunte. Se for fácil de desfazer, decida, siga em frente e registre a decisão em `docs/decisions.md`.
-4. Mantenha um `README.md` atualizado com como rodar o projeto.
-5. Teste no SO em que estiver rodando e sinalize qualquer ponto que dependa de Windows/macOS/Linux para ser verificado depois.
+- Todo serviço e função de `lib/` novos ganham teste unitário; bug corrigido ganha teste que
+  falhava antes.
+- Serviços com deps falsas. Git com repositório temporário real quando o comportamento do git
+  importa.
+- Teste descreve comportamento ("recusa caminho fora da raiz via symlink"), não implementação.
+- Toda validação de segurança (guard, schemas, quoting, merge de hooks, env) tem teste com a
+  entrada maliciosa.
+- e2e com Playwright dirigindo o app construído, perfil temporário (`KITE_USER_DATA_DIR`) e
+  arquivos de hook isolados (`KITE_CLAUDE_SETTINGS` etc.). Nunca toca o perfil real.
+
+---
+
+## 10. Como trabalhar
+
+### Comandos
+
+```bash
+pnpm dev          # app com HMR
+pnpm lint         # ESLint
+pnpm typecheck    # tsc de main/preload, renderer e e2e
+pnpm test         # Vitest
+pnpm test:e2e     # build + Playwright
+pnpm format       # Prettier
+```
+
+### Definição de pronto
+
+1. `pnpm lint && pnpm typecheck && pnpm test` passam, sem warnings novos.
+2. Testes conforme a seção 9.
+3. Mudou fluxo visível (tela, atalho, IPC usado por tela)? Rode o spec e2e da área.
+4. Textos novos no i18n, em pt-BR e en.
+5. Decisão não óbvia registrada em `docs/decisions.md`.
+6. `README.md`/`CONTRIBUTING.md` atualizados se mudou setup, script ou variável de ambiente.
+
+Não diga que algo está pronto sem ter rodado os comandos. O que não pôde ser verificado (outro
+SO, app empacotado) é dito explicitamente.
+
+### Decisões
+
+- Difícil de desfazer, troca de stack, desvio do canvas ou dos princípios do produto: pergunte
+  antes.
+- Fácil de desfazer e não coberta aqui: decida, siga e registre em `docs/decisions.md`.
+
+### Git
+
+- Conventional Commits em português: `feat(git): ...`, `fix(pty): ...`, `refactor(main): ...`.
+- Um commit, uma intenção. Refatoração não muda comportamento nem vem junto com feature.
+- Commit ou push só quando pedido.
+
+### Refatoração
+
+- Comportamento preservado: testes existentes passam sem mudar expectativa. Mudar expectativa é
+  mudança de comportamento e vai em commit separado.
+- Passos pequenos e verdes. Mova antes de mudar.
+- Siga a ordem de `docs/refactor-plan.md` e marque os itens concluídos.
+
+### Multiplataforma
+
+Teste no SO em que estiver rodando e sinalize o que depende de outro. Pendências conhecidas:
+caminho e aspas do comando do hook no Windows, `ELECTRON_RUN_AS_NODE` no app empacotado do macOS
+e permissões do spool.
+
+---
+
+## 11. Fora do escopo (por enquanto)
+
+Não implemente sem combinar, mas não feche portas na arquitetura: navegador embutido/design mode,
+SSH e worktrees remotas, app mobile, integração com Linear ou outro gerenciador de tarefas,
+comentários em diff enviados ao agente, sistema de extensões, LSP.
