@@ -20,6 +20,7 @@ import type { WorkspaceGuard } from '../lib/workspace-guard'
 import type { GitRunner } from './git.service'
 import type { SubscribeFn, Subscription } from './watch.service'
 import { t } from '../lib/i18n'
+import { assertBranchName } from '../lib/git-refs'
 
 const configSchema = z.object({
   grouping: z.object({
@@ -333,9 +334,7 @@ export class TaskService {
       throw new AppException('ALREADY_EXISTS', t('error.repoAlreadyInTask', { repo: r.name }))
     }
     const branch = commonBranch(task) ?? task.key
-    await this.deps.run(repo, ['check-ref-format', '--branch', branch]).catch(() => {
-      throw new AppException('INVALID_ARGS', t('error.invalidBranch', { branch }))
-    })
+    await assertBranchName(this.deps.run, repo, branch)
     const dir = task.folder
       ? path.join(task.folder, r.name)
       : path.join(path.dirname(repo), `${r.name}-worktrees`, worktreeDirName(branch))
@@ -384,9 +383,7 @@ export class TaskService {
     const branch = input.branch.trim()
     if (!name || !branch) throw new AppException('INVALID_ARGS', t('error.nameAndBranchRequired'))
     const first = repos[0]?.path ?? root
-    await this.deps.run(first, ['check-ref-format', '--branch', branch]).catch(() => {
-      throw new AppException('INVALID_ARGS', t('error.invalidBranch', { branch }))
-    })
+    await assertBranchName(this.deps.run, first, branch)
     const key = worktreeDirName(branch)
     const pattern =
       cfg.grouping.mode === 'pattern' && cfg.grouping.pattern.includes('{repo}')

@@ -6,6 +6,7 @@ import { MAX_EDITABLE_BYTES } from '../lib/file-content'
 import { parseBranches, parseStatusV2, parseWorktrees, worktreeDirName } from '../lib/git-parse'
 import { isInside, type WorkspaceGuard } from '../lib/workspace-guard'
 import { t } from '../lib/i18n'
+import { assertBranchName } from '../lib/git-refs'
 
 // Executa `git <args>` em `cwd` e devolve o stdout. Falhas viram exceção com a mensagem do git.
 // `env` extra é usado para autenticação (nunca vai para a linha de comando).
@@ -558,16 +559,8 @@ export class GitService {
     }
   }
 
-  private async validateBranchName(repo: Repo, branch: string): Promise<void> {
-    // Nada que comece com '-' (seria lido como opção) e nome aceito pelo próprio git.
-    if (branch.startsWith('-') || branch.trim() !== branch || branch.length > 200) {
-      throw new AppException('INVALID_ARGS', t('error.invalidBranch', { branch }))
-    }
-    try {
-      await this.git(repo.toplevel, ['check-ref-format', '--branch', branch])
-    } catch {
-      throw new AppException('INVALID_ARGS', t('error.invalidBranch', { branch }))
-    }
+  private validateBranchName(repo: Repo, branch: string): Promise<void> {
+    return assertBranchName((cwd, args) => this.git(cwd, args), repo.toplevel, branch)
   }
 
   private async git(cwd: string, args: string[], env?: Record<string, string>): Promise<string> {
