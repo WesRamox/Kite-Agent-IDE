@@ -68,12 +68,17 @@ violações atuais ignoradas por arquivo, removidas nas etapas seguintes.
 
 ### R2 — Composição do main
 
-- [ ] `main/app/window.ts` (criação e eventos da janela).
-- [ ] `main/app/notifications.ts` (`notifyAgent`, `notifySession`).
-- [ ] `main/app/hook-bundle.ts`.
-- [ ] `main/app/container.ts` (`createServices`) e `main/app/lifecycle.ts` (dispose no fechamento:
+- [x] `main/app/main-window.ts` (criação e eventos da janela), `native-theme.ts`, `profile.ts`,
+      `register-ipc.ts`.
+- [x] `main/app/notifications.ts` (`notifyAgent`, `notifySession`).
+- [x] `main/app/hook-bundle.ts`.
+- [x] `main/app/container.ts` (`createServices`) e `main/app/lifecycle.ts` (dispose no fechamento:
       um único `disposeAll()` em vez da lista no `closed`).
-- [ ] `main/index.ts` fica só com bootstrap (< 80 linhas).
+- [x] `main/index.ts` fica só com bootstrap (< 80 linhas).
+
+- [ ] **macOS:** ao fechar a janela e reabrir pelo Dock, os serviços encerrados no `closed`
+      (watchers, spool de agentes, ticker) não são reiniciados. Bug anterior à refatoração;
+      corrigir com teste em macOS.
 
 **Aceite:** `index.ts` só orquestra; e2e de fechar/reabrir (`phase2`, `recovery`) verdes.
 

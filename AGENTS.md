@@ -149,8 +149,8 @@ e2e/                    # specs Playwright
 docs/                   # decisões, plano de refatoração, guia
 ```
 
-`main/app/` e `shared/types/` são o destino da refatoração (ver `docs/refactor-plan.md`);
-enquanto não existirem, o equivalente está em `main/index.ts` e `shared/types.ts`.
+`shared/types/` é destino da refatoração (ver `docs/refactor-plan.md`); enquanto não existir,
+os tipos estão em `shared/types.ts`.
 
 ---
 

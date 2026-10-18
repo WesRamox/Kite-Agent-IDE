@@ -50,7 +50,9 @@ They can also go in a `.env` file (see `.env.example`). Variables set in the env
 
 ```
 src/
-  main/       main process: window, services, IPC handlers
+  main/       main process
+    index.ts    bootstrap only
+    app/        composition root: services container, window, notifications, IPC registration
     services/   one class per domain, with injected dependencies (testable without Electron)
     ipc/        one handler file per domain, arguments validated with zod
     hook/       kite-hook, the script the agent CLIs call
