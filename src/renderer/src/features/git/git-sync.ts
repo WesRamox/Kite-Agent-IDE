@@ -1,6 +1,6 @@
 import { useEffect } from 'react'
-import { useWorkspaceStore } from '../../stores/workspace.store'
 import { useGitStore } from './git.store'
+import { useScmTargetSync } from './scm-target'
 
 const DEBOUNCE_MS = 250
 
@@ -52,15 +52,11 @@ export function scheduleGitRefresh(): void {
   timer = setTimeout(() => void refreshGit(), DEBOUNCE_MS)
 }
 
-// Mantém o estado do git em dia: troca de pasta, mudanças no .git (commits/checkout feitos no
+// Mantém o estado do git em dia: troca de pasta, de tarefa ou de repo, mudanças no .git (commits/checkout feitos no
 // terminal), mudanças nos arquivos e foco da janela.
 export function useGitSync(): void {
-  const root = useWorkspaceStore((s) => s.root)
-
-  useEffect(() => {
-    useGitStore.getState().reset(root)
-    if (root) void refreshGit()
-  }, [root])
+  // O repositório segue a tarefa aberta (ou o repo escolhido no workspace).
+  useScmTargetSync(refreshGit)
 
   useEffect(() => {
     const offGit = window.api.git.onChanged(({ root: changed }) => {

@@ -2,14 +2,14 @@ import type { IDockviewPanelProps } from 'dockview-react'
 import type { PullDetail } from '@shared/types'
 import { ExternalLink, FolderGit2, RefreshCw } from 'lucide-react'
 import { useCallback, useEffect, useState } from 'react'
-import { useWorkspaceStore } from '../../stores/workspace.store'
+import { useGitStore } from '../git/git.store'
 import { runState } from './checks'
 import { CheckIcon } from './CheckIcon'
 import { checkoutPull } from './github.actions'
 import { useT } from '../../lib/i18n'
 
 export function PullPanel({ params }: IDockviewPanelProps<{ number: number }>) {
-  const root = useWorkspaceStore((s) => s.root)
+  const root = useGitStore((s) => s.root)
   const [pr, setPr] = useState<PullDetail | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [busy, setBusy] = useState(false)

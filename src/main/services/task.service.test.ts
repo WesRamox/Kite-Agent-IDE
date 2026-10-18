@@ -200,6 +200,18 @@ describe('TaskService', () => {
     expect(restored.ignoredRepos).toEqual([])
   })
 
+  it('libera para o git só repos e worktrees que a descoberta conhece', async () => {
+    const api = path.join(root, 'api')
+    const ops = path.join(base, 'api-worktrees/OPS-19')
+    expect(guard.isRoot(api)).toBe(false)
+    await expect(svc.openRepo(root, api)).resolves.toBe(api)
+    await expect(svc.openRepo(root, ops)).resolves.toBe(ops)
+    expect(guard.isRoot(api) && guard.isRoot(ops)).toBe(true)
+    await expect(svc.openRepo(root, path.join(base, 'outro'))).rejects.toMatchObject({
+      code: 'NOT_FOUND',
+    })
+  })
+
   it('abrir a tarefa libera as worktrees, inclusive as de fora do workspace', async () => {
     const ws = await svc.discover(root)
     const ops = ws.tasks.find((t) => t.key === 'OPS-19')

@@ -82,6 +82,7 @@ const api: Api = {
     removeRepo: invoke('task:removeRepo'),
     restoreRepo: invoke('task:restoreRepo'),
     remove: invoke('task:remove'),
+    openRepo: invoke('task:openRepo'),
     open: invoke('task:open'),
     addRepo: invoke('task:addRepo'),
     create: invoke('task:create'),

@@ -75,6 +75,12 @@ export function registerTaskIpc(tasks: TaskService, log: Logger): void {
     (r, id) => tasks.removeTask(r, id),
     log,
   )
+  registerHandler(
+    'task:openRepo',
+    z.tuple([absPath, absPath]),
+    (r, repo) => tasks.openRepo(r, repo),
+    log,
+  )
   registerHandler('task:open', z.tuple([absPath, taskId]), (r, id) => tasks.open(r, id), log)
   registerHandler(
     'task:create',

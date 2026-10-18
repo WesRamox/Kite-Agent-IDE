@@ -165,6 +165,7 @@ export interface InvokeChannels {
   'task:removeRepo': { args: [root: string, repo: string]; result: WorkspaceTasks }
   'task:restoreRepo': { args: [root: string, repo: string]; result: WorkspaceTasks }
   'task:remove': { args: [root: string, taskId: string]; result: WorkspaceTasks }
+  'task:openRepo': { args: [root: string, repo: string]; result: string }
   'task:open': { args: [root: string, taskId: string]; result: Task }
   'task:addRepo': { args: [root: string, taskId: string, repo: string]; result: WorkspaceTasks }
   // Nova tarefa e agente na pasta dela (Fase 10).
@@ -276,6 +277,7 @@ export interface Api {
     removeRepo: Fn<'task:removeRepo'>
     restoreRepo: Fn<'task:restoreRepo'>
     remove: Fn<'task:remove'>
+    openRepo: Fn<'task:openRepo'>
     open: Fn<'task:open'>
     addRepo: Fn<'task:addRepo'>
     create: Fn<'task:create'>

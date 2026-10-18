@@ -2,11 +2,11 @@ import type { IDockviewPanelProps } from 'dockview-react'
 import type { IssueDetail } from '@shared/types'
 import { ExternalLink } from 'lucide-react'
 import { useEffect, useState } from 'react'
-import { useWorkspaceStore } from '../../stores/workspace.store'
+import { useGitStore } from '../git/git.store'
 import { useT } from '../../lib/i18n'
 
 export function IssuePanel({ params }: IDockviewPanelProps<{ number: number }>) {
-  const root = useWorkspaceStore((s) => s.root)
+  const root = useGitStore((s) => s.root)
   const [issue, setIssue] = useState<IssueDetail | null>(null)
   const [error, setError] = useState<string | null>(null)
   const t = useT()

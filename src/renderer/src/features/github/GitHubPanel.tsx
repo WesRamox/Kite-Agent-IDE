@@ -1,6 +1,6 @@
 import { GitPullRequest, GitPullRequestDraft, LogOut, Plus, RefreshCw } from 'lucide-react'
 import { useEffect } from 'react'
-import { useWorkspaceStore } from '../../stores/workspace.store'
+import { useGitStore } from '../git/git.store'
 import {
   loadAuth,
   loadList,
@@ -12,6 +12,7 @@ import {
 } from './github.actions'
 import { useGitHubStore, type GitHubTab } from './github.store'
 import { LoginBox } from './LoginBox'
+import { RepoPicker } from '../git/RepoPicker'
 import { t as tr, useT } from '../../lib/i18n'
 
 const FILTERS = ['open', 'closed', 'all'] as const
@@ -27,18 +28,20 @@ function relativeTime(iso: string): string {
 }
 
 export function GitHubPanel() {
-  const root = useWorkspaceStore((s) => s.root)
+  const root = useGitStore((s) => s.root)
   const auth = useGitHubStore((s) => s.auth)
 
   useEffect(() => {
     void loadAuth()
   }, [])
 
+  // Espera o painel Git liberar e ler o repositório escolhido (segue a tarefa aberta).
+  const ready = useGitStore((s) => s.status !== null)
   const loggedIn = !!auth?.user
   const t = useT()
   useEffect(() => {
-    if (loggedIn) void loadRepo()
-  }, [root, loggedIn])
+    if (loggedIn && ready) void loadRepo()
+  }, [root, loggedIn, ready])
 
   if (!auth) return <p className="px-4 py-6 text-center text-fg-muted">{t('common.loading')}</p>
   if (!auth.configured) {
@@ -55,7 +58,7 @@ export function GitHubPanel() {
 
 function Connected() {
   const auth = useGitHubStore((s) => s.auth)
-  const root = useWorkspaceStore((s) => s.root)
+  const root = useGitStore((s) => s.root)
   const repo = useGitHubStore((s) => s.repo)
   const repoError = useGitHubStore((s) => s.repoError)
   const tab = useGitHubStore((s) => s.tab)
@@ -80,6 +83,7 @@ function Connected() {
         </button>
       </div>
 
+      <RepoPicker />
       {!root && <p className="px-4 py-4 text-center text-fg-muted">{t('github.openFolder')}</p>}
       {root && repo === undefined && !repoError && (
         <p className="px-4 py-4 text-center text-fg-muted">{t('common.loading')}</p>

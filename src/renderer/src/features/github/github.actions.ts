@@ -3,7 +3,7 @@ import { openWorktree } from '../../app/workspace.actions'
 import { getDockApi } from '../../lib/dock'
 import { attempt } from '../../lib/ipc'
 import { toast } from '../../stores/toast.store'
-import { useWorkspaceStore } from '../../stores/workspace.store'
+import { useGitStore } from '../git/git.store'
 import { refreshGit } from '../git/git-sync'
 import { useGitHubStore } from './github.store'
 import { t } from '../../lib/i18n'
@@ -19,7 +19,8 @@ export function isGitHubPanel(id: string): boolean {
 }
 
 const store = () => useGitHubStore.getState()
-const root = () => useWorkspaceStore.getState().root
+// Mesmo repositório do painel Git (segue a tarefa aberta).
+const root = () => useGitStore.getState().root
 
 export async function loadAuth(): Promise<void> {
   const res = await window.api.github.me()

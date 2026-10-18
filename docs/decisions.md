@@ -593,3 +593,15 @@ Decisões fáceis de desfazer, não cobertas pelo `AGENTS.md`. Mais recente no f
   ("Workspace · <pasta>"), que abre a troca de tarefa (`Ctrl/Cmd+K`). Antes, só dava para escolher
   pelo menu Tarefa ou pelo atalho. Só aparece num workspace com tarefas importadas. Desvio do
   canvas pedido pelo usuário.
+
+## Git e GitHub seguem a tarefa aberta
+
+- Num workspace que não é um repositório (pasta com vários repos), os painéis Git e GitHub
+  mostravam "não é um repositório Git". Agora eles mostram um repositório escolhido por contexto:
+  com uma tarefa aberta (`Ctrl/Cmd+K` ou o seletor do explorer), uma das worktrees dela; sem
+  tarefa, um dos repos do workspace; numa pasta que é um repo só, ela mesma.
+- Com mais de um candidato, um seletor de repositório aparece no topo dos dois painéis (a escolha
+  vale para ambos e fica guardada por tarefa durante a sessão). A barra de status mostra a branch
+  do repositório escolhido.
+- O main só libera para o git caminhos que a descoberta de tarefas conhece (`task:openRepo`):
+  repos do workspace e worktrees de tarefas.

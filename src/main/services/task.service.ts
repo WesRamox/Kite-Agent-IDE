@@ -301,6 +301,19 @@ export class TaskService {
     })
   }
 
+  // Libera um repositório do workspace ou uma worktree de tarefa para os painéis Git e GitHub
+  // (a pasta aberta pode não ser um repositório). Só caminhos que a descoberta conhece.
+  async openRepo(root: string, repo: string): Promise<string> {
+    const ws = await this.discover(root)
+    const known = [
+      ...ws.repos.map((r) => r.path),
+      ...ws.tasks.flatMap((t) => t.worktrees.map((w) => w.path)),
+      ...ws.unassigned.map((w) => w.path),
+    ]
+    if (!known.includes(repo)) throw new AppException('NOT_FOUND', t('error.notARepo'))
+    return this.deps.guard.addRoot(repo)
+  }
+
   // Abre a tarefa: as worktrees (e a pasta da tarefa) viram raízes permitidas.
   async open(root: string, taskId: string): Promise<Task> {
     const ws = await this.discover(root)
