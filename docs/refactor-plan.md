@@ -50,18 +50,19 @@ violações atuais ignoradas por arquivo, removidas nas etapas seguintes.
 
 ### R1 — Segurança
 
-- [ ] `dompurify` (via Monaco) com 2 vulnerabilidades baixas: `pnpm.overrides` para `>=3.4.16`.
-- [ ] Allowlist de variáveis em `pty:create.env` (ou trocar por campos tipados). Teste com
+- [x] `dompurify` (via Monaco): não se aplica (Monaco embute a própria cópia e ninguém usa
+      `IN_PLACE`); rever ao atualizar o Monaco.
+- [x] `pty:create` sem `env`: o campo saiu do contrato (nenhuma tela usava). Teste com
       `LD_PRELOAD`, `NODE_OPTIONS`, `ELECTRON_RUN_AS_NODE`.
-- [ ] `registerHandler` recusa chamadas cujo `senderFrame.url` não seja o do bundle do renderer.
-- [ ] `lib/git-refs.ts` com uma única `assertBranchName`; os três serviços passam a usá-la.
+- [x] `registerHandler` recusa chamadas cujo `senderFrame.url` não seja o do bundle do renderer.
+- [x] `lib/git-refs.ts` com uma única `assertBranchName`; os três serviços passam a usá-la.
       Teste com nomes começando em `-`, `..`, espaços, `@{`.
-- [ ] Revisar os outros canais que recebem string livre (`agent:savePresets`, `task:*`,
+- [x] Revisar os outros canais que recebem string livre (`agent:savePresets`, `task:*`,
       `github:*`): limites zod e o que cada um permite executar. Registrar o modelo de ameaça
       dos presets (comando do usuário roda no shell de propósito) em `decisions.md`.
-- [ ] Fuses do Electron no empacotamento (`@electron/fuses`): desligar o que não é usado.
+- [x] Fuses do Electron no empacotamento (`@electron/fuses`): desligar o que não é usado.
       `RunAsNode` precisa continuar ligado por causa do `kite-hook`; documentar.
-- [ ] `EACCES` no i18n.
+- [x] `EACCES` no i18n (e erros do sistema traduzidos no idioma atual).
 
 **Aceite:** testes novos com entradas maliciosas passando; e2e verde.
 

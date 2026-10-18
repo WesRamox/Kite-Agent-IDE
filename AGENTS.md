@@ -214,8 +214,11 @@ Canal novo, nesta ordem:
 - **Processos:** nunca monte linha de comando concatenando dado externo. Use array de argumentos;
   quando o shell for inevitável, `shQuote`/`psQuote` (`lib/agent-command.ts`). Argumento de git
   vindo de fora não pode começar com `-`; use `--` antes de paths.
-- **Ambiente:** variáveis vindas do renderer passam por allowlist (nunca `LD_PRELOAD`,
-  `NODE_OPTIONS`, `ELECTRON_RUN_AS_NODE`, `BASH_ENV` etc.).
+- **Ambiente:** o renderer não define variáveis de ambiente de processos. Se um dia precisar,
+  só por allowlist (nunca `LD_PRELOAD`, `NODE_OPTIONS`, `ELECTRON_RUN_AS_NODE`, `BASH_ENV` etc.).
+- **Origem do IPC:** `registerHandler` só atende o `index.html` do renderer (ou o Vite em dev).
+- **Fuses do Electron** (`electron-builder.yml`): `NODE_OPTIONS` e `--inspect` desligados no app
+  empacotado; `RunAsNode` ligado por causa do `kite-hook`.
 - `shell.openExternal` só com `http:`/`https:` validado.
 - **Segredos:** token do GitHub só via `TokenStore` (`safeStorage`). Nunca em JSON de perfil,
   `localStorage` ou log.

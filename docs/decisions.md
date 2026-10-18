@@ -654,3 +654,25 @@ Decisões fáceis de desfazer, não cobertas pelo `AGENTS.md`. Mais recente no f
 - **Regra entre features adiada para o R4.** São 34 imports de arquivos internos entre features,
   quase todos de helpers puros; o certo é movê-los para `components/`/`lib/` antes de travar.
 - **Cobertura só medida** (`pnpm test:coverage`, `@vitest/coverage-v8`), sem meta até o R5.
+
+## Refatoração R1: segurança
+
+- **`pty:create` sem `env`.** Nenhuma tela passava variáveis; o campo saiu do contrato em vez de
+  ganhar allowlist. Agentes continuam recebendo `KITE_*` pelo `spawnAt`, interno do main.
+- **Origem do IPC.** `registerHandler` compara `event.senderFrame.url` com o `index.html` do
+  bundle (sem hash/query) ou, fora do app empacotado, com a origem de `ELECTRON_RENDERER_URL`.
+  Verificado no app empacotado (Linux, dentro do `app.asar`). Windows/macOS: verificar depois
+  (caminhos `file:///C:/…` e espaços).
+- **Modelo de ameaça dos presets.** O comando de um preset roda no shell do usuário de propósito,
+  e o renderer já pode escrever em qualquer terminal. Um renderer comprometido equivale a
+  execução de código; as defesas são não carregar conteúdo remoto, CSP, navegação bloqueada e a
+  checagem de origem do IPC. Os limites zod servem contra abuso e erro, não contra isso.
+- **Validação de branch** em `lib/git-refs.ts` (`assertBranchName`, `isSimpleRefName`).
+- **Fuses** pelo `electronFuses` do electron-builder: `NODE_OPTIONS` e argumentos `--inspect`
+  desligados, só carregar o app do asar, cookies criptografados. `RunAsNode` ligado (kite-hook).
+  Efeito colateral: o Playwright não se conecta ao app _empacotado_ (usa `--inspect`); o e2e roda
+  no build não empacotado e não é afetado. `GrantFileProtocolExtraPrivileges` e a validação de
+  integridade do asar ficaram como estão: mudam o carregamento por `file://` e precisam de teste
+  em macOS/Windows.
+- **`dompurify` 3.4.15** (auditoria, 2 baixas, modo `IN_PLACE`): o Monaco embute a própria cópia
+  e ninguém usa `IN_PLACE`; sem override. Rever ao atualizar o Monaco.
