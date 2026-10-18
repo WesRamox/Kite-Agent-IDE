@@ -12,15 +12,16 @@ pnpm install   # downloads Electron and rebuilds node-pty (postinstall)
 pnpm dev       # app in development mode, with HMR
 ```
 
-| Script           | What it does                                        |
-| ---------------- | --------------------------------------------------- |
-| `pnpm dev`       | App in development mode                             |
-| `pnpm build`     | Typecheck and production build in `out/`            |
-| `pnpm preview`   | Runs the production build                           |
-| `pnpm lint`      | ESLint                                              |
-| `pnpm typecheck` | `tsc` for the node (main/preload), web and e2e code |
-| `pnpm test`      | Unit tests (Vitest)                                 |
-| `pnpm format`    | Prettier                                            |
+| Script               | What it does                                        |
+| -------------------- | --------------------------------------------------- |
+| `pnpm dev`           | App in development mode                             |
+| `pnpm build`         | Typecheck and production build in `out/`            |
+| `pnpm preview`       | Runs the production build                           |
+| `pnpm lint`          | ESLint                                              |
+| `pnpm typecheck`     | `tsc` for the node (main/preload), web and e2e code |
+| `pnpm test`          | Unit tests (Vitest)                                 |
+| `pnpm test:coverage` | Unit tests with coverage report in `coverage/`      |
+| `pnpm format`        | Prettier                                            |
 
 End-to-end tests drive the built app with Playwright:
 

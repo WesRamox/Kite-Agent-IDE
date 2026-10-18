@@ -25,6 +25,64 @@ export default tseslint.config(
     languageOptions: { globals: globals.node },
   },
   {
+    // Logs só pelo logger, que é quem escreve no console.
+    files: ['src/main/**/*.ts', 'src/preload/**/*.ts'],
+    ignores: ['src/main/lib/logger.ts', '**/*.test.ts'],
+    rules: { 'no-console': 'error' },
+  },
+  {
+    // Serviços e lib testáveis sem Electron: o que for do Electron entra por injeção.
+    files: ['src/main/services/**/*.ts', 'src/main/lib/**/*.ts'],
+    rules: {
+      'no-restricted-imports': [
+        'error',
+        {
+          paths: [{ name: 'electron', message: 'Injete a dependência pelo construtor.' }],
+          patterns: [
+            { group: ['**/ipc/*', '**/app/*'], message: 'services/lib não dependem de ipc/app.' },
+          ],
+        },
+      ],
+    },
+  },
+  {
+    // shared roda nos três processos: nada de Node, Electron, DOM ou dos outros lados.
+    files: ['src/shared/**/*.ts'],
+    rules: {
+      'no-restricted-imports': [
+        'error',
+        {
+          paths: ['electron'],
+          patterns: [
+            { group: ['node:*'], message: 'shared não usa APIs do Node.' },
+            { group: ['**/main/**', '**/preload/**', '**/renderer/**', '@renderer/*'] },
+          ],
+        },
+      ],
+    },
+  },
+  {
+    files: ['src/renderer/**/*.{ts,tsx}'],
+    rules: {
+      'no-restricted-imports': [
+        'error',
+        {
+          paths: ['electron'],
+          patterns: [
+            {
+              group: ['node:*'],
+              message: 'O renderer roda em sandbox; peça ao main via window.api.',
+            },
+            {
+              group: ['**/main/**', '**/preload/**'],
+              message: 'Use window.api e tipos de @shared.',
+            },
+          ],
+        },
+      ],
+    },
+  },
+  {
     // Scripts Node em CommonJS (ex.: agente falso dos testes e2e).
     files: ['**/*.cjs'],
     languageOptions: { globals: globals.node, sourceType: 'commonjs' },
@@ -40,6 +98,7 @@ export default tseslint.config(
     plugins: { 'react-hooks': reactHooks, 'react-refresh': reactRefresh },
     rules: {
       ...reactHooks.configs.recommended.rules,
+      'react-hooks/exhaustive-deps': 'error',
       'react-refresh/only-export-components': ['warn', { allowConstantExport: true }],
     },
   },
