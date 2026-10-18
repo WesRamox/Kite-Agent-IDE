@@ -177,7 +177,8 @@ export function groupWorktrees(
 
   const result: GroupedTask[] = []
   for (const t of tasks.values()) {
-    if (t.worktrees.length === 0 && t.source !== 'manual') continue
+    // Sem worktrees (inclusive tarefa manual cuja worktree foi removida): não há o que mostrar.
+    if (t.worktrees.length === 0) continue
     t.worktrees.sort((a, b) => a.repoName.localeCompare(b.repoName))
     if (t.source !== 'manual') t.why = explain(t, root)
     result.push(t)

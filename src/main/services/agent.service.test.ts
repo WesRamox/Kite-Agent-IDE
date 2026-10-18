@@ -256,6 +256,21 @@ describe('AgentService', () => {
     })
   })
 
+  it('agente na pasta de uma tarefa: revisa contra a branch padrão, ou pede a revisão da tarefa', async () => {
+    const wt = path.join(base, 'tarefa', 'repo')
+    git(repo, 'worktree', 'add', '-q', '-b', 'PAY-1', wt)
+    await writeFile(path.join(wt, 'a.txt'), 'pelo agente\n')
+    const input = { name: 'PAY-1', presetId: 'claude', prompt: '', repoPath: repo, branch: 'PAY-1' }
+    const one = svc.startIn({ ...input, cwd: wt, wsTaskId: 'folder:x' })
+    await expect(svc.review(one.id)).resolves.toMatchObject({
+      base: 'main',
+      files: [{ path: 'a.txt', status: 'modified' }],
+    })
+    // Pasta com vários repos (não é um repositório): não há uma base só.
+    const many = svc.startIn({ ...input, cwd: path.join(base, 'tarefa'), wsTaskId: 'folder:y' })
+    await expect(svc.review(many.id)).rejects.toMatchObject({ code: 'NOT_A_REPO' })
+  })
+
   it('remove a tarefa e, se pedido, a worktree', async () => {
     const task = await svc.start({ root: repo, name: 't', presetId: 'claude', prompt: '' })
     await writeFile(path.join(task.worktreePath, 'sujo.txt'), 'x')

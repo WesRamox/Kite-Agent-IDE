@@ -231,17 +231,26 @@ export class AgentService {
 
   async review(id: string): Promise<AgentReview> {
     const task = this.task(id)
-    const { mergeBase, files } = await this.deps.git.changesSince(
-      task.worktreePath,
-      task.baseBranch,
-    )
-    return { base: task.baseBranch, mergeBase, files }
+    const base = await this.reviewBase(task)
+    const { mergeBase, files } = await this.deps.git.changesSince(task.worktreePath, base)
+    return { base, mergeBase, files }
   }
 
   async reviewDiff(id: string, rel: string): Promise<GitDiff> {
     const task = this.task(id)
-    const { mergeBase } = await this.deps.git.changesSince(task.worktreePath, task.baseBranch)
+    const base = await this.reviewBase(task)
+    const { mergeBase } = await this.deps.git.changesSince(task.worktreePath, base)
     return this.deps.git.diffSince(task.worktreePath, mergeBase, rel)
+  }
+
+  // Agentes abertos na pasta de uma tarefa (Fase 10) não guardam a base: quem sabe é a tarefa.
+  // Fora do workspace dela, usa a branch padrão do repo; numa pasta com vários repos, não há uma
+  // base só, e a revisão é a da tarefa.
+  private async reviewBase(task: AgentTask): Promise<string> {
+    if (task.baseBranch) return task.baseBranch
+    const base = await this.deps.git.defaultBase(task.worktreePath)
+    if (!base) throw new AppException('NOT_A_REPO', t('error.reviewInTaskWorkspace'))
+    return base
   }
 
   // Saída de qualquer PTY: interessa só a dos agentes.

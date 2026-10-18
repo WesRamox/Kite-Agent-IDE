@@ -57,6 +57,9 @@ export default messages(
     'error.taskWorktreeGone': 'A worktree da tarefa não existe mais',
     'error.presetNotFound': 'Preset não encontrado',
     'error.sessionNotFound': 'Sessão do agente não encontrada',
+    'error.onlyManualTasks': 'Só tarefas montadas por você podem ser desfeitas',
+    'error.reviewInTaskWorkspace':
+      'Este agente rodou numa tarefa com vários repositórios: abra o workspace da tarefa e use "Revisar" nela',
     'error.notEditedBySession': 'Esse arquivo não foi editado pelo agente',
     'error.tooManyTasksWithName': 'Muitas tarefas com esse nome',
     'error.cannotReadFile': ({ file, reason }: { file: string; reason: string }) =>
@@ -155,6 +158,9 @@ export default messages(
     'error.taskWorktreeGone': "The task's worktree no longer exists",
     'error.presetNotFound': 'Preset not found',
     'error.sessionNotFound': 'Agent session not found',
+    'error.onlyManualTasks': 'Only tasks you put together can be removed',
+    'error.reviewInTaskWorkspace':
+      "This agent ran in a task with several repositories: open the task's workspace and review it there",
     'error.notEditedBySession': 'The agent did not edit this file',
     'error.tooManyTasksWithName': 'Too many tasks with this name',
     'error.cannotReadFile': ({ file, reason }: { file: string; reason: string }) =>

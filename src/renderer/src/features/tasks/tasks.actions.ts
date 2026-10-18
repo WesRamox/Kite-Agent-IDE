@@ -172,6 +172,13 @@ export const linkSession = (sessionId: string, id: string | null) =>
 export const addExternalRepo = () =>
   change((d) => window.api.task.addExternalRepo(d), t('tasks.addRepoError'))
 
+export const removeRepo = (repo: string) =>
+  change((d) => window.api.task.removeRepo(d, repo), t('tasks.removeRepoError'))
+export const restoreRepo = (repo: string) =>
+  change((d) => window.api.task.restoreRepo(d, repo), t('tasks.restoreRepoError'))
+export const removeTask = (id: string) =>
+  change((d) => window.api.task.remove(d, id), t('tasks.removeTaskError'))
+
 export async function addRepoToTask(id: string, repo: string): Promise<void> {
   const ws = await change(
     (d) => window.api.task.addRepo(d, id, repo),

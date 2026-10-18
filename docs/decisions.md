@@ -567,3 +567,22 @@ Decisões fáceis de desfazer, não cobertas pelo `AGENTS.md`. Mais recente no f
   `useSyncExternalStore` do zustand 5 renderizava sem parar. Não era o Wayland nem a NVIDIA.
 - Seletores devolvem valores vazios estáveis (`NO_REPOS`, `NO_LINKS` em `tasks.store.ts`).
   Regressão coberta por `e2e/switch-folder.spec.ts`, que trava sem a correção.
+
+## Ajustes em "Descobrir tarefas" (0.1.3)
+
+- **Worktree já agrupada também se ajusta.** Cada linha dos cartões tem "⋯": separar em nova
+  tarefa, mover para outra tarefa ou ignorar. Antes, só as worktrees soltas tinham ações.
+- **"Desfazer tarefa"** nas tarefas montadas à mão: as worktrees voltam para a heurística (ou
+  ficam soltas) e saem nome, notas e vínculos de sessão dela. As tarefas da heurística não são
+  apagadas: ajusta-se a worktree ou o agrupamento.
+- **Tarefa sem nenhuma worktree não aparece mais**, inclusive a manual cuja worktree foi removida
+  por fora.
+- **Repositórios com ✕.** O adicionado de outra pasta sai da lista; o achado na varredura fica
+  "fora do workspace" (`ignoredRepos`), com "Restaurar", porque a próxima varredura o traria de
+  volta. Nada é apagado do disco.
+- Botões fora do canvas, combinados antes de implementar.
+- **Revisão de agente aberto numa pasta de tarefa** fora do workspace dela: sem base guardada, usa
+  a branch padrão do repo; numa pasta com vários repos, pede para revisar pela tarefa (antes: "Not
+  a valid object name").
+- O menu de contexto é renderizado no `body`: dentro de um painel do dockview, `position: fixed`
+  ficava relativo ao painel e o menu abria fora da tela.

@@ -1,5 +1,5 @@
 import { execFileSync } from 'node:child_process'
-import { writeFile } from 'node:fs/promises'
+import { mkdir, writeFile } from 'node:fs/promises'
 import path from 'node:path'
 import { subscribe } from '@parcel/watcher'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
@@ -29,6 +29,18 @@ describe('TaskService', () => {
   let guard: WorkspaceGuard
   let emit: ReturnType<typeof vi.fn<(ws: unknown) => void>>
   let svc: TaskService
+  const deps = () => ({
+    guard,
+    run: createGitRunner(ENV),
+    store: new JsonStore<TaskState>(path.join(base, 'tasks.json'), taskStateSchema, {
+      workspaces: {},
+    }),
+    subscribe,
+    emit,
+    pickFolder: async (): Promise<string | null> => null,
+    log: createLogger('test', 'error', () => {}),
+    debounceMs: 100,
+  })
 
   beforeEach(async () => {
     ;({ dir: base, cleanup } = await makeTree({
@@ -97,18 +109,7 @@ describe('TaskService', () => {
     guard = new WorkspaceGuard()
     root = await guard.addRoot(root)
     emit = vi.fn<(ws: unknown) => void>()
-    svc = new TaskService({
-      guard,
-      run: createGitRunner(ENV),
-      store: new JsonStore<TaskState>(path.join(base, 'tasks.json'), taskStateSchema, {
-        workspaces: {},
-      }),
-      subscribe,
-      emit,
-      pickFolder: async () => null,
-      log: createLogger('test', 'error', () => {}),
-      debounceMs: 100,
-    })
+    svc = new TaskService(deps())
   })
 
   afterEach(async () => {
@@ -143,6 +144,60 @@ describe('TaskService', () => {
     })
     expect(after.tasks.find((t) => t.id === seo)?.hidden).toBe(true)
     expect(after.sessionLinks).toEqual({ 'sess-1': pay })
+  })
+
+  it('separa e desfaz tarefas manuais; tarefa sem worktrees some', async () => {
+    const ws = await svc.discover(root)
+    const pay = ws.tasks.find((t) => t.key === 'PAY-412')
+    const web = pay?.worktrees.find((w) => w.repoName === 'web')?.path ?? ''
+    const split = await svc.move(root, web, 'new')
+    const manual = split.tasks.find((t) => t.source === 'manual')
+    expect(manual?.worktrees.map((w) => w.path)).toEqual([web])
+    expect(split.tasks.find((t) => t.key === 'PAY-412')?.worktrees.map((w) => w.repoName)).toEqual([
+      'api',
+    ])
+    await svc.linkSession(root, 'sess-1', manual?.id ?? '')
+
+    // Desfazer devolve a worktree à tarefa da heurística e limpa o vínculo.
+    const undone = await svc.removeTask(root, manual?.id ?? '')
+    expect(undone.tasks.some((t) => t.source === 'manual')).toBe(false)
+    expect(undone.tasks.find((t) => t.key === 'PAY-412')?.worktrees).toHaveLength(2)
+    expect(undone.sessionLinks).toEqual({})
+    await expect(svc.removeTask(root, pay?.id ?? '')).rejects.toMatchObject({
+      code: 'INVALID_ARGS',
+    })
+
+    // Tarefa manual cuja worktree foi removida por fora não fica vazia na lista.
+    const again = await svc.move(root, web, 'new')
+    expect(again.tasks.some((t) => t.source === 'manual')).toBe(true)
+    git(path.join(root, 'web'), 'worktree', 'remove', '--force', web)
+    const gone = await svc.discover(root)
+    expect(gone.tasks.some((t) => t.source === 'manual')).toBe(false)
+  })
+
+  it('remove repo de outra pasta e tira do workspace (com volta) o achado na varredura', async () => {
+    const outro = path.join(base, 'outro')
+    await mkdir(outro)
+    git(outro, 'init', '-q', '-b', 'main')
+    svc = new TaskService({ ...deps(), pickFolder: async () => outro })
+    const added = await svc.addExternalRepo(root)
+    expect(added.repos.find((r) => r.name === 'outro')).toMatchObject({ external: true })
+    expect((await svc.removeRepo(root, outro)).repos.map((r) => r.name)).toEqual([
+      'api',
+      'infra',
+      'web',
+    ])
+
+    const infra = path.join(root, 'infra')
+    const ignored = await svc.removeRepo(root, infra)
+    expect(ignored.repos.map((r) => r.name)).toEqual(['api', 'web'])
+    expect(ignored.ignoredRepos).toEqual([{ path: infra, name: 'infra' }])
+    expect(ignored.tasks.find((t) => t.key === 'OPS-19')?.worktrees.map((w) => w.repoName)).toEqual(
+      ['api'],
+    )
+    const restored = await svc.restoreRepo(root, infra)
+    expect(restored.repos.map((r) => r.name)).toEqual(['api', 'infra', 'web'])
+    expect(restored.ignoredRepos).toEqual([])
   })
 
   it('abrir a tarefa libera as worktrees, inclusive as de fora do workspace', async () => {

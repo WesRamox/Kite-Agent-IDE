@@ -407,7 +407,10 @@ export interface Task {
 
 export interface WorkspaceTasks {
   root: string
-  repos: { path: string; name: string }[]
+  // `external`: adicionado de outra pasta (sai da lista ao remover).
+  repos: { path: string; name: string; external: boolean }[]
+  // Achados na varredura, mas tirados do workspace pelo usuário.
+  ignoredRepos: { path: string; name: string }[]
   tasks: Task[]
   unassigned: TaskWorktree[]
   grouping: TaskGrouping

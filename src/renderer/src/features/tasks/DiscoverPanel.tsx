@@ -1,4 +1,5 @@
 import type { Task, TaskWorktree } from '@shared/types'
+import { MoreHorizontal, X } from 'lucide-react'
 import { useState } from 'react'
 import { ContextMenu, type MenuItem } from '../../components/ContextMenu'
 import { tildePath } from '../agents/session-format'
@@ -7,7 +8,10 @@ import {
   ignoreWorktree,
   importTasks,
   moveWorktree,
+  removeRepo,
+  removeTask,
   renameTask,
+  restoreRepo,
 } from './tasks.actions'
 import { GroupingFieldset } from './GroupingFieldset'
 import { useTasksStore } from './tasks.store'
@@ -83,14 +87,43 @@ function DiscoverBody() {
                 {ws.repos.map((r) => {
                   const n = countByRepo(r.path)
                   return (
-                    <div key={r.path} className="flex items-center gap-2" title={r.path}>
+                    <div key={r.path} className="group flex items-center gap-2" title={r.path}>
                       <span className="font-geist-mono">{r.name}</span>
                       <span className="ml-auto text-xs text-fg-muted">
                         {tr('discover.worktrees', { n })}
                       </span>
+                      <button
+                        type="button"
+                        aria-label={tr('discover.removeRepo', { name: r.name })}
+                        title={tr(
+                          r.external ? 'discover.removeExternalHint' : 'discover.ignoreRepoHint',
+                        )}
+                        onClick={() => void removeRepo(r.path)}
+                        className="flex size-5 items-center justify-center rounded text-fg-muted hover:bg-surface-3 hover:text-fg"
+                      >
+                        <X size={12} />
+                      </button>
                     </div>
                   )
                 })}
+                {ws.ignoredRepos.map((r) => (
+                  <div
+                    key={r.path}
+                    className="flex items-center gap-2 text-fg-muted"
+                    title={r.path}
+                  >
+                    <span className="font-geist-mono line-through">{r.name}</span>
+                    <span className="ml-auto text-xs">{tr('discover.ignoredRepo')}</span>
+                    <button
+                      type="button"
+                      aria-label={tr('discover.restoreRepoLabel', { name: r.name })}
+                      onClick={() => void restoreRepo(r.path)}
+                      className="text-xs hover:text-fg"
+                    >
+                      {tr('discover.restoreRepo')}
+                    </button>
+                  </div>
+                ))}
                 <button
                   type="button"
                   onClick={() => void addExternalRepo()}
@@ -114,6 +147,9 @@ function DiscoverBody() {
                   root={ws.root}
                   checked={!hidden.has(t.id)}
                   onToggle={() => toggle(t.id)}
+                  onWorktreeMenu={(w, x, y) =>
+                    setMenu({ x, y, items: worktreeMenu(w, t, ws.tasks, tr) })
+                  }
                 />
               ))}
               {ws.unassigned.length > 0 && (
@@ -149,7 +185,38 @@ function DiscoverBody() {
   )
 }
 
-function TaskCard(props: { task: Task; root: string; checked: boolean; onToggle: () => void }) {
+// Ajustes de uma worktree que já está numa tarefa: separar, mover para outra ou ignorar.
+function worktreeMenu(
+  w: TaskWorktree,
+  task: Task,
+  tasks: Task[],
+  tr: ReturnType<typeof useT>,
+): MenuItem[] {
+  return [
+    ...(task.worktrees.length > 1
+      ? [{ label: tr('discover.split'), onSelect: () => void moveWorktree(w.path, 'new') }]
+      : []),
+    ...tasks
+      .filter((o) => o.id !== task.id)
+      .map((o) => ({
+        label: tr('discover.moveTo', { name: o.name }),
+        onSelect: () => void moveWorktree(w.path, o.id),
+      })),
+    {
+      label: tr('discover.ignoreWorktree'),
+      danger: true,
+      onSelect: () => void ignoreWorktree(w.path),
+    },
+  ]
+}
+
+function TaskCard(props: {
+  task: Task
+  root: string
+  checked: boolean
+  onToggle: () => void
+  onWorktreeMenu: (w: TaskWorktree, x: number, y: number) => void
+}) {
   const { task } = props
   const [name, setName] = useState(task.name)
   const tr = useT()
@@ -173,6 +240,16 @@ function TaskCard(props: { task: Task; root: string; checked: boolean; onToggle:
           className="h-[30px] flex-[1_1_220px] rounded-md border border-border bg-surface-0 px-2.5 font-medium text-fg"
         />
         <span className="text-xs text-fg-muted">{task.why}</span>
+        {task.source === 'manual' && (
+          <button
+            type="button"
+            aria-label={tr('discover.removeTaskLabel', { name: task.name })}
+            onClick={() => void removeTask(task.id)}
+            className="h-[26px] rounded-md bg-transparent px-2 text-xs text-fg-muted hover:text-fg"
+          >
+            {tr('discover.removeTask')}
+          </button>
+        )}
       </div>
       {task.worktrees.map((w) => (
         <div key={w.path} className="flex flex-wrap items-center gap-2.5 pl-[26px] text-xs">
@@ -181,6 +258,14 @@ function TaskCard(props: { task: Task; root: string; checked: boolean; onToggle:
             {relPath(props.root, w.path)}
           </span>
           <span className="text-fg-muted">{w.branch ?? `(${w.head})`}</span>
+          <button
+            type="button"
+            aria-label={tr('discover.worktreeActions', { name: w.repoName })}
+            onClick={(e) => props.onWorktreeMenu(w, e.clientX, e.clientY)}
+            className="flex size-6 items-center justify-center rounded text-fg-muted hover:bg-surface-3 hover:text-fg"
+          >
+            <MoreHorizontal size={14} />
+          </button>
         </div>
       ))}
     </div>

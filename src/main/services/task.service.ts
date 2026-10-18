@@ -34,6 +34,8 @@ const configSchema = z.object({
     hidden: z.array(z.string()),
   }),
   extraRepos: z.array(z.string()),
+  // Repos achados na varredura que o usuário tirou do workspace (ausente em perfis antigos).
+  ignoredRepos: z.array(z.string()).optional(),
   imported: z.boolean(),
   notes: z.record(z.string(), z.string().max(20_000)),
   sessionLinks: z.record(z.string(), z.string()),
@@ -81,6 +83,7 @@ export class TaskService {
     this.checkRoot(root)
     const cfg = await this.config(root)
     const repos = await this.repos(root, cfg)
+    const extra = new Set(cfg.extraRepos)
     const listed: RepoWorktrees[] = await Promise.all(
       repos.map(async (repo) => ({
         repo,
@@ -113,7 +116,8 @@ export class TaskService {
     )
     const result: WorkspaceTasks = {
       root,
-      repos: repos.map((p) => ({ path: p, name: path.basename(p) })),
+      repos: repos.map((p) => ({ path: p, name: path.basename(p), external: extra.has(p) })),
+      ignoredRepos: (cfg.ignoredRepos ?? []).map((p) => ({ path: p, name: path.basename(p) })),
       tasks: full,
       unassigned,
       grouping: cfg.grouping,
@@ -251,6 +255,50 @@ export class TaskService {
     )
     if (!isRepo) throw new AppException('NOT_A_REPO', t('error.notARepo'))
     return this.update(root, (c) => ({ ...c, extraRepos: [...new Set([...c.extraRepos, real])] }))
+  }
+
+  // Tira um repo do workspace: o de outra pasta sai da lista; o achado na varredura fica ignorado
+  // (senão a próxima varredura o traria de volta).
+  removeRepo(root: string, repo: string): Promise<WorkspaceTasks> {
+    return this.update(root, (c) =>
+      c.extraRepos.includes(repo)
+        ? { ...c, extraRepos: c.extraRepos.filter((r) => r !== repo) }
+        : { ...c, ignoredRepos: [...new Set([...(c.ignoredRepos ?? []), repo])] },
+    )
+  }
+
+  restoreRepo(root: string, repo: string): Promise<WorkspaceTasks> {
+    return this.update(root, (c) => ({
+      ...c,
+      ignoredRepos: (c.ignoredRepos ?? []).filter((r) => r !== repo),
+    }))
+  }
+
+  // Desfaz uma tarefa montada à mão: as worktrees dela voltam para a heurística (ou ficam soltas).
+  removeTask(root: string, taskId: string): Promise<WorkspaceTasks> {
+    return this.update(root, (c) => {
+      if (!c.overrides.manual.some((m) => m.id === taskId)) {
+        throw new AppException('INVALID_ARGS', t('error.onlyManualTasks'))
+      }
+      const without = <T>(rec: Record<string, T>) =>
+        Object.fromEntries(Object.entries(rec).filter(([id]) => id !== taskId))
+      return {
+        ...c,
+        overrides: {
+          ...c.overrides,
+          manual: c.overrides.manual.filter((m) => m.id !== taskId),
+          moves: Object.fromEntries(
+            Object.entries(c.overrides.moves).filter(([, target]) => target !== taskId),
+          ),
+          names: without(c.overrides.names),
+          hidden: c.overrides.hidden.filter((id) => id !== taskId),
+        },
+        notes: without(c.notes),
+        sessionLinks: Object.fromEntries(
+          Object.entries(c.sessionLinks).filter(([, target]) => target !== taskId),
+        ),
+      }
+    })
   }
 
   // Abre a tarefa: as worktrees (e a pasta da tarefa) viram raízes permitidas.
@@ -456,7 +504,8 @@ export class TaskService {
   }
 
   private async repos(root: string, cfg: WorkspaceTaskConfig): Promise<string[]> {
-    const scanned = await scanRepos(root)
+    const ignored = new Set(cfg.ignoredRepos ?? [])
+    const scanned = (await scanRepos(root)).filter((r) => !ignored.has(r))
     const extra: string[] = []
     for (const r of cfg.extraRepos) if (await exists(path.join(r, '.git'))) extra.push(r)
     return [...new Set([...scanned, ...extra])]

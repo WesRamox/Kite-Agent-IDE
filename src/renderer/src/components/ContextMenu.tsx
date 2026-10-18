@@ -1,3 +1,4 @@
+import { createPortal } from 'react-dom'
 import { useEffect, useRef } from 'react'
 
 export interface MenuItem {
@@ -35,7 +36,8 @@ export function ContextMenu({ x, y, items, onClose }: Props) {
   const left = Math.min(x, window.innerWidth - 200)
   const top = Math.min(y, window.innerHeight - items.length * 28 - 16)
 
-  return (
+  // No body: dentro de um painel do dockview, `fixed` seria relativo ao painel (transform).
+  return createPortal(
     <div
       ref={ref}
       role="menu"
@@ -58,6 +60,7 @@ export function ContextMenu({ x, y, items, onClose }: Props) {
           {item.label}
         </button>
       ))}
-    </div>
+    </div>,
+    document.body,
   )
 }
