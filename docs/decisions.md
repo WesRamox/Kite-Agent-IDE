@@ -720,3 +720,11 @@ Decisões fáceis de desfazer, não cobertas pelo `AGENTS.md`. Mais recente no f
   do canal quando o teste esquece de defini-lo.
 - **Metas de cobertura por área**, um pouco abaixo do medido. Bootstrap, `main/app`, menu,
   registro no `ipcMain` e `kite-hook` ficam fora da medição de unidade (são exercitados pelo e2e).
+
+## Depois da refatoração: opcionais
+
+- **Sem fachada no `GitService`.** `AgentService`, `TaskReviewService` e `SessionReviewService`
+  recebem `review: Pick<GitReviewService, …>` com só os métodos de comparação que usam; o
+  contêiner cria um `GitReviewService` e passa a eles.
+- **Meta de cobertura do renderer em 18%**, com testes das ações do painel Git (stage, commit,
+  worktrees) e de tarefas (store e `loadTasks`).

@@ -8,7 +8,6 @@ import { isInside, type WorkspaceGuard } from '../lib/workspace-guard'
 import { t } from '../lib/i18n'
 import { assertBranchName } from '../lib/git-refs'
 import { execGit, showOrEmpty, type GitRunner } from '../lib/git-exec'
-import { GitReviewService } from './git-review.service'
 
 export type { GitRunner } from '../lib/git-exec'
 export { cleanGitMessage } from '../lib/git-exec'
@@ -24,11 +23,7 @@ interface Repo {
 }
 
 export class GitService {
-  private readonly review: GitReviewService
-
-  constructor(private readonly deps: GitServiceDeps) {
-    this.review = new GitReviewService({ run: deps.run })
-  }
+  constructor(private readonly deps: GitServiceDeps) {}
 
   async status(root: string): Promise<GitStatus> {
     let repo: Repo
@@ -238,36 +233,6 @@ export class GitService {
     const repo = await this.repo(root)
     await this.git(repo.toplevel, ['add', '-A', '--', this.pathspec(repo)])
     return this.commit(root, message)
-  }
-
-  // Revisão contra a branch base: implementada no GitReviewService, exposta aqui para quem já
-  // depende do GitService.
-  changesSince(...args: Parameters<GitReviewService['changesSince']>) {
-    return this.review.changesSince(...args)
-  }
-
-  removeWorktreeAt(...args: Parameters<GitReviewService['removeWorktreeAt']>) {
-    return this.review.removeWorktreeAt(...args)
-  }
-
-  numstatSince(...args: Parameters<GitReviewService['numstatSince']>) {
-    return this.review.numstatSince(...args)
-  }
-
-  commitsSince(...args: Parameters<GitReviewService['commitsSince']>) {
-    return this.review.commitsSince(...args)
-  }
-
-  defaultBase(...args: Parameters<GitReviewService['defaultBase']>) {
-    return this.review.defaultBase(...args)
-  }
-
-  diffSince(...args: Parameters<GitReviewService['diffSince']>) {
-    return this.review.diffSince(...args)
-  }
-
-  pendingFiles(...args: Parameters<GitReviewService['pendingFiles']>) {
-    return this.review.pendingFiles(...args)
   }
 
   // Diretórios internos do git a observar (HEAD, index, refs). Numa worktree, o gitdir fica

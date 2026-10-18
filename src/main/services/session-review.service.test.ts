@@ -36,7 +36,7 @@ function setup() {
   }
   const svc = new SessionReviewService({
     session: (id) => (id === 's1' ? session : undefined),
-    git,
+    review: git,
     store: {
       read: async () => state,
       write: async (v) => {

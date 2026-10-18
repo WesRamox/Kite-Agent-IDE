@@ -1,12 +1,14 @@
 import type { Api } from '@shared/ipc-contract'
-import type { Result } from '@shared/types'
+import type { ErrorCode, Result } from '@shared/types'
 import { vi } from 'vitest'
 
 type DeepPartial<T> = { [K in keyof T]?: T[K] extends object ? DeepPartial<T[K]> : T[K] }
 
 export const ok = <T>(data: T): Result<T> => ({ ok: true, data })
-export const fail = (message: string, code: 'INTERNAL' | 'NOT_AUTHENTICATED' = 'INTERNAL') =>
-  ({ ok: false, error: { code, message } }) as const
+export const fail = (message: string, code: ErrorCode = 'INTERNAL'): Result<never> => ({
+  ok: false,
+  error: { code, message },
+})
 
 // Instala um window.api falso com só o que o teste usa. Chamar algo que não foi definido falha
 // com o nome do canal, em vez de um "undefined is not a function" sem pista.

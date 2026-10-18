@@ -93,8 +93,8 @@ violações atuais ignoradas por arquivo, removidas nas etapas seguintes.
 - [x] `.catch` silenciosos revisados: sondagens ficam; ações de melhor esforço ganharam
       comentário; a busca de PR na revisão passou a logar. Regra refinada no `AGENTS.md`.
 
-- [ ] Migrar os chamadores dos métodos de revisão para depender do `GitReviewService` direto e
-      tirar a fachada (opcional; mexe em deps e testes de 3 serviços).
+- [x] Migrar os chamadores dos métodos de revisão para depender do `GitReviewService` direto e
+      tirar a fachada (agent, task-review e session-review recebem `review`).
 
 **Aceite:** nenhum arquivo de serviço acima de 400 linhas; testes existentes intactos.
 
@@ -124,8 +124,8 @@ Linha de base de cobertura de linhas (R0, 2026-10-18): total 36,6%; `main/servic
 - [x] Metas de cobertura (linhas): `main/services` e `main/lib` ≥ 90%, renderer ≥ 15%; branches
       ≥ 70% (services) e 80% (lib). Cola com o Electron fora da medição (coberta pelo e2e).
       Depois do R5: total 43,4%, renderer 16,8% (era 9,3%).
-- [ ] Subir a meta do renderer conforme novas features trouxerem testes (painéis do Git, tarefas,
-      terminais).
+- [x] Meta do renderer 15% → 18% (18,6% medido) com testes das ações do painel Git e de
+      tarefas. Continua subindo conforme as telas ganharem testes.
 
 ### R6 — Documentação
 
@@ -143,8 +143,6 @@ Em aberto (itens desmarcados acima):
 
 - **macOS:** reabrir a janela pelo Dock não reinicia os serviços (bug anterior; precisa de teste
   em macOS).
-- **Fachada do `GitService`:** migrar os chamadores para o `GitReviewService` (opcional).
-- **Cobertura do renderer:** subir a meta conforme os painéis ganharem testes.
 - **Verificar em Windows/macOS:** checagem de origem do IPC (`file:///C:/…`, espaços no caminho),
   fuses no `.app`, e avaliar `GrantFileProtocolExtraPrivileges` e a integridade do asar.
 

@@ -33,7 +33,7 @@ export default defineConfig({
       thresholds: {
         'src/main/services/**': { lines: 90, branches: 70 },
         'src/main/lib/**': { lines: 90, branches: 80 },
-        'src/renderer/src/**': { lines: 15 },
+        'src/renderer/src/**': { lines: 18 },
       },
     },
   },
