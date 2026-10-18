@@ -75,6 +75,10 @@ export class AgentEventService {
       .sort((a, b) => b.lastEventAt - a.lastEventAt)
   }
 
+  get(id: string): AgentSession | undefined {
+    return this.sessions.get(id)
+  }
+
   async dispose(): Promise<void> {
     await this.sub?.unsubscribe()
     this.sub = null

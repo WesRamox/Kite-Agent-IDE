@@ -136,6 +136,11 @@ export interface InvokeChannels {
   'agent:reviewDiff': { args: [id: string, path: string]; result: GitDiff }
   // Sessões vistas pelos hooks dos CLIs (Fase 6).
   'agentSession:list': { args: []; result: AgentSession[] }
+  'agentSession:review': { args: [id: string]; result: AgentReview }
+  'agentSession:reviewDiff': { args: [id: string, path: string]; result: GitDiff }
+  'agentSession:pending': { args: [ids: string[]]; result: Record<string, number> }
+  'review:dismissed': { args: []; result: string[] }
+  'review:dismiss': { args: [key: string]; result: string[] }
   'hooks:status': { args: [cli: AgentCli]; result: HooksStatus }
   'hooks:install': { args: [cli: AgentCli]; result: HooksStatus }
   'hooks:uninstall': { args: [cli: AgentCli]; result: HooksStatus }
@@ -245,6 +250,11 @@ export interface Api {
   }
   agentSession: {
     list: Fn<'agentSession:list'>
+    review: Fn<'agentSession:review'>
+    reviewDiff: Fn<'agentSession:reviewDiff'>
+    pending: Fn<'agentSession:pending'>
+    dismissed: Fn<'review:dismissed'>
+    dismiss: Fn<'review:dismiss'>
     onChanged: (listener: (session: AgentSession) => void) => Unsubscribe
     onFocus: (listener: (event: { id: string }) => void) => Unsubscribe
   }

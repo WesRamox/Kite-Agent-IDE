@@ -48,7 +48,46 @@ function waitLabel(reason: WaitReason): string {
 // Sessões encerradas só interessam se mexeram em algo; somem depois desse tempo.
 const REVIEW_WINDOW_MS = 12 * 60 * 60 * 1000
 
-function taskItem(task: AgentTask, session: AgentSession | undefined): AttentionItem {
+// O que tira um item de "Para revisar" antes da hora: arquivos editados que já não têm
+// alterações (commitados ou descartados) e itens dispensados pelo usuário.
+export interface ReviewFilter {
+  // Arquivos editados ainda não commitados, por sessão. A sessão só entra depois de conferida
+  // (nada de piscar na lista ao abrir o Kite); null não filtra por isso.
+  pending: Record<string, number> | null
+  dismissed: Set<string>
+}
+
+const NO_FILTER: ReviewFilter = { pending: null, dismissed: new Set() }
+
+// Sessão encerrada que mexeu em arquivos há pouco tempo: vale conferir se ainda há o que revisar.
+export function reviewCandidate(s: AgentSession, now: number): boolean {
+  return s.status === 'ended' && s.touchedCount > 0 && now - (s.endedAt ?? 0) < REVIEW_WINDOW_MS
+}
+
+function inReview(s: AgentSession, now: number, f: ReviewFilter): boolean {
+  const pending = f.pending === null || (f.pending[s.id] ?? 0) > 0
+  return reviewCandidate(s, now) && pending && !f.dismissed.has(sessionKey(s))
+}
+
+const sessionKey = (s: AgentSession) => `session:${s.id}`
+const agentKey = (a: AgentTask) => `task:${a.id}:${a.endedAt ?? 0}`
+
+// Chave para dispensar um item de "Para revisar": a sessão ou o agente que o pôs ali.
+export function reviewKey(item: AttentionItem): string | null {
+  if (item.group !== 'review') return null
+  if (item.wsTask) {
+    if (item.session) return sessionKey(item.session)
+    return item.task ? agentKey(item.task) : null
+  }
+  if (item.task) return agentKey(item.task)
+  return item.session ? sessionKey(item.session) : null
+}
+
+function taskItem(
+  task: AgentTask,
+  session: AgentSession | undefined,
+  f: ReviewFilter,
+): AttentionItem {
   const base = {
     id: `task:${task.id}`,
     key: basename(task.repoPath),
@@ -78,7 +117,7 @@ function taskItem(task: AgentTask, session: AgentSession | undefined): Attention
       since: session?.runningSince ?? task.startedAt,
     }
   }
-  if (task.status === 'done' && !task.interrupted) {
+  if (task.status === 'done' && !task.interrupted && !f.dismissed.has(agentKey(task))) {
     return {
       ...base,
       group: 'review',
@@ -97,7 +136,7 @@ function taskItem(task: AgentTask, session: AgentSession | undefined): Attention
   }
 }
 
-function sessionItem(s: AgentSession, now: number): AttentionItem | null {
+function sessionItem(s: AgentSession, now: number, f: ReviewFilter): AttentionItem | null {
   const base = {
     id: `session:${s.id}`,
     key: basename(s.cwd) || tildePath(s.cwd),
@@ -126,7 +165,7 @@ function sessionItem(s: AgentSession, now: number): AttentionItem | null {
       since: s.runningSince ?? s.lastEventAt,
     }
   }
-  if (s.status === 'ended' && s.touchedCount > 0 && now - (s.endedAt ?? 0) < REVIEW_WINDOW_MS) {
+  if (inReview(s, now, f)) {
     return {
       ...base,
       group: 'review',
@@ -135,7 +174,7 @@ function sessionItem(s: AgentSession, now: number): AttentionItem | null {
       since: s.endedAt ?? s.lastEventAt,
     }
   }
-  // Ociosa (ainda sem pedido) ou encerrada sem mudanças: fica só na tela de conectar.
+  // Ociosa (ainda sem pedido), encerrada sem mudanças ou já revisada: fica só na tela de conectar.
   return null
 }
 
@@ -152,6 +191,7 @@ function wsTaskItem(
   linked: AgentSession[],
   agents: AgentTask[],
   now: number,
+  f: ReviewFilter,
 ): AttentionItem {
   const repos = t.worktrees.map((w) => w.repoName).join(' · ')
   const agentOf = (s: AgentSession | undefined) =>
@@ -205,9 +245,7 @@ function wsTaskItem(
   const agentRunning = agents.find((a) => a.alive)
   if (agentRunning)
     return item('running', tr('agents.meta.running'), agentRunning.startedAt, null, agentRunning)
-  const ended = linked.find(
-    (s) => s.status === 'ended' && s.touchedCount > 0 && now - (s.endedAt ?? 0) < REVIEW_WINDOW_MS,
-  )
+  const ended = linked.find((s) => inReview(s, now, f))
   if (ended)
     return item(
       'review',
@@ -217,7 +255,11 @@ function wsTaskItem(
       agentOf(ended),
     )
   const lastAgent = [...agents].sort((a, b) => b.startedAt - a.startedAt)[0]
-  if (lastAgent?.status === 'done' && !lastAgent.interrupted) {
+  if (
+    lastAgent?.status === 'done' &&
+    !lastAgent.interrupted &&
+    !f.dismissed.has(agentKey(lastAgent))
+  ) {
     return item(
       'review',
       tr('agents.meta.done'),
@@ -244,6 +286,7 @@ export function attentionItems(
   now: number,
   wsTasks: Task[] = [],
   links: Map<string, string> = new Map(),
+  f: ReviewFilter = NO_FILTER,
 ): AttentionItem[] {
   const visible = new Set(wsTasks.map((t) => t.id))
   // Agentes abertos na pasta de uma tarefa (Fase 10) aparecem dentro do item dela.
@@ -258,7 +301,7 @@ export function attentionItems(
     if (!prev || s.lastEventAt > prev.lastEventAt) byTask.set(s.agentTaskId, s)
   }
   const known = new Set(standalone.map((t) => t.id))
-  const items = standalone.map((t) => taskItem(t, byTask.get(t.id)))
+  const items = standalone.map((t) => taskItem(t, byTask.get(t.id), f))
   // Sessões de agentes do Kite ficam no item do agente; as demais vão para a tarefa ligada.
   const free = sessions.filter((s) => !(s.agentTaskId && known.has(s.agentTaskId)))
   const linkedTo = new Map<string, AgentSession[]>()
@@ -270,12 +313,12 @@ export function attentionItems(
   }
   for (const t of wsTasks) {
     const agents = tasks.filter((a) => a.wsTaskId === t.id)
-    items.push(wsTaskItem(t, linkedTo.get(t.id) ?? [], agents, now))
+    items.push(wsTaskItem(t, linkedTo.get(t.id) ?? [], agents, now, f))
   }
   for (const s of free) {
     const id = taskOf(s)
     if (id && visible.has(id)) continue
-    const item = sessionItem(s, now)
+    const item = sessionItem(s, now, f)
     if (item) items.push(item)
   }
   return items

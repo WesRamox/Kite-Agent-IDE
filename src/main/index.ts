@@ -59,6 +59,11 @@ import { PtyService } from './services/pty.service'
 import { SettingsService } from './services/settings.service'
 import { TaskService, taskStateSchema, type TaskState } from './services/task.service'
 import { TaskReviewService } from './services/task-review.service'
+import {
+  SessionReviewService,
+  reviewStateSchema,
+  type ReviewState,
+} from './services/session-review.service'
 import { TerminalSessionService } from './services/terminal-session.service'
 import { WatchService } from './services/watch.service'
 import { WorkspaceService, type WorkspaceState } from './services/workspace.service'
@@ -417,6 +422,15 @@ function createServices() {
     onAgentStatus: (id, status) => agentService.applyHookStatus(id, status),
     log: log.child('agent-events'),
   })
+  const sessionReview = new SessionReviewService({
+    session: (id) => agentEvents.get(id),
+    git: gitService,
+    store: new JsonStore<ReviewState>(
+      join(app.getPath('userData'), 'review.json'),
+      reviewStateSchema,
+      { dismissed: {} },
+    ),
+  })
   const reviewService = new TaskReviewService({
     tasks: taskService,
     git: gitService,
@@ -425,6 +439,7 @@ function createServices() {
   })
   return {
     reviewService,
+    sessionReview,
     taskService,
     hooksServices,
     agentEvents,
@@ -503,7 +518,12 @@ void app.whenReady().then(async () => {
   registerGitIpc(services.gitService, services.gitWatchService, ipcLog)
   registerGitHubIpc(services.githubAuth, services.githubService, ipcLog)
   registerAgentIpc(services.agentService, services.taskService, ipcLog)
-  registerAgentSessionIpc(services.agentEvents, services.hooksServices, ipcLog)
+  registerAgentSessionIpc(
+    services.agentEvents,
+    services.sessionReview,
+    services.hooksServices,
+    ipcLog,
+  )
   registerTaskIpc(services.taskService, ipcLog)
   registerReviewIpc(services.reviewService, ipcLog)
   services.hooksServices.claude.ensureWrapper().catch((err: unknown) => {

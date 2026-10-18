@@ -56,6 +56,8 @@ export default messages(
     'error.agentStillRunning': 'O agente ainda está rodando',
     'error.taskWorktreeGone': 'A worktree da tarefa não existe mais',
     'error.presetNotFound': 'Preset não encontrado',
+    'error.sessionNotFound': 'Sessão do agente não encontrada',
+    'error.notEditedBySession': 'Esse arquivo não foi editado pelo agente',
     'error.tooManyTasksWithName': 'Muitas tarefas com esse nome',
     'error.cannotReadFile': ({ file, reason }: { file: string; reason: string }) =>
       `Não foi possível ler ${file}: ${reason}`,
@@ -152,6 +154,8 @@ export default messages(
     'error.agentStillRunning': 'The agent is still running',
     'error.taskWorktreeGone': "The task's worktree no longer exists",
     'error.presetNotFound': 'Preset not found',
+    'error.sessionNotFound': 'Agent session not found',
+    'error.notEditedBySession': 'The agent did not edit this file',
     'error.tooManyTasksWithName': 'Too many tasks with this name',
     'error.cannotReadFile': ({ file, reason }: { file: string; reason: string }) =>
       `Could not read ${file}: ${reason}`,

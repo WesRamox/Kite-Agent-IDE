@@ -6,6 +6,7 @@ import { useGitStore } from '../git/git.store'
 import {
   openAgentTerminal,
   openReview,
+  openSessionReview,
   removeAgent,
   restartAgent,
   stopAgent,
@@ -19,6 +20,7 @@ import {
   type AttentionItem,
 } from './attention'
 import { focusItem } from './attention.actions'
+import { dismissReview } from './sessions.actions'
 import { useAttentionStore } from './attention.store'
 import { NewTaskForm } from './NewTaskForm'
 import { PresetEditor } from './PresetEditor'
@@ -36,6 +38,24 @@ const GROUP_DOT: Record<AttentionGroup, string> = {
   running: 'bg-info',
   review: 'bg-success',
   idle: 'bg-fg-muted/50',
+}
+
+// Em "Para revisar", todo item pode ser revisado e dispensado (inclusive sessões fora de tarefa).
+function itemMenu(item: AttentionItem): MenuItem[] {
+  const menu = taskMenu(item)
+  if (item.group !== 'review') return menu
+  const session = item.session
+  return [
+    ...(menu.length === 0 && session
+      ? [
+          {
+            label: t('sidebar.menu.review'),
+            onSelect: () => openSessionReview(session.id, item.name),
+          },
+        ]
+      : menu),
+    { label: t('central.dismissHint'), onSelect: () => void dismissReview(item) },
+  ]
 }
 
 function taskMenu(item: AttentionItem): MenuItem[] {
@@ -173,7 +193,7 @@ export function AttentionSidebar() {
                     : focusItem(item)
                 }
                 onContextMenu={(e) => {
-                  const items = taskMenu(item)
+                  const items = itemMenu(item)
                   if (items.length === 0) return
                   e.preventDefault()
                   setMenu({ x: e.clientX, y: e.clientY, items })

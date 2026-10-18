@@ -155,6 +155,26 @@ export function openReview(taskId: string): void {
   })
 }
 
+// Revisão de uma sessão fora de tarefa: o que o agente editou e ainda não foi commitado.
+export function openSessionReview(sessionId: string, name: string): void {
+  closeModal()
+  const dock = getDockApi()
+  if (!dock) return
+  const id = `${REVIEW_PREFIX}session:${sessionId}`
+  const existing = dock.getPanel(id)
+  if (existing) {
+    existing.api.setActive()
+    return
+  }
+  dock.addPanel({
+    id,
+    component: REVIEW_COMPONENT,
+    tabComponent: REVIEW_TAB_COMPONENT,
+    title: t('agentReview.tabTitle', { name }),
+    params: { sessionId },
+  })
+}
+
 export async function savePresets(presets: AgentPreset[]): Promise<boolean> {
   const saved = await attempt(window.api.agent.savePresets(presets), t('presets.saveError'))
   if (!saved) return false

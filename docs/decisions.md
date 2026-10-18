@@ -544,3 +544,17 @@ Decisões fáceis de desfazer, não cobertas pelo `AGENTS.md`. Mais recente no f
 - Tela preta ao trocar de pasta na 0.1.0 (Linux, NVIDIA + Wayland/COSMIC): não reproduzida nos
   testes, que simulam o diálogo nativo. Suspeita: composição gráfica do Electron em Wayland com
   NVIDIA depois do diálogo nativo. A 0.1.1 traz o log e a recuperação para confirmar a causa.
+
+## "Para revisar": revisar, sair sozinho e dispensar
+
+- **Toda linha tem "Revisar".** Sessões fora de tarefa (agente rodando direto no repo principal)
+  abrem a mesma tela de revisão dos agentes do Kite, com os arquivos que a sessão editou e que
+  ainda não foram commitados, comparados com o `HEAD`. Só esses arquivos podem ser lidos por ali:
+  o main confere cada pedido de diff contra os arquivos editados pela sessão.
+- **Sai sozinha quando não há o que revisar.** Uma sessão encerrada só entra no grupo depois de
+  conferida no git (para não piscar ao abrir o Kite) e sai quando tudo o que editou foi commitado
+  ou descartado. A conferência roda ao abrir a Central, quando uma sessão muda, ao voltar para a
+  janela e a cada 30 s, porque os commits costumam acontecer fora do Kite.
+- **"Dispensar" (✕) na linha e no menu de contexto.** Desvio combinado do canvas (o desenho não
+  tem esse botão). Dispensas ficam em `review.json` na pasta de perfil, por sessão ou por execução
+  de agente do Kite (um agente reiniciado volta a aparecer), e são esquecidas depois de 7 dias.

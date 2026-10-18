@@ -363,6 +363,79 @@ export class GitService {
     return binary ? { original: '', modified: '', binary } : { original, modified, binary }
   }
 
+  // Dos arquivos dados (absolutos), os que ainda têm alterações não commitadas, com o repositório
+  // de cada um. Arquivos fora de um repositório ficam de fora. Usado para saber o que um agente
+  // externo deixou para revisar.
+  async pendingFiles(
+    files: string[],
+  ): Promise<{ toplevel: string; rel: string; status: GitChangeKind }[]> {
+    const byRepo = new Map<string, Map<string, string>>()
+    const tops = new Map<string, string | null>()
+    for (const file of files) {
+      if (!path.isAbsolute(file)) continue
+      const found = await this.locate(file, tops)
+      if (!found) continue
+      const rels = byRepo.get(found.toplevel) ?? new Map<string, string>()
+      rels.set(found.rel, file)
+      byRepo.set(found.toplevel, rels)
+    }
+    const result: { toplevel: string; rel: string; status: GitChangeKind }[] = []
+    for (const [toplevel, rels] of byRepo) {
+      const out = await this.git(toplevel, [
+        'status',
+        '--porcelain=v1',
+        '-z',
+        '--no-renames',
+        '--untracked-files=all',
+        '--',
+        ...[...rels.keys()].map((r) => `:(literal)${r}`),
+      ])
+      for (const entry of out.split('\0').filter(Boolean)) {
+        const code = entry.slice(0, 2)
+        const rel = entry.slice(3)
+        if (!rels.has(rel)) continue
+        const status: GitChangeKind =
+          code === '??'
+            ? 'untracked'
+            : code.includes('D')
+              ? 'deleted'
+              : code.includes('A')
+                ? 'added'
+                : 'modified'
+        result.push({ toplevel, rel, status })
+      }
+    }
+    return result.sort((a, b) => a.toplevel.localeCompare(b.toplevel) || a.rel.localeCompare(b.rel))
+  }
+
+  // Repositório e caminho relativo de um arquivo, mesmo que ele (ou a pasta dele) tenha sido
+  // apagado: sobe até a primeira pasta que existe.
+  private async locate(
+    file: string,
+    tops: Map<string, string | null>,
+  ): Promise<{ toplevel: string; rel: string } | null> {
+    let dir = path.dirname(path.resolve(file))
+    let real: string | null
+    for (;;) {
+      real = await realpath(dir).catch(() => null)
+      if (real) break
+      const up = path.dirname(dir)
+      if (up === dir) return null
+      dir = up
+    }
+    if (!tops.has(real)) {
+      const top = await this.git(real, ['rev-parse', '--show-toplevel'])
+        .then((o) => o.trim())
+        .catch(() => '')
+      tops.set(real, top ? await realpath(top).catch(() => null) : null)
+    }
+    const toplevel = tops.get(real)
+    if (!toplevel) return null
+    const full = path.join(real, path.relative(dir, path.resolve(file)))
+    if (!isInside(toplevel, full) || full === toplevel) return null
+    return { toplevel, rel: path.relative(toplevel, full).split(path.sep).join('/') }
+  }
+
   // Diretórios internos do git a observar (HEAD, index, refs). Numa worktree, o gitdir fica
   // dentro do diretório comum do repositório principal.
   async gitDirs(root: string): Promise<string[]> {

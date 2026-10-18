@@ -1,6 +1,14 @@
 import type { AgentSession, AgentTask, Task } from '@shared/types'
 import { describe, expect, it } from 'vitest'
-import { ago, attentionItems, doing, elapsed, groupItems, nextWaiting } from './attention'
+import {
+  ago,
+  attentionItems,
+  doing,
+  elapsed,
+  groupItems,
+  nextWaiting,
+  reviewKey,
+} from './attention'
 
 const session = (patch: Partial<AgentSession> = {}): AgentSession => ({
   id: 's',
@@ -118,6 +126,26 @@ describe('attention', () => {
       [ws],
     )
     expect(failed[0]).toMatchObject({ group: 'idle', meta: 'api · web — erro (código 3)' })
+  })
+
+  it('tira de "Para revisar" o que já foi commitado ou dispensado', () => {
+    const ended = (id: string) =>
+      session({ id, status: 'ended', touchedCount: 2, endedAt: 100, lastEventAt: 100 })
+    const done = task({ id: 't9', alive: false, status: 'done', endedAt: 50 })
+    const review = (pending: Record<string, number> | null, dismissed: string[]) =>
+      groupItems(
+        attentionItems([ended('a'), ended('b'), ended('c')], [done], 200, [], new Map(), {
+          pending,
+          dismissed: new Set(dismissed),
+        }),
+      ).review.map((i) => i.id)
+
+    expect(review(null, [])).toEqual(['session:a', 'session:b', 'session:c', 'task:t9'])
+    // a: tudo commitado; b: ainda há o que revisar; c: ainda não conferida.
+    expect(review({ a: 0, b: 1 }, [])).toEqual(['session:b', 'task:t9'])
+    expect(review({ a: 0, b: 1 }, ['session:c', 'task:t9:50'])).toEqual(['session:b'])
+    const items = attentionItems([ended('a')], [done], 200)
+    expect(items.map(reviewKey).sort()).toEqual(['session:a', 'task:t9:50'])
   })
 
   it('sessão num terminal do Kite pode ser respondida ali', () => {

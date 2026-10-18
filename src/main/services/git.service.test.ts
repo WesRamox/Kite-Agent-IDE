@@ -240,6 +240,37 @@ describe('GitService', () => {
     })
   })
 
+  it('pendingFiles mostra só os arquivos dados que ainda têm alterações, em qualquer repo', async () => {
+    await writeFile(p('a.txt'), 'dois\n')
+    await mkdir(p('nova'))
+    await writeFile(p('nova', 'c.md'), 'c\n')
+    execFileSync('rm', [p('src', 'b.ts')])
+    const outro = path.join(base, 'outro')
+    await mkdir(outro)
+    git(outro, 'init', '-q', '-b', 'main')
+    await writeFile(path.join(outro, 'x.ts'), 'x\n')
+
+    const files = await svc.pendingFiles([
+      p('a.txt'),
+      p('nova', 'c.md'),
+      p('src', 'b.ts'),
+      p('limpo.txt'),
+      path.join(outro, 'x.ts'),
+      path.join(base, 'solta', 'x.txt'),
+      'relativo.txt',
+    ])
+    expect(files).toEqual([
+      { toplevel: outro, rel: 'x.ts', status: 'untracked' },
+      { toplevel: repo, rel: 'a.txt', status: 'modified' },
+      { toplevel: repo, rel: 'nova/c.md', status: 'untracked' },
+      { toplevel: repo, rel: 'src/b.ts', status: 'deleted' },
+    ])
+
+    git(repo, 'add', '-A')
+    git(repo, 'commit', '-q', '-m', 'agente')
+    await expect(svc.pendingFiles([p('a.txt'), p('nova', 'c.md')])).resolves.toEqual([])
+  })
+
   it('gitDirs de uma worktree inclui o diretório comum', async () => {
     const { path: wt } = await svc.addWorktree(repo, 'feat/z', true)
     await guard.addRoot(wt)

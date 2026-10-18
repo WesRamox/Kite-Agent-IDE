@@ -59,6 +59,11 @@ const api: Api = {
   },
   agentSession: {
     list: invoke('agentSession:list'),
+    review: invoke('agentSession:review'),
+    reviewDiff: invoke('agentSession:reviewDiff'),
+    pending: invoke('agentSession:pending'),
+    dismissed: invoke('review:dismissed'),
+    dismiss: invoke('review:dismiss'),
     onChanged: subscribe('agentSession:changed'),
     onFocus: subscribe('agentSession:focus'),
   },

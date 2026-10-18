@@ -5,7 +5,11 @@ interface SessionsState {
   sessions: AgentSession[]
   // Integração de cada CLI (Claude Code, Codex, Gemini).
   hooks: Partial<Record<AgentCli, HooksStatus>>
-  set: (patch: Partial<Pick<SessionsState, 'sessions' | 'hooks'>>) => void
+  // Arquivos editados ainda não commitados, por sessão encerrada (para "Para revisar").
+  pending: Record<string, number>
+  // Itens de "Para revisar" dispensados pelo usuário.
+  dismissed: string[]
+  set: (patch: Partial<Pick<SessionsState, 'sessions' | 'hooks' | 'pending' | 'dismissed'>>) => void
   upsert: (session: AgentSession) => void
 }
 
@@ -13,6 +17,8 @@ interface SessionsState {
 export const useSessionsStore = create<SessionsState>((set) => ({
   sessions: [],
   hooks: {},
+  pending: {},
+  dismissed: [],
   set: (patch) => set(patch),
   upsert: (session) =>
     set((s) => ({

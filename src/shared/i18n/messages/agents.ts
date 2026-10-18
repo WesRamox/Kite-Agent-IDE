@@ -68,6 +68,9 @@ export default messages(
     'central.runningTitle': ({ n }: N) => `Trabalhando · ${n}`,
     'central.reviewTitle': ({ n }: N) => `Para revisar · ${n}`,
     'central.review': 'Revisar',
+    'central.dismiss': ({ name }: Name) => `Dispensar ${name}`,
+    'central.dismissHint': 'Dispensar (já revisei)',
+    'central.dismissError': 'Não foi possível dispensar o item',
     'central.agentDone': ({ when, branch }: { when: string; branch: string }) =>
       `Agente terminou ${when} · ${branch}`,
     'central.sessionDone': ({ when, where, n }: { when: string; where: string; n: number }) =>
@@ -201,6 +204,9 @@ export default messages(
 
     'agentReview.comparedWith': 'comparado com',
     'agentReview.removed': 'Tarefa removida',
+    'agentReview.uncommitted': 'Editados pelo agente e ainda não commitados',
+    'agentReview.sessionEmpty':
+      'Nada pendente: o que o agente editou já foi commitado ou descartado.',
     'agentReview.refresh': 'Atualizar revisão',
     'agentReview.refreshShort': 'Atualizar',
     'agentReview.empty': 'O agente ainda não alterou nenhum arquivo.',
@@ -282,6 +288,9 @@ export default messages(
     'central.runningTitle': ({ n }: N) => `Working · ${n}`,
     'central.reviewTitle': ({ n }: N) => `To review · ${n}`,
     'central.review': 'Review',
+    'central.dismiss': ({ name }: Name) => `Dismiss ${name}`,
+    'central.dismissHint': 'Dismiss (already reviewed)',
+    'central.dismissError': 'Could not dismiss the item',
     'central.agentDone': ({ when, branch }: { when: string; branch: string }) =>
       `Agent finished ${when} · ${branch}`,
     'central.sessionDone': ({ when, where, n }: { when: string; where: string; n: number }) =>
@@ -412,6 +421,9 @@ export default messages(
 
     'agentReview.comparedWith': 'compared with',
     'agentReview.removed': 'Task removed',
+    'agentReview.uncommitted': 'Edited by the agent and not committed yet',
+    'agentReview.sessionEmpty':
+      'Nothing pending: what the agent edited was committed or discarded.',
     'agentReview.refresh': 'Refresh review',
     'agentReview.refreshShort': 'Refresh',
     'agentReview.empty': "The agent hasn't changed any files yet.",

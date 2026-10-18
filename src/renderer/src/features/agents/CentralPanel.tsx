@@ -1,7 +1,8 @@
+import { X } from 'lucide-react'
 import { useEffect, useRef } from 'react'
 import { basename } from '../../lib/paths'
 import { isMac } from '../../lib/platform'
-import { openReview } from './agents.actions'
+import { openReview, openSessionReview } from './agents.actions'
 import { touchedByRepo } from '../tasks/task-links'
 import { openTaskReview } from '../tasks/review.actions'
 import { openTask } from '../tasks/tasks.actions'
@@ -16,6 +17,8 @@ import {
   type AttentionItem,
 } from './attention'
 import { copyResume, respond, resumeHere } from './attention.actions'
+import { dismissReview, refreshPending } from './sessions.actions'
+import { useSessionsStore } from './sessions.store'
 import { useAttentionStore } from './attention.store'
 import { RESUME } from './cli'
 import { useAttentionItems } from './use-attention'
@@ -33,7 +36,9 @@ export function CentralPanel() {
   const items = useAttentionItems(15_000)
   const now = useNow(true, 15_000)
   const groups = groupItems(items)
+  const pending = useSessionsStore((s) => s.pending)
   const t = useT()
+  useEffect(() => void refreshPending(), [])
 
   return (
     <div className="h-full overflow-y-auto bg-surface-0 font-geist text-[13px] text-fg">
@@ -86,21 +91,24 @@ export function CentralPanel() {
               {groups.review.map((item, i) => (
                 <Row key={item.id} item={item} first={i === 0} dot="bg-success">
                   <span className="flex-[2_1_260px] truncate text-fg-muted">
-                    {reviewDetail(item, now)}
+                    {reviewDetail(item, now, pending)}
                   </span>
-                  {(item.task || item.wsTask) && (
-                    <button
-                      type="button"
-                      onClick={() =>
-                        item.wsTask
-                          ? void openTaskReview(item.wsTask.id)
-                          : item.task && openReview(item.task.id)
-                      }
-                      className="h-[30px] rounded-[7px] border border-border bg-surface-2 px-3 text-fg hover:bg-surface-3"
-                    >
-                      {t('central.review')}
-                    </button>
-                  )}
+                  <button
+                    type="button"
+                    onClick={() => openItemReview(item)}
+                    className="h-[30px] rounded-[7px] border border-border bg-surface-2 px-3 text-fg hover:bg-surface-3"
+                  >
+                    {t('central.review')}
+                  </button>
+                  <button
+                    type="button"
+                    aria-label={t('central.dismiss', { name: item.name })}
+                    title={t('central.dismissHint')}
+                    onClick={() => void dismissReview(item)}
+                    className="flex size-[30px] items-center justify-center rounded-[7px] text-fg-muted hover:bg-surface-3 hover:text-fg"
+                  >
+                    <X size={14} />
+                  </button>
                 </Row>
               ))}
             </div>
@@ -111,11 +119,19 @@ export function CentralPanel() {
   )
 }
 
-function reviewDetail(item: AttentionItem, now: number): string {
+function openItemReview(item: AttentionItem): void {
+  if (item.wsTask) void openTaskReview(item.wsTask.id)
+  else if (item.task) openReview(item.task.id)
+  else if (item.session) openSessionReview(item.session.id, item.name)
+}
+
+function reviewDetail(item: AttentionItem, now: number, pending: Record<string, number>): string {
   if (item.task) {
     return tr('central.agentDone', { when: ago(now - item.since), branch: item.task.branch })
   }
-  const n = item.session?.touchedCount ?? 0
+  const s = item.session
+  // Quantos dos arquivos editados ainda faltam commitar, quando já se sabe.
+  const n = s ? (pending[s.id] ?? s.touchedCount) : 0
   const where = item.wsTask
     ? item.wsTask.worktrees.map((w) => w.repoName).join(tr('central.and'))
     : item.key

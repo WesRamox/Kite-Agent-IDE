@@ -9,22 +9,45 @@ import { monaco, useMonacoTheme } from '../editor/monaco-setup'
 import { FileIcon } from '../explorer/FileIcon'
 import { KIND_COLOR, KIND_LETTER } from '../git/git-format'
 import { useAgentsStore } from './agents.store'
+import { useSessionsStore } from './sessions.store'
 import { useSettingsStore } from '../../stores/settings.store'
 import { useT } from '../../lib/i18n'
 
-// Revisão de uma tarefa: o que mudou na worktree do agente desde a branch de origem.
-export function ReviewPanel({ api, params }: IDockviewPanelProps<{ taskId: string }>) {
+// Revisão de um agente do Kite (o que mudou na worktree desde a branch de origem) ou de uma
+// sessão fora de tarefa (o que ela editou e ainda não foi commitado).
+type ReviewParams = { taskId: string; sessionId?: never } | { sessionId: string; taskId?: never }
+
+function source(params: ReviewParams) {
+  const { sessionId, taskId } = params
+  return sessionId !== undefined
+    ? {
+        key: `session:${sessionId}`,
+        review: () => window.api.agentSession.review(sessionId),
+        diff: (p: string) => window.api.agentSession.reviewDiff(sessionId, p),
+      }
+    : {
+        key: `task:${taskId}`,
+        review: () => window.api.agent.review(taskId),
+        diff: (p: string) => window.api.agent.reviewDiff(taskId, p),
+      }
+}
+
+export function ReviewPanel({ api, params }: IDockviewPanelProps<ReviewParams>) {
   const fontSize = useSettingsStore((s) => s.settings.editorFontSize)
   const monacoTheme = useMonacoTheme()
   const t = useT()
   const task = useAgentsStore((s) => s.tasks.find((t) => t.id === params.taskId))
+  const sessionStatus = useSessionsStore(
+    (s) => s.sessions.find((x) => x.id === params.sessionId)?.status,
+  )
+  const srcKey = source(params).key
   const [review, setReview] = useState<AgentReview | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [selected, setSelected] = useState<string | null>(null)
   const [diff, setDiff] = useState<GitDiff | null>(null)
 
   const load = useCallback(async () => {
-    const res = await window.api.agent.review(params.taskId)
+    const res = await source(params).review()
     if (!res.ok) {
       setError(res.error.message)
       return
@@ -34,45 +57,56 @@ export function ReviewPanel({ api, params }: IDockviewPanelProps<{ taskId: strin
     setSelected((cur) =>
       cur && res.data.files.some((f) => f.path === cur) ? cur : (res.data.files[0]?.path ?? null),
     )
-  }, [params.taskId])
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [srcKey])
 
   // Recarrega quando o status do agente muda (ele pode ter mexido em arquivos).
-  const status = task?.status
+  const status = task?.status ?? sessionStatus
   useEffect(() => {
     let alive = true
-    void window.api.agent.review(params.taskId).then((res) => {
-      if (!alive) return
-      if (!res.ok) {
-        setError(res.error.message)
-        return
-      }
-      setReview(res.data)
-      setSelected((cur) =>
-        cur && res.data.files.some((f) => f.path === cur) ? cur : (res.data.files[0]?.path ?? null),
-      )
-    })
+    void source(params)
+      .review()
+      .then((res) => {
+        if (!alive) return
+        if (!res.ok) {
+          setError(res.error.message)
+          return
+        }
+        setReview(res.data)
+        setSelected((cur) =>
+          cur && res.data.files.some((f) => f.path === cur)
+            ? cur
+            : (res.data.files[0]?.path ?? null),
+        )
+      })
     return () => {
       alive = false
     }
-  }, [params.taskId, status])
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [srcKey, status])
 
   useEffect(() => {
     let alive = true
     if (selected) {
-      void window.api.agent.reviewDiff(params.taskId, selected).then((res) => {
-        if (alive) setDiff(res.ok ? res.data : null)
-      })
+      void source(params)
+        .diff(selected)
+        .then((res) => {
+          if (alive) setDiff(res.ok ? res.data : null)
+        })
     }
     return () => {
       alive = false
     }
-  }, [params.taskId, selected, review])
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [srcKey, selected, review])
 
   return (
     <div className="flex h-full w-full flex-col overflow-hidden">
       <div className="flex h-8 shrink-0 items-center gap-3 border-b border-border px-3 text-[11px] text-fg-muted">
         <span className="truncate">
-          {task ? (
+          {params.sessionId !== undefined ? (
+            t('agentReview.uncommitted')
+          ) : task ? (
             <>
               <code className="text-fg">{task.branch}</code> {t('agentReview.comparedWith')}{' '}
               <code className="text-fg">{review?.base ?? task.baseBranch}</code>
@@ -92,7 +126,9 @@ export function ReviewPanel({ api, params }: IDockviewPanelProps<{ taskId: strin
       </div>
       {error && <p className="p-4 text-danger">{error}</p>}
       {!error && review && review.files.length === 0 && (
-        <p className="p-4 text-fg-muted">{t('agentReview.empty')}</p>
+        <p className="p-4 text-fg-muted">
+          {params.sessionId !== undefined ? t('agentReview.sessionEmpty') : t('agentReview.empty')}
+        </p>
       )}
       {!error && review && review.files.length > 0 && (
         <div className="flex min-h-0 flex-1">

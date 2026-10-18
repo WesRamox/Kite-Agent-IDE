@@ -14,11 +14,13 @@ import { buildItems } from './use-attention'
 import { t } from '../../lib/i18n'
 
 export function currentItems(now = Date.now()): AttentionItem[] {
+  const { sessions, pending, dismissed } = useSessionsStore.getState()
   return buildItems(
-    useSessionsStore.getState().sessions,
+    sessions,
     useAgentsStore.getState().tasks,
     useTasksStore.getState().workspace,
     now,
+    { pending, dismissed: new Set(dismissed) },
   )
 }
 
