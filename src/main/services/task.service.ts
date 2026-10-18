@@ -17,7 +17,7 @@ import {
   type TaskOverrides,
 } from '../lib/task-grouping'
 import type { WorkspaceGuard } from '../lib/workspace-guard'
-import type { GitRunner } from './git.service'
+import type { GitRunner } from '../lib/git-exec'
 import type { SubscribeFn, Subscription } from './watch.service'
 import { t } from '../lib/i18n'
 import { assertBranchName } from '../lib/git-refs'
