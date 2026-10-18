@@ -117,11 +117,15 @@ do `useIpcQuery`, justificado).
 Linha de base de cobertura de linhas (R0, 2026-10-18): total 36,6%; `main/services` 91,5%,
 `main/lib` 93,1%, `main/ipc` 9,1%, `main/index.ts` 0%, renderer 9,3%.
 
-- [ ] Testes de stores e actions do renderer (attention, tasks, editor, terminal), com
+- [x] Testes de stores e actions do renderer (attention, tasks, editor, terminal), com
       `window.api` falso.
-- [ ] Teste de contrato: todo canal de `InvokeChannels` tem handler registrado e função no
+- [x] Teste de contrato: todo canal de `InvokeChannels` tem handler registrado e função no
       preload.
-- [ ] Definir meta de cobertura a partir da linha de base do R0 (ex.: main ≥ 80%, lib ≥ 90%).
+- [x] Metas de cobertura (linhas): `main/services` e `main/lib` ≥ 90%, renderer ≥ 15%; branches
+      ≥ 70% (services) e 80% (lib). Cola com o Electron fora da medição (coberta pelo e2e).
+      Depois do R5: total 43,4%, renderer 16,8% (era 9,3%).
+- [ ] Subir a meta do renderer conforme novas features trouxerem testes (painéis do Git, tarefas,
+      terminais).
 
 ### R6 — Documentação
 

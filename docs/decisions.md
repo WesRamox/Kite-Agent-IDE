@@ -711,3 +711,12 @@ Decisões fáceis de desfazer, não cobertas pelo `AGENTS.md`. Mais recente no f
   ligados e desligados ao abrir e fechar.
 - **Stores**: os de `stores/` já eram todos globais (layout, tema, toasts, modal, contexto,
   workspace, configurações); os de feature já ficavam na feature. Nada a mover.
+
+## Refatoração R5: testes
+
+- **Contrato IPC testado pelo código-fonte.** Como `InvokeChannels` é só tipo, o teste lê
+  `ipc-contract.ts`, os `registerHandler` do main e os `invoke`/`subscribe` do preload e compara.
+- **`installApi`** para testes do renderer: um `window.api` falso com `Proxy` que falha com o nome
+  do canal quando o teste esquece de defini-lo.
+- **Metas de cobertura por área**, um pouco abaixo do medido. Bootstrap, `main/app`, menu,
+  registro no `ipcMain` e `kite-hook` ficam fora da medição de unidade (são exercitados pelo e2e).

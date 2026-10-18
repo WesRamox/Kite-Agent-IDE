@@ -343,7 +343,11 @@ Atalho novo não pode colidir com estes nem com os do Monaco e do terminal.
 - Toda validação de segurança (guard, schemas, quoting, merge de hooks, env) tem teste com a
   entrada maliciosa.
 - Teste de renderer que precisa de DOM (hooks, componentes): `// @vitest-environment happy-dom`
-  no topo do arquivo e `@testing-library/react`.
+  no topo do arquivo e `@testing-library/react`. Actions e hooks que chamam o main: `installApi`
+  (`renderer/src/test/fake-api.ts`) com só os canais usados.
+- O contrato IPC tem teste (`main/ipc/contract.test.ts`): canal sem handler ou sem função no
+  preload quebra o `pnpm test`.
+- Cobertura (`pnpm test:coverage`) tem meta por área em `vitest.config.ts`; ela só sobe.
 - e2e com Playwright dirigindo o app construído, perfil temporário (`KITE_USER_DATA_DIR`) e
   arquivos de hook isolados (`KITE_CLAUDE_SETTINGS` etc.). Nunca toca o perfil real.
 
