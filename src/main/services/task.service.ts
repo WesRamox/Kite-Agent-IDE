@@ -1,60 +1,30 @@
 import { randomUUID } from 'node:crypto'
-import { mkdir, readFile, realpath, stat, writeFile } from 'node:fs/promises'
+import { mkdir, realpath, stat, writeFile } from 'node:fs/promises'
 import path from 'node:path'
-import { z } from 'zod'
 import type { CreateTaskInput, Task, TaskGrouping, WorkspaceTasks } from '@shared/types'
 import { AppException } from '../lib/errors'
-import { parseWorktrees, worktreeDirName } from '../lib/git-parse'
+import type { GitRunner } from '../lib/git-exec'
+import { worktreeDirName } from '../lib/git-parse'
+import { assertBranchName } from '../lib/git-refs'
+import { t } from '../lib/i18n'
 import type { JsonStore } from '../lib/json-store'
 import type { Logger } from '../lib/logger'
 import { scanRepos } from '../lib/repo-scan'
+import * as cfgOps from '../lib/task-config'
+import { DEFAULT_CONFIG, type TaskState, type WorkspaceTaskConfig } from '../lib/task-config'
+import { groupWorktrees, type RepoWorktrees, type TaskOverrides } from '../lib/task-grouping'
 import {
-  EMPTY_OVERRIDES,
-  groupWorktrees,
-  normalizePattern,
-  parseTaskMeta,
-  type RepoWorktrees,
-  type TaskOverrides,
-} from '../lib/task-grouping'
+  addWorktree,
+  commonBranch,
+  exists,
+  listTaskWorktrees,
+  newTaskWorktreeDir,
+  readTaskMeta,
+} from '../lib/task-worktrees'
 import type { WorkspaceGuard } from '../lib/workspace-guard'
-import type { GitRunner } from '../lib/git-exec'
 import type { SubscribeFn, Subscription } from './watch.service'
-import { t } from '../lib/i18n'
-import { assertBranchName } from '../lib/git-refs'
 
-const configSchema = z.object({
-  grouping: z.object({
-    mode: z.enum(['auto', 'pattern', 'manual']),
-    pattern: z.string().max(200),
-  }),
-  overrides: z.object({
-    names: z.record(z.string(), z.string().max(120)),
-    moves: z.record(z.string(), z.string()),
-    ignored: z.array(z.string()),
-    manual: z.array(z.object({ id: z.string(), name: z.string().max(120) })),
-    hidden: z.array(z.string()),
-  }),
-  extraRepos: z.array(z.string()),
-  // Repos achados na varredura que o usuário tirou do workspace (ausente em perfis antigos).
-  ignoredRepos: z.array(z.string()).optional(),
-  imported: z.boolean(),
-  notes: z.record(z.string(), z.string().max(20_000)),
-  sessionLinks: z.record(z.string(), z.string()),
-})
-
-export type WorkspaceTaskConfig = z.infer<typeof configSchema>
-
-export const taskStateSchema = z.object({ workspaces: z.record(z.string(), configSchema) })
-export type TaskState = z.infer<typeof taskStateSchema>
-
-const DEFAULT_CONFIG: WorkspaceTaskConfig = {
-  grouping: { mode: 'auto', pattern: '.worktrees/{tarefa}/{repo}' },
-  overrides: EMPTY_OVERRIDES,
-  extraRepos: [],
-  imported: false,
-  notes: {},
-  sessionLinks: {},
-}
+export { taskStateSchema, type TaskState, type WorkspaceTaskConfig } from '../lib/task-config'
 
 export interface TaskServiceDeps {
   guard: WorkspaceGuard
@@ -66,11 +36,6 @@ export interface TaskServiceDeps {
   log: Logger
   debounceMs?: number
 }
-
-const META_FILES: [string, 'json' | 'md'][] = [
-  ['.kite-task.json', 'json'],
-  ['TASK.md', 'md'],
-]
 
 // Tarefas multi-repo do workspace: descoberta, ajustes do usuário e observação de worktrees.
 export class TaskService {
@@ -89,7 +54,7 @@ export class TaskService {
       repos.map(async (repo) => ({
         repo,
         name: path.basename(repo),
-        worktrees: await this.worktreesOf(repo),
+        worktrees: await listTaskWorktrees(this.deps.run, repo),
       })),
     )
     const { tasks, unassigned } = groupWorktrees(
@@ -100,7 +65,7 @@ export class TaskService {
     )
     const full: Task[] = await Promise.all(
       tasks.map(async (t) => {
-        const meta = await this.meta([t.folder, ...t.worktrees.map((w) => w.path)])
+        const meta = await readTaskMeta([t.folder, ...t.worktrees.map((w) => w.path)])
         return {
           id: t.id,
           key: t.key,
@@ -153,7 +118,7 @@ export class TaskService {
         )
       } catch (err) {
         this.deps.log.warn('não foi possível observar o repositório', {
-          error: (err as Error).message,
+          error: err instanceof Error ? err.message : String(err),
         })
       }
     }
@@ -165,22 +130,16 @@ export class TaskService {
     this.timer = null
     const subs = this.watched?.subs ?? []
     this.watched = null
+    // Falha ao soltar um watcher que já caiu não muda nada para quem fecha.
     await Promise.all(subs.map((s) => s.unsubscribe().catch(() => {})))
   }
 
   setGrouping(root: string, grouping: TaskGrouping): Promise<WorkspaceTasks> {
-    return this.update(root, (c) => ({ ...c, grouping }))
+    return this.update(root, (c) => cfgOps.setGrouping(c, grouping))
   }
 
   rename(root: string, taskId: string, name: string): Promise<WorkspaceTasks> {
-    return this.update(root, (c) => {
-      const others = Object.entries(c.overrides.names).filter(([id]) => id !== taskId)
-      const names = Object.fromEntries(name.trim() ? [...others, [taskId, name.trim()]] : others)
-      const manual = c.overrides.manual.map((m) =>
-        m.id === taskId && name.trim() ? { ...m, name: name.trim() } : m,
-      )
-      return { ...c, overrides: { ...c.overrides, names, manual } }
-    })
+    return this.update(root, (c) => cfgOps.renameTask(c, taskId, name))
   }
 
   // Coloca a worktree numa tarefa existente ou numa nova (target 'new').
@@ -189,58 +148,35 @@ export class TaskService {
     const known = [...ws.tasks.flatMap((t) => t.worktrees), ...ws.unassigned]
     const wt = known.find((w) => w.path === worktree)
     if (!wt) throw new AppException('NOT_FOUND', t('error.worktreeNotFound'))
-    return this.update(root, (c) => {
-      let manual = c.overrides.manual
-      let dest = target
-      if (target === 'new') {
-        dest = `manual:${randomUUID()}`
-        const name = wt.branch ?? path.basename(wt.path)
-        manual = [...manual, { id: dest, name }]
-      } else if (!ws.tasks.some((t) => t.id === target)) {
-        throw new AppException('NOT_FOUND', t('error.taskNotFound'))
-      }
-      return {
-        ...c,
-        overrides: { ...c.overrides, manual, moves: { ...c.overrides.moves, [worktree]: dest } },
-      }
-    })
+    if (target === 'new') {
+      const id = `manual:${randomUUID()}`
+      const name = wt.branch ?? path.basename(wt.path)
+      return this.update(root, (c) => cfgOps.assignWorktree(c, worktree, id, { id, name }))
+    }
+    if (!ws.tasks.some((t) => t.id === target)) {
+      throw new AppException('NOT_FOUND', t('error.taskNotFound'))
+    }
+    return this.update(root, (c) => cfgOps.assignWorktree(c, worktree, target))
   }
 
   ignore(root: string, worktree: string): Promise<WorkspaceTasks> {
-    return this.update(root, (c) => ({
-      ...c,
-      overrides: { ...c.overrides, ignored: [...new Set([...c.overrides.ignored, worktree])] },
-    }))
+    return this.update(root, (c) => cfgOps.ignoreWorktree(c, worktree))
   }
 
-  // Conclui a descoberta: as tarefas desmarcadas ficam escondidas da Central.
   importTasks(root: string, hidden: string[]): Promise<WorkspaceTasks> {
-    return this.update(root, (c) => ({
-      ...c,
-      imported: true,
-      overrides: { ...c.overrides, hidden: [...new Set(hidden)] },
-    }))
+    return this.update(root, (c) => cfgOps.importTasks(c, hidden))
   }
 
   setHidden(root: string, taskId: string, hidden: boolean): Promise<WorkspaceTasks> {
-    return this.update(root, (c) => {
-      const set = new Set(c.overrides.hidden)
-      if (hidden) set.add(taskId)
-      else set.delete(taskId)
-      return { ...c, overrides: { ...c.overrides, hidden: [...set] } }
-    })
+    return this.update(root, (c) => cfgOps.setHidden(c, taskId, hidden))
   }
 
   setNotes(root: string, taskId: string, notes: string): Promise<WorkspaceTasks> {
-    return this.update(root, (c) => ({ ...c, notes: { ...c.notes, [taskId]: notes } }))
+    return this.update(root, (c) => cfgOps.setNotes(c, taskId, notes))
   }
 
   linkSession(root: string, sessionId: string, taskId: string | null): Promise<WorkspaceTasks> {
-    return this.update(root, (c) => {
-      const others = Object.entries(c.sessionLinks).filter(([id]) => id !== sessionId)
-      const sessionLinks = Object.fromEntries(taskId ? [...others, [sessionId, taskId]] : others)
-      return { ...c, sessionLinks }
-    })
+    return this.update(root, (c) => cfgOps.linkSession(c, sessionId, taskId))
   }
 
   // Repositório de fora da pasta aberta, escolhido no diálogo nativo.
@@ -254,51 +190,19 @@ export class TaskService {
       () => false,
     )
     if (!isRepo) throw new AppException('NOT_A_REPO', t('error.notARepo'))
-    return this.update(root, (c) => ({ ...c, extraRepos: [...new Set([...c.extraRepos, real])] }))
+    return this.update(root, (c) => cfgOps.addExtraRepo(c, real))
   }
 
-  // Tira um repo do workspace: o de outra pasta sai da lista; o achado na varredura fica ignorado
-  // (senão a próxima varredura o traria de volta).
   removeRepo(root: string, repo: string): Promise<WorkspaceTasks> {
-    return this.update(root, (c) =>
-      c.extraRepos.includes(repo)
-        ? { ...c, extraRepos: c.extraRepos.filter((r) => r !== repo) }
-        : { ...c, ignoredRepos: [...new Set([...(c.ignoredRepos ?? []), repo])] },
-    )
+    return this.update(root, (c) => cfgOps.removeRepo(c, repo))
   }
 
   restoreRepo(root: string, repo: string): Promise<WorkspaceTasks> {
-    return this.update(root, (c) => ({
-      ...c,
-      ignoredRepos: (c.ignoredRepos ?? []).filter((r) => r !== repo),
-    }))
+    return this.update(root, (c) => cfgOps.restoreRepo(c, repo))
   }
 
-  // Desfaz uma tarefa montada à mão: as worktrees dela voltam para a heurística (ou ficam soltas).
   removeTask(root: string, taskId: string): Promise<WorkspaceTasks> {
-    return this.update(root, (c) => {
-      if (!c.overrides.manual.some((m) => m.id === taskId)) {
-        throw new AppException('INVALID_ARGS', t('error.onlyManualTasks'))
-      }
-      const without = <T>(rec: Record<string, T>) =>
-        Object.fromEntries(Object.entries(rec).filter(([id]) => id !== taskId))
-      return {
-        ...c,
-        overrides: {
-          ...c.overrides,
-          manual: c.overrides.manual.filter((m) => m.id !== taskId),
-          moves: Object.fromEntries(
-            Object.entries(c.overrides.moves).filter(([, target]) => target !== taskId),
-          ),
-          names: without(c.overrides.names),
-          hidden: c.overrides.hidden.filter((id) => id !== taskId),
-        },
-        notes: without(c.notes),
-        sessionLinks: Object.fromEntries(
-          Object.entries(c.sessionLinks).filter(([, target]) => target !== taskId),
-        ),
-      }
-    })
+    return this.update(root, (c) => cfgOps.removeManualTask(c, taskId))
   }
 
   // Libera um repositório do workspace ou uma worktree de tarefa para os painéis Git e GitHub
@@ -333,36 +237,17 @@ export class TaskService {
     if (task.worktrees.some((w) => w.repo === repo)) {
       throw new AppException('ALREADY_EXISTS', t('error.repoAlreadyInTask', { repo: r.name }))
     }
-    const branch = commonBranch(task) ?? task.key
+    const branch = commonBranch(task.worktrees) ?? task.key
     await assertBranchName(this.deps.run, repo, branch)
     const dir = task.folder
       ? path.join(task.folder, r.name)
       : path.join(path.dirname(repo), `${r.name}-worktrees`, worktreeDirName(branch))
     if (await exists(dir))
       throw new AppException('ALREADY_EXISTS', t('error.folderExists', { dir }))
-    // `rev-parse --verify -q` falha em silêncio: a saída vazia é que indica "não existe".
-    const hasBranch = await this.deps
-      .run(repo, ['rev-parse', '--verify', '-q', `refs/heads/${branch}^{commit}`])
-      .then(
-        (out) => out.trim() !== '',
-        () => false,
-      )
-    try {
-      await this.deps.run(
-        repo,
-        hasBranch
-          ? ['worktree', 'add', dir, branch]
-          : ['worktree', 'add', '-b', branch, dir, 'HEAD'],
-      )
-    } catch (err) {
-      throw new AppException('GIT_ERROR', (err as Error).message)
-    }
+    await addWorktree(this.deps.run, repo, branch, dir)
     if (task.source === 'manual') {
       const real = await realpath(dir)
-      await this.update(root, (c) => ({
-        ...c,
-        overrides: { ...c.overrides, moves: { ...c.overrides.moves, [real]: task.id } },
-      }))
+      await this.update(root, (c) => cfgOps.assignWorktree(c, real, task.id))
     }
     const next = await this.discover(root)
     this.deps.emit(next)
@@ -392,13 +277,10 @@ export class TaskService {
     const single = repos.length === 1 && first === root
     const plan = repos.map((r) => {
       const repo = r as { path: string; name: string }
-      const dir = single
-        ? path.join(path.dirname(root), `${repo.name}-worktrees`, key)
-        : path.resolve(
-            root,
-            normalizePattern(pattern).replaceAll('{tarefa}', key).replaceAll('{repo}', repo.name),
-          )
-      return { repo, dir }
+      return {
+        repo,
+        dir: newTaskWorktreeDir({ root, single, pattern, key, repoName: repo.name }),
+      }
     })
     for (const { dir } of plan) {
       if (await exists(dir))
@@ -406,22 +288,7 @@ export class TaskService {
     }
     const created: string[] = []
     for (const { repo, dir } of plan) {
-      const hasBranch = await this.deps
-        .run(repo.path, ['rev-parse', '--verify', '-q', `refs/heads/${branch}^{commit}`])
-        .then(
-          (out) => out.trim() !== '',
-          () => false,
-        )
-      try {
-        await this.deps.run(
-          repo.path,
-          hasBranch
-            ? ['worktree', 'add', dir, branch]
-            : ['worktree', 'add', '-b', branch, dir, 'HEAD'],
-        )
-      } catch (err) {
-        throw new AppException('GIT_ERROR', `${repo.name}: ${(err as Error).message}`)
-      }
+      await addWorktree(this.deps.run, repo.path, branch, dir, repo.name)
       created.push(await realpath(dir))
     }
     // Pasta da tarefa (quando as worktrees ficam juntas): o título vai num TASK.md.
@@ -436,21 +303,16 @@ export class TaskService {
     // Agrupamento manual (ou algo que não juntou as worktrees): monta a tarefa à mão.
     if (!task || !created.every((p) => task?.worktrees.some((w) => w.path === p))) {
       const id = `manual:${randomUUID()}`
-      ws2 = await this.update(root, (c) => ({
-        ...c,
-        overrides: {
-          ...c.overrides,
-          manual: [...c.overrides.manual, { id, name }],
-          moves: { ...c.overrides.moves, ...Object.fromEntries(created.map((p) => [p, id])) },
-        },
-      }))
+      ws2 = await this.update(root, (c) =>
+        created.reduce(
+          (acc, p, i) => cfgOps.assignWorktree(acc, p, id, i === 0 ? { id, name } : undefined),
+          c,
+        ),
+      )
       task = ws2.tasks.find((t) => t.id === id)
     } else if (task.name !== name) {
       const id = task.id
-      ws2 = await this.update(root, (c) => ({
-        ...c,
-        overrides: { ...c.overrides, names: { ...c.overrides.names, [id]: name } },
-      }))
+      ws2 = await this.update(root, (c) => cfgOps.renameTask(c, id, name))
       task = ws2.tasks.find((t) => t.id === id)
     }
     if (!task) throw new AppException('INTERNAL', t('error.createdTaskMissing'))
@@ -469,7 +331,7 @@ export class TaskService {
     return {
       cwd: task.folder ?? first.path,
       repoPath: first.repo,
-      branch: commonBranch(task) ?? task.key,
+      branch: commonBranch(task.worktrees) ?? task.key,
       name: task.name,
       id: task.id,
     }
@@ -491,7 +353,9 @@ export class TaskService {
           if (JSON.stringify(ws) !== before) this.deps.emit(ws)
         })
         .catch((err: unknown) =>
-          this.deps.log.warn('falha ao redescobrir tarefas', { error: (err as Error).message }),
+          this.deps.log.warn('falha ao redescobrir tarefas', {
+            error: err instanceof Error ? err.message : String(err),
+          }),
         )
     }, this.deps.debounceMs ?? 300)
   }
@@ -519,48 +383,4 @@ export class TaskService {
     for (const r of cfg.extraRepos) if (await exists(path.join(r, '.git'))) extra.push(r)
     return [...new Set([...scanned, ...extra])]
   }
-
-  private async worktreesOf(repo: string): Promise<RepoWorktrees['worktrees']> {
-    let out: string
-    try {
-      out = await this.deps.run(repo, ['worktree', 'list', '--porcelain'])
-    } catch {
-      return []
-    }
-    const list = parseWorktrees(out, repo).filter((w) => !w.isMain && !w.prunable)
-    return Promise.all(
-      list.map(async (w) => ({
-        path: await realpath(w.path).catch(() => w.path),
-        branch: w.branch,
-        head: w.head,
-      })),
-    )
-  }
-
-  private async meta(dirs: (string | null)[]): Promise<{ title: string | null }> {
-    for (const dir of dirs) {
-      if (!dir) continue
-      for (const [name, kind] of META_FILES) {
-        const content = await readFile(path.join(dir, name), 'utf8').catch(() => null)
-        if (content === null || content.length > 200_000) continue
-        const meta = parseTaskMeta(kind, content)
-        if (meta.title) return meta
-      }
-    }
-    return { title: null }
-  }
-}
-
-function commonBranch(task: Task): string | null {
-  const counts = new Map<string, number>()
-  for (const w of task.worktrees)
-    if (w.branch) counts.set(w.branch, (counts.get(w.branch) ?? 0) + 1)
-  return [...counts.entries()].sort((a, b) => b[1] - a[1])[0]?.[0] ?? null
-}
-
-function exists(p: string): Promise<boolean> {
-  return stat(p).then(
-    () => true,
-    () => false,
-  )
 }
