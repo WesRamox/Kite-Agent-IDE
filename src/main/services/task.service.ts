@@ -104,7 +104,6 @@ export class TaskService {
           id: t.id,
           key: t.key,
           name: cfg.overrides.names[t.id] ?? meta.title ?? t.key,
-          cardUrl: meta.url,
           source: t.source,
           why: t.why,
           folder: t.folder,
@@ -541,19 +540,17 @@ export class TaskService {
     )
   }
 
-  private async meta(
-    dirs: (string | null)[],
-  ): Promise<{ title: string | null; url: string | null }> {
+  private async meta(dirs: (string | null)[]): Promise<{ title: string | null }> {
     for (const dir of dirs) {
       if (!dir) continue
       for (const [name, kind] of META_FILES) {
         const content = await readFile(path.join(dir, name), 'utf8').catch(() => null)
         if (content === null || content.length > 200_000) continue
         const meta = parseTaskMeta(kind, content)
-        if (meta.title || meta.url) return meta
+        if (meta.title) return meta
       }
     }
-    return { title: null, url: null }
+    return { title: null }
   }
 }
 

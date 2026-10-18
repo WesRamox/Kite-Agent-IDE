@@ -7,7 +7,6 @@ const task: Task = {
   id: 'folder:/w/PAY',
   key: 'PAY',
   name: 'Pix',
-  cardUrl: null,
   source: 'folder',
   why: '',
   folder: '/w/PAY',

@@ -86,7 +86,6 @@ describe('attention', () => {
       id: 'folder:/w/PAY',
       key: 'PAY-415',
       name: 'Estorno',
-      cardUrl: null,
       source: 'folder',
       why: '',
       folder: '/w/PAY',

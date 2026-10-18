@@ -33,6 +33,13 @@ const api: Api = {
     confirmClose: invoke('app:confirmClose'),
     onCloseRequested: (listener) => subscribe('app:closeRequested')(() => listener()),
   },
+  window: {
+    minimize: invoke('window:minimize'),
+    toggleMaximize: invoke('window:toggleMaximize'),
+    close: invoke('window:close'),
+    isMaximized: invoke('window:isMaximized'),
+    onMaximized: subscribe('window:maximized'),
+  },
   settings: {
     get: invoke('settings:get'),
     setTheme: invoke('settings:setTheme'),

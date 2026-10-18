@@ -310,8 +310,12 @@ export class GitService {
     return Number(out.trim()) || 0
   }
 
-  // Branch base provável: a padrão do origin (origin/HEAD), senão main ou master locais.
+  // Branch base provável: a branch de onde a atual foi criada (o reflog guarda "branch: Created
+  // from dev"), senão a padrão do origin (origin/HEAD), main ou master locais e, por fim, a branch
+  // aberta no repositório principal.
   async defaultBase(worktree: string): Promise<string | null> {
+    const created = await this.createdFrom(worktree)
+    if (created) return created
     const head = await this.git(worktree, [
       'symbolic-ref',
       '-q',
@@ -332,7 +336,37 @@ export class GitService {
         .catch(() => '')
       if (out) return name
     }
-    return null
+    // Por último, a branch aberta no repositório principal (ex.: dev), se não for a própria.
+    const list = await this.git(worktree, ['worktree', 'list', '--porcelain']).catch(() => '')
+    const main = /^branch refs\/heads\/(.+)$/m.exec(list.split('\n\n')[0] ?? '')?.[1]
+    const current = await this.git(worktree, ['symbolic-ref', '-q', '--short', 'HEAD'])
+      .then((o) => o.trim())
+      .catch(() => '')
+    return main && main !== current ? main : null
+  }
+
+  private async createdFrom(worktree: string): Promise<string | null> {
+    const branch = await this.git(worktree, ['symbolic-ref', '-q', '--short', 'HEAD'])
+      .then((o) => o.trim())
+      .catch(() => '')
+    if (!branch) return null
+    const log = await this.git(worktree, [
+      'reflog',
+      'show',
+      '--format=%gs',
+      `refs/heads/${branch}`,
+      '--',
+    ]).catch(() => '')
+    const first = log.trim().split('\n').pop() ?? ''
+    const from = /^branch: Created from (.+)$/
+      .exec(first)?.[1]
+      ?.replace(/^refs\/(heads|remotes)\//, '')
+    // "HEAD" ou um hash não dizem qual é a base; só um nome de branch que ainda existe.
+    if (!from || from === 'HEAD' || from === branch || /^[0-9a-f]{7,40}$/.test(from)) return null
+    const exists = await this.git(worktree, ['rev-parse', '--verify', '-q', `${from}^{commit}`])
+      .then((o) => o.trim() !== '')
+      .catch(() => false)
+    return exists ? from : null
   }
 
   // Commita tudo o que mudou na pasta aberta (git add -A).

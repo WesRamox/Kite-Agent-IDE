@@ -192,6 +192,10 @@ export interface InvokeChannels {
 
   // Resposta ao evento `app:closeRequested`: o renderer terminou de salvar e o app pode fechar.
   'app:confirmClose': { args: []; result: void }
+  'window:minimize': { args: []; result: void }
+  'window:toggleMaximize': { args: []; result: void }
+  'window:close': { args: []; result: void }
+  'window:isMaximized': { args: []; result: boolean }
 }
 
 export interface EventChannels {
@@ -199,6 +203,7 @@ export interface EventChannels {
   'pty:data': PtyDataEvent
   'pty:exit': PtyExitEvent
   'app:closeRequested': Record<string, never>
+  'window:maximized': boolean
   'git:changed': GitChangedEvent
   // Tarefa criada ou alterada (status, fim do processo...). Removida: `removed: true`.
   'agent:status': AgentTask & { removed?: boolean }
@@ -227,6 +232,13 @@ export interface Api {
     getInfo: Fn<'app:getInfo'>
     confirmClose: Fn<'app:confirmClose'>
     onCloseRequested: (listener: () => void) => Unsubscribe
+  }
+  window: {
+    minimize: Fn<'window:minimize'>
+    toggleMaximize: Fn<'window:toggleMaximize'>
+    close: Fn<'window:close'>
+    isMaximized: Fn<'window:isMaximized'>
+    onMaximized: (listener: (maximized: boolean) => void) => Unsubscribe
   }
   settings: {
     get: Fn<'settings:get'>

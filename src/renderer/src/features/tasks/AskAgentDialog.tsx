@@ -1,3 +1,4 @@
+import { createPortal } from 'react-dom'
 import type { Task } from '@shared/types'
 import { useState } from 'react'
 import { askAgent } from './review.actions'
@@ -15,7 +16,8 @@ export function AskAgentDialog({ task, onClose }: { task: Task; onClose: () => v
     setBusy(false)
     if (ok) onClose()
   }
-  return (
+  // No body: dentro do painel do dockview, `fixed` ficaria preso ao painel (transform).
+  return createPortal(
     <div
       className="fixed inset-0 z-50 flex justify-center bg-black/30 pt-[14vh]"
       onMouseDown={(e) => e.target === e.currentTarget && onClose()}
@@ -58,6 +60,7 @@ export function AskAgentDialog({ task, onClose }: { task: Task; onClose: () => v
           </button>
         </div>
       </div>
-    </div>
+    </div>,
+    document.body,
   )
 }

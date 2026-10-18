@@ -4,7 +4,9 @@ import { useActiveTask } from '../../features/tasks/tasks.store'
 import { basename } from '../../lib/paths'
 import { useWorkspaceStore } from '../../stores/workspace.store'
 import { buildMenus, type MenuDef, type MenuEntry } from './menus'
+import { isMac } from '../../lib/platform'
 import { useT } from '../../lib/i18n'
+import { WindowControls } from './WindowControls'
 
 // Barra de menus no topo da janela, no lugar do menu nativo (removido no Linux/Windows). Como no
 // VS Code: clique abre, passar o mouse troca de menu enquanto um está aberto, setas navegam.
@@ -182,10 +184,13 @@ export function MenuBar() {
       ref={ref}
       role="menubar"
       aria-label={t('menu.bar')}
-      className="relative flex h-[30px] shrink-0 items-center border-b border-border bg-surface-1 px-1.5 font-geist text-[13px]"
+      // Sem barra de título do sistema: a barra de menus arrasta a janela (menus e botões não).
+      className={`relative flex h-[30px] shrink-0 items-center border-b border-border bg-surface-1 font-geist text-[13px] [-webkit-app-region:drag] ${
+        isMac ? 'pr-1.5 pl-[76px]' : 'pl-1.5'
+      }`}
     >
       {menus.map((m, i) => (
-        <div key={m.id} className="relative">
+        <div key={m.id} className="relative [-webkit-app-region:no-drag]">
           <button
             type="button"
             role="menuitem"
@@ -217,6 +222,7 @@ export function MenuBar() {
           {title}
         </span>
       )}
+      {!isMac && <WindowControls />}
     </div>
   )
 }

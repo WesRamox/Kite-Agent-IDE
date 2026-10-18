@@ -393,7 +393,6 @@ export interface Task {
   // Rótulo curto (pasta ou branch), ex.: "PAY-412".
   key: string
   name: string
-  cardUrl: string | null
   source: TaskSource
   // Por que estas worktrees foram agrupadas (tela de descoberta).
   why: string

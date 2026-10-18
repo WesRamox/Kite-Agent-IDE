@@ -65,8 +65,8 @@ or by hand: your adjustments always win over the heuristics.
 - **One window per task.** Quick open searches every repo in the task, tabs show which repo a
   file belongs to, and terminals open in the task folder.
 - **Switch with `Ctrl/Cmd+K`.** Each task keeps its own tabs and terminals.
-- **Card and notes.** A `TASK.md` or `.kite-task.json` in the task folder gives the task its title
-  and card link. The details panel also has private notes.
+- **Title and notes.** A `TASK.md` or `.kite-task.json` in the task folder gives the task its
+  title. The details panel also has private notes.
 - **No script? Use Kite.** "+ New" creates a worktree per repository following your folder
   pattern, then starts an agent in the task folder with an optional first prompt.
 

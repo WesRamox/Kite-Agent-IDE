@@ -125,17 +125,13 @@ describe('groupWorktrees', () => {
     expect(patternRegex('sem-marcador')).toBeNull()
   })
 
-  it('lê título e link do card', () => {
-    expect(parseTaskMeta('json', '{"title":"Checkout com Pix","url":"https://jira/x"}')).toEqual({
+  it('lê o título da tarefa', () => {
+    expect(parseTaskMeta('json', '{"title":"Checkout com Pix","url":"https://x"}')).toEqual({
       title: 'Checkout com Pix',
-      url: 'https://jira/x',
     })
-    expect(parseTaskMeta('json', '{"url":"javascript:alert(1)"}').url).toBeNull()
-    expect(
-      parseTaskMeta('md', '# PAY-412 Checkout\n\nCard: https://linear.app/x/PAY-412.\n'),
-    ).toEqual({
+    expect(parseTaskMeta('json', 'quebrado')).toEqual({ title: null })
+    expect(parseTaskMeta('md', '# PAY-412 Checkout\n\nhttps://linear.app/x/PAY-412\n')).toEqual({
       title: 'PAY-412 Checkout',
-      url: 'https://linear.app/x/PAY-412.',
     })
   })
 })

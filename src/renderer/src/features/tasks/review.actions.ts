@@ -1,3 +1,4 @@
+import { create } from 'zustand'
 import type { DeliverInput, DeliverResult, Task } from '@shared/types'
 import { getDockApi } from '../../lib/dock'
 import { attempt } from '../../lib/ipc'
@@ -43,6 +44,14 @@ export async function openTaskReview(taskId: string): Promise<void> {
     title: t('review.tab', { name: task.name }),
     params,
   })
+}
+
+// "Entregar" na barra da tarefa: abre a revisão já com o diálogo de entrega.
+export const useDeliverRequest = create<{ taskId: string | null }>(() => ({ taskId: null }))
+
+export async function requestDeliver(taskId: string): Promise<void> {
+  useDeliverRequest.setState({ taskId })
+  await openTaskReview(taskId)
 }
 
 // PR de cada worktree da tarefa (detalhes da tarefa).

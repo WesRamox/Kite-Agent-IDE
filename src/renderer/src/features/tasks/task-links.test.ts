@@ -6,7 +6,6 @@ const task = (id: string, folder: string | null, paths: string[]): Task => ({
   id,
   key: id,
   name: id,
-  cardUrl: null,
   source: folder ? 'folder' : 'branch',
   why: '',
   folder,

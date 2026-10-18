@@ -271,6 +271,24 @@ describe('GitService', () => {
     await expect(svc.pendingFiles([p('a.txt'), p('nova', 'c.md')])).resolves.toEqual([])
   })
 
+  it('defaultBase usa a branch de onde a atual foi criada, senão main', async () => {
+    git(repo, 'branch', 'dev')
+    const fromDev = path.join(base, 'wt-dev')
+    git(repo, 'worktree', 'add', '-q', '-b', 'TECH-1-x', fromDev, 'dev')
+    await expect(svc.defaultBase(fromDev)).resolves.toBe('dev')
+    // Criada a partir de um commit (HEAD): não dá para saber; cai na main.
+    const fromHead = path.join(base, 'wt-head')
+    git(repo, 'worktree', 'add', '-q', '-b', 'TECH-2-x', fromHead, 'HEAD')
+    await expect(svc.defaultBase(fromHead)).resolves.toBe('main')
+  })
+
+  it('defaultBase sem main nem master usa a branch aberta no repositório principal', async () => {
+    git(repo, 'branch', '-m', 'main', 'dev')
+    const wt = path.join(base, 'wt-x')
+    git(repo, 'worktree', 'add', '-q', '-b', 'TECH-3-x', wt, 'HEAD')
+    await expect(svc.defaultBase(wt)).resolves.toBe('dev')
+  })
+
   it('gitDirs de uma worktree inclui o diretório comum', async () => {
     const { path: wt } = await svc.addWorktree(repo, 'feat/z', true)
     await guard.addRoot(wt)

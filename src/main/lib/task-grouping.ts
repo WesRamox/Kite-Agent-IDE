@@ -201,24 +201,18 @@ function explain(t: GroupedTask, root: string): string {
   return tr('grouping.pattern')
 }
 
-// Título e link do card a partir de um arquivo de metadados na pasta da tarefa:
-// .kite-task.json ({ "title", "url" }) ou TASK.md (primeiro título "# ..." e primeiro link).
-export function parseTaskMeta(
-  file: 'json' | 'md',
-  content: string,
-): { title: string | null; url: string | null } {
+// Título da tarefa a partir de um arquivo de metadados na pasta dela:
+// .kite-task.json ({ "title" }) ou TASK.md (primeiro título "# ...").
+export function parseTaskMeta(file: 'json' | 'md', content: string): { title: string | null } {
   if (file === 'json') {
     try {
-      const data = JSON.parse(content) as { title?: unknown; url?: unknown }
+      const data = JSON.parse(content) as { title?: unknown }
       return {
         title: typeof data.title === 'string' && data.title.trim() ? data.title.trim() : null,
-        url: typeof data.url === 'string' && /^https?:\/\//.test(data.url) ? data.url : null,
       }
     } catch {
-      return { title: null, url: null }
+      return { title: null }
     }
   }
-  const title = /^#\s+(.+)$/m.exec(content)?.[1]?.trim() ?? null
-  const url = /https?:\/\/[^\s)>\]]+/.exec(content)?.[0] ?? null
-  return { title, url }
+  return { title: /^#\s+(.+)$/m.exec(content)?.[1]?.trim() ?? null }
 }

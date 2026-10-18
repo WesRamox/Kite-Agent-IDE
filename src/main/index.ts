@@ -87,6 +87,11 @@ function createWindow(): BrowserWindow {
     show: false,
     backgroundColor: themeInfo(currentTheme).background,
     title: 'Kite',
+    // Sem a barra de título do sistema: a barra de menus do Kite faz o papel dela (arrastar e
+    // botões da janela). No macOS ficam os botões nativos, embutidos no canto.
+    ...(process.platform === 'darwin'
+      ? { titleBarStyle: 'hiddenInset' as const }
+      : { frame: false }),
     // Em dev/build local; no pacote final o ícone vem do instalador.
     icon: join(__dirname, '../../resources/icon.png'),
     webPreferences: {
@@ -129,6 +134,8 @@ function createWindow(): BrowserWindow {
     log.error('a interface caiu', { reason: details.reason, exitCode: details.exitCode })
     if (details.reason !== 'clean-exit' && !win.isDestroyed()) win.webContents.reload()
   })
+  win.on('maximize', () => win.webContents.send('window:maximized', true))
+  win.on('unmaximize', () => win.webContents.send('window:maximized', false))
   win.on('unresponsive', () => log.warn('a janela parou de responder'))
   win.on('responsive', () => log.info('a janela voltou a responder'))
 
@@ -545,6 +552,16 @@ void app.whenReady().then(async () => {
         closeConfirmed = true
         if (quitting) app.quit()
         else mainWindow?.close()
+      },
+      window: {
+        minimize: () => mainWindow?.minimize(),
+        toggleMaximize: () => {
+          if (mainWindow?.isMaximized()) mainWindow.unmaximize()
+          else mainWindow?.maximize()
+        },
+        // Passa pelo fluxo normal de fechar (salva terminais, pergunta sobre arquivos).
+        close: () => mainWindow?.close(),
+        isMaximized: () => mainWindow?.isMaximized() ?? false,
       },
     },
     ipcLog,

@@ -10,10 +10,11 @@ import { detectLanguage } from '../editor/language'
 import { monaco, useMonacoTheme } from '../editor/monaco-setup'
 import { AskAgentDialog } from './AskAgentDialog'
 import { DeliverDialog } from './DeliverDialog'
-import type { TaskReviewParams } from './review.actions'
+import { useDeliverRequest, type TaskReviewParams } from './review.actions'
+import { toast } from '../../stores/toast.store'
 import { useTasksStore } from './tasks.store'
 import { useSettingsStore } from '../../stores/settings.store'
-import { useT } from '../../lib/i18n'
+import { t, useT } from '../../lib/i18n'
 
 // Tela 3 do canvas "Kite — Tarefas multi-repo" (Review.dc.html).
 
@@ -70,6 +71,9 @@ export function TaskReviewPanel({ params }: IDockviewPanelProps<TaskReviewParams
   const tr = useT()
   const reload = () => setReloads((n) => n + 1)
 
+  // Pedido de entrega (barra da tarefa): recarrega e abre o diálogo com o que dá para entregar.
+  const deliverRequested = useDeliverRequest((s) => s.taskId === params.taskId)
+
   useEffect(() => {
     if (!root) return
     let alive = true
@@ -81,6 +85,12 @@ export function TaskReviewPanel({ params }: IDockviewPanelProps<TaskReviewParams
       }
       setError(null)
       setReview(res.data)
+      if (useDeliverRequest.getState().taskId === params.taskId) {
+        useDeliverRequest.setState({ taskId: null })
+        const ready = res.data.repos.filter((r) => r.files.length > 0 || r.ahead > 0)
+        if (ready.length === 0) toast.info(t('review.nothingToDeliver'))
+        else setDialog({ kind: 'deliver', repos: ready.map((r) => r.worktree), openPRs: true })
+      }
       setSelected((cur) => {
         const still =
           cur &&
@@ -95,7 +105,7 @@ export function TaskReviewPanel({ params }: IDockviewPanelProps<TaskReviewParams
     return () => {
       alive = false
     }
-  }, [root, params.taskId, statusKey, reloads])
+  }, [root, params.taskId, statusKey, reloads, deliverRequested])
 
   if (!task) return <p className="p-6 text-fg-muted">{tr('review.notFound')}</p>
   const repos = review?.repos ?? []

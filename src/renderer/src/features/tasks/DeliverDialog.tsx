@@ -1,5 +1,6 @@
+import { createPortal } from 'react-dom'
 import type { DeliverResult, Task, TaskReview } from '@shared/types'
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { deliverTask } from './review.actions'
 import { t, useT } from '../../lib/i18n'
 
@@ -15,7 +16,6 @@ function defaultBody(task: Task): string {
       task: task.key === task.name ? task.key : `${task.key} · ${task.name}`,
     }),
   ]
-  if (task.cardUrl) lines.push(t('deliver.bodyCard', { url: task.cardUrl }))
   return lines.join('\n')
 }
 
@@ -39,6 +39,13 @@ export function DeliverDialog(props: {
     Object.fromEntries(review.repos.map((r) => [r.worktree, r.base])),
   )
   const [busy, setBusy] = useState(false)
+  // Esc fecha (menos durante o commit/push).
+  const { onClose } = props
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => e.key === 'Escape' && !busy && onClose()
+    window.addEventListener('keydown', onKey)
+    return () => window.removeEventListener('keydown', onKey)
+  }, [busy, onClose])
   const [results, setResults] = useState<DeliverResult[] | null>(null)
 
   const selected = review.repos.filter((r) => chosen.has(r.worktree))
@@ -65,7 +72,8 @@ export function DeliverDialog(props: {
     if (res) setResults(res)
   }
 
-  return (
+  // No body: dentro do painel do dockview, `fixed` ficaria preso ao painel (transform).
+  return createPortal(
     <div
       className="fixed inset-0 z-50 flex justify-center bg-black/30 pt-[10vh]"
       onMouseDown={(e) => e.target === e.currentTarget && !busy && props.onClose()}
@@ -241,6 +249,7 @@ export function DeliverDialog(props: {
           </>
         )}
       </div>
-    </div>
+    </div>,
+    document.body,
   )
 }

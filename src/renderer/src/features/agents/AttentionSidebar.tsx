@@ -215,10 +215,54 @@ export function AttentionSidebar() {
             ))}
           </div>
         ))}
+        <HiddenTasks />
       </div>
       {menu && (
         <ContextMenu x={menu.x} y={menu.y} items={menu.items} onClose={() => setMenu(null)} />
       )}
+    </div>
+  )
+}
+
+// Tarefas escondidas da Central (botão direito → Esconder, ou desmarcadas na descoberta): ficam
+// recolhidas no fim da lista, com "Mostrar" para trazer de volta.
+function HiddenTasks() {
+  const tr = useT()
+  const tasks = useTasksStore((s) => (s.workspace?.imported ? s.workspace.tasks : undefined))
+  const [open, setOpen] = useState(false)
+  const hidden = tasks?.filter((t) => t.hidden) ?? []
+  if (hidden.length === 0) return null
+  return (
+    <div className="flex flex-col">
+      <button
+        type="button"
+        aria-expanded={open}
+        onClick={() => setOpen(!open)}
+        className="flex items-center gap-2 px-2.5 py-1 text-left text-[11px] font-semibold tracking-[0.08em] text-fg-muted uppercase hover:text-fg"
+      >
+        {tr('sidebar.hidden', { n: hidden.length })}
+        <span className="ml-auto font-normal normal-case">
+          {open ? tr('sidebar.hiddenCollapse') : tr('sidebar.hiddenExpand')}
+        </span>
+      </button>
+      {open &&
+        hidden.map((t) => (
+          <div
+            key={t.id}
+            className="flex items-center gap-2 rounded-md px-2.5 py-1.5 text-fg-muted"
+          >
+            <span className="font-geist-mono text-[11px]">{t.key === t.name ? '' : t.key}</span>
+            <span className="min-w-0 flex-1 truncate">{t.name}</span>
+            <button
+              type="button"
+              aria-label={tr('sidebar.unhideLabel', { name: t.name })}
+              onClick={() => void setTaskHidden(t.id, false)}
+              className="text-xs hover:text-fg"
+            >
+              {tr('sidebar.unhide')}
+            </button>
+          </div>
+        ))}
     </div>
   )
 }

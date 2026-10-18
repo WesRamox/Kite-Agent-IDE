@@ -49,11 +49,6 @@ export function TaskDetails() {
       <div className="flex flex-col gap-1.5">
         <span className={LABEL}>{t('details.task')}</span>
         <span className="text-[15px] font-semibold">{task.name}</span>
-        {task.cardUrl && (
-          <a href={task.cardUrl} target="_blank" rel="noreferrer" className="text-xs text-accent">
-            {t('details.openCard', { key: task.key })}
-          </a>
-        )}
       </div>
 
       <div className="flex flex-col gap-2">

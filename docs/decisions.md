@@ -605,3 +605,31 @@ Decisões fáceis de desfazer, não cobertas pelo `AGENTS.md`. Mais recente no f
   do repositório escolhido.
 - O main só libera para o git caminhos que a descoberta de tarefas conhece (`task:openRepo`):
   repos do workspace e worktrees de tarefas.
+
+## Sem link de card na tarefa
+
+- O `TASK.md`/`.kite-task.json` dá só o título da tarefa. O link ("Abrir card …" nos detalhes e
+  "Card: …" na descrição do PR) saiu: a palavra e o uso puxavam para um gerenciador de tarefas
+  específico, e o Kite não deve depender de nenhum. Desvio da Fase 8 do AGENTS.md ("lê título e
+  link do card"), pedido pelo usuário.
+
+## Barra de ações, janela sem moldura e tarefas escondidas
+
+- **Barra de ações** no topo da área principal (desvio do canvas, aprovado). Na tarefa: o agente
+  padrão (primeiro preset com comando) em um clique na pasta da tarefa, com ▾ para outro preset;
+  Terminal (▾: pasta da tarefa ou um repo); Revisar; Entregar (abre a revisão já com o diálogo de
+  entrega). No workspace: o agente na raiz, num terminal comum, para que a sessão seja ligada à
+  tarefa pelos hooks quando a skill criar as worktrees; Terminal; Escolher tarefa.
+- **Janela sem a barra de título do sistema** (Linux e Windows: `frame: false`; macOS:
+  `titleBarStyle: 'hiddenInset'`). A barra de menus do Kite arrasta a janela e tem minimizar,
+  maximizar e fechar no canto direito; fechar passa pelo fluxo normal (terminais e arquivos não
+  salvos).
+- **Tarefas escondidas** ficam recolhidas no fim da lista da Central ("Escondidas · N"), com
+  "Mostrar" em cada uma.
+- **Branch base** (revisão e entrega): primeiro a branch de onde a atual foi criada (reflog
+  "branch: Created from dev"), depois `origin/HEAD`, `main`/`master` e, por fim, a branch aberta
+  no repositório principal. Antes, um projeto com base `dev` e sem `origin/HEAD` comparava com a
+  `main` (ou com nada).
+- Os diálogos de entrega e de pedir ajuste ao agente são renderizados no `body` (como o menu de
+  contexto): dentro do painel do dockview, `position: fixed` ficava preso ao painel, e com a barra
+  de ações o botão de confirmar saía da área visível. O de entrega também fecha com Esc.

@@ -89,6 +89,11 @@ export default messages(
     'central.seemsWaiting': 'O agente parou e parece esperar uma resposta.',
     'central.turnEnded': 'O agente terminou o turno e espera o próximo pedido.',
 
+    'sidebar.hidden': ({ n }: N) => `Escondidas · ${n}`,
+    'sidebar.hiddenExpand': 'ver',
+    'sidebar.hiddenCollapse': 'recolher',
+    'sidebar.unhide': 'Mostrar',
+    'sidebar.unhideLabel': ({ name }: Name) => `Mostrar ${name} de novo`,
     'sidebar.tasks': 'Tarefas',
     'sidebar.discover': 'Descobrir',
     'sidebar.discoverHint': 'Agrupamento das worktrees e worktrees soltas',
@@ -309,6 +314,11 @@ export default messages(
     'central.seemsWaiting': 'The agent stopped and seems to be waiting for an answer.',
     'central.turnEnded': 'The agent finished its turn and is waiting for the next request.',
 
+    'sidebar.hidden': ({ n }: N) => `Hidden · ${n}`,
+    'sidebar.hiddenExpand': 'show',
+    'sidebar.hiddenCollapse': 'hide',
+    'sidebar.unhide': 'Show',
+    'sidebar.unhideLabel': ({ name }: Name) => `Show ${name} again`,
     'sidebar.tasks': 'Tasks',
     'sidebar.discover': 'Discover',
     'sidebar.discoverHint': 'Worktree grouping and loose worktrees',

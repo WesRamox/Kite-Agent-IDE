@@ -93,7 +93,6 @@ export default messages(
 
     'details.label': 'Detalhes da tarefa',
     'details.task': 'Tarefa',
-    'details.openCard': ({ key }: { key: string }) => `Abrir card ${key}`,
     'details.repos': 'Repositórios',
     'details.noBranch': ({ head }: { head: string }) => `sem branch (${head})`,
     'details.changed': ({ n }: N) => `${n} ${n === 1 ? 'alterado' : 'alterados'}`,
@@ -123,6 +122,7 @@ export default messages(
     'review.tab': ({ name }: Name) => `Revisar · ${name}`,
     'review.closeTab': 'Fechar revisão da tarefa',
     'review.notFound': 'Tarefa não encontrada.',
+    'review.nothingToDeliver': 'Nada para entregar: nenhuma alteração ou commit nesta tarefa.',
     'review.title': ({ name }: Name) => `Revisar · ${name}`,
     'review.agentWaiting': 'agente esperando você',
     'review.summary': ({ repos, files }: { repos: number; files: number }) =>
@@ -185,7 +185,6 @@ export default messages(
     'deliver.commitAndPRs': 'Commit e abrir PRs',
     'deliver.commit': 'Commitar',
     'deliver.bodyTask': ({ task }: { task: string }) => `Tarefa: ${task}`,
-    'deliver.bodyCard': ({ url }: { url: string }) => `Card: ${url}`,
   },
   {
     'tasks.discoverError': 'Could not look for tasks',
@@ -273,7 +272,6 @@ export default messages(
 
     'details.label': 'Task details',
     'details.task': 'Task',
-    'details.openCard': ({ key }: { key: string }) => `Open card ${key}`,
     'details.repos': 'Repositories',
     'details.noBranch': ({ head }: { head: string }) => `no branch (${head})`,
     'details.changed': ({ n }: N) => `${n} changed`,
@@ -303,6 +301,7 @@ export default messages(
     'review.tab': ({ name }: Name) => `Review · ${name}`,
     'review.closeTab': 'Close task review',
     'review.notFound': 'Task not found.',
+    'review.nothingToDeliver': 'Nothing to deliver: no changes or commits in this task.',
     'review.title': ({ name }: Name) => `Review · ${name}`,
     'review.agentWaiting': 'agent waiting for you',
     'review.summary': ({ repos, files }: { repos: number; files: number }) =>
@@ -366,6 +365,5 @@ export default messages(
     'deliver.commitAndPRs': 'Commit and open PRs',
     'deliver.commit': 'Commit',
     'deliver.bodyTask': ({ task }: { task: string }) => `Task: ${task}`,
-    'deliver.bodyCard': ({ url }: { url: string }) => `Card: ${url}`,
   },
 )

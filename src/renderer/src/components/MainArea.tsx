@@ -2,6 +2,7 @@ import { DockviewReact, themeAbyss, type DockviewReadyEvent } from 'dockview-rea
 import 'dockview-react/dist/styles/dockview.css'
 import { useCallback, useEffect, useRef } from 'react'
 import { Welcome } from '../app/Welcome'
+import { ContextBar } from './ContextBar'
 import {
   AGENT_TAB_COMPONENT,
   isReviewPanel,
@@ -100,10 +101,13 @@ export function MainArea() {
 
   return (
     <main className="flex min-w-0 flex-1">
-      <div className="relative min-w-0 flex-1">
-        {contexts.map((id) => (
-          <DockContext key={id} id={id} visible={id === active} />
-        ))}
+      <div className="flex min-w-0 flex-1 flex-col">
+        <ContextBar />
+        <div className="relative min-h-0 flex-1">
+          {contexts.map((id) => (
+            <DockContext key={id} id={id} visible={id === active} />
+          ))}
+        </div>
       </div>
       {taskOpen && <TaskDetails />}
     </main>

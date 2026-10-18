@@ -57,14 +57,14 @@ níveis), lista as worktrees de cada um e agrupa em **tarefas**, sem você preci
 Na primeira vez aparece a tela **Descobrir tarefas** para conferir, renomear, desmarcar e decidir o
 que fazer com worktrees soltas; para voltar a ela, use o botão "Descobrir" na Central, o menu
 Tarefa → "Descobrir tarefas…" ou `Ctrl/Cmd+K` → "Descobrir tarefas…". Um
-`TASK.md` (primeiro título) ou `.kite-task.json` (`{ "title", "url" }`) na pasta da tarefa dá o
-título e o link do card. Worktrees criadas depois, por qualquer script ou skill, entram sozinhas.
+`TASK.md` (primeiro título) ou `.kite-task.json` (`{ "title" }`) na pasta da tarefa dá o
+título dela. Worktrees criadas depois, por qualquer script ou skill, entram sozinhas.
 
 Abrir uma tarefa (na Central ou `Ctrl/Cmd+K`) mostra no explorer só os arquivos alterados em cada
 worktree contra a branch base ("Alterados"); "Todos" mostra a árvore com uma raiz por worktree. O
 quick open busca em todos os repos dela, as abas mostram o repo do arquivo e os terminais abrem
 na pasta da tarefa (botão direito numa raiz: "Abrir terminal aqui"). Cada tarefa guarda as
-próprias abas e terminais: trocar de tarefa não fecha nada. À direita ficam o card, a situação de
+próprias abas e terminais: trocar de tarefa não fecha nada. À direita ficam o título, a situação de
 cada repo, as sessões de agente e notas. Uma sessão do Claude Code é ligada à tarefa pelo cwd ou
 pelos arquivos que edita (mesmo aberta na raiz do workspace); em Conectar agentes dá para
 vincular à mão.

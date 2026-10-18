@@ -65,8 +65,8 @@ padrão de pasta, ou à mão: os seus ajustes sempre vencem as heurísticas.
 - **Uma janela por tarefa.** O quick open busca em todos os repos da tarefa, as abas mostram o
   repo de cada arquivo e os terminais abrem na pasta da tarefa.
 - **Troque com `Ctrl/Cmd+K`.** Cada tarefa guarda as próprias abas e terminais.
-- **Card e notas.** Um `TASK.md` ou `.kite-task.json` na pasta da tarefa dá o título e o link do
-  card. O painel de detalhes também tem notas, que ficam só no Kite.
+- **Título e notas.** Um `TASK.md` ou `.kite-task.json` na pasta da tarefa dá o título da tarefa.
+  O painel de detalhes também tem notas, que ficam só no Kite.
 - **Não tem script? Use o Kite.** "+ Nova" cria uma worktree por repositório seguindo o seu padrão
   de pasta e inicia um agente na pasta da tarefa, com um prompt inicial opcional.
 

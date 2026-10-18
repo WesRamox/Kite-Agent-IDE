@@ -46,7 +46,7 @@ test('descobrir tarefas: separar worktree, desfazer tarefa, tirar/restaurar repo
     // Depois de importar, o explorer do workspace tem o seletor de tarefa.
     await page.getByRole('button', { name: /^Importar/ }).click()
     await expect(page.getByText('Ctrl+K abre a tarefa do workspace')).toBeVisible()
-    await page.getByRole('button', { name: 'Escolher tarefa' }).click()
+    await page.getByRole('button', { name: 'Escolher tarefa', exact: true }).click()
     const switcher = page.getByRole('dialog', { name: 'Trocar de tarefa' })
     await expect(switcher).toContainText('PAY-1')
     await switcher.getByRole('button', { name: /PAY-1/ }).first().click()
