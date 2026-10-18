@@ -5,7 +5,7 @@ import { sessionStatusLabel, sessionTone, type SessionTone } from '../agents/ses
 import { useSessionsStore } from '../agents/sessions.store'
 import { linkSessions } from './task-links'
 import { setTaskNotes } from './tasks.actions'
-import { useActiveTask, useTasksStore } from './tasks.store'
+import { useActiveTask, useTasksStore, NO_LINKS } from './tasks.store'
 import { t as tr, currentLang, useT } from '../../lib/i18n'
 
 // Painel da direita da tarefa (canvas, tela 2: Task.dc.html, "Detalhes da tarefa").
@@ -33,7 +33,7 @@ export function TaskDetails() {
   const task = useActiveTask()
   const status = useTasksStore((s) => s.status)
   const prs = useTasksStore((s) => s.prs)
-  const links = useTasksStore((s) => s.workspace?.sessionLinks ?? {})
+  const links = useTasksStore((s) => s.workspace?.sessionLinks ?? NO_LINKS)
   const sessions = useSessionsStore((s) => s.sessions)
   const t = useT()
   if (!task) return null

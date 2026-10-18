@@ -10,7 +10,7 @@ import { openTerminal } from '../terminal/terminal.actions'
 import { ChangedFiles } from './ChangedFiles'
 import { TaskDot } from './TaskDot'
 import { addRepoToTask } from './tasks.actions'
-import { taskBaseDir, useActiveTask, useTasksStore } from './tasks.store'
+import { taskBaseDir, useActiveTask, useTasksStore, NO_REPOS } from './tasks.store'
 import { useTaskSwitcherStore } from './task-switcher.store'
 import { t, useT } from '../../lib/i18n'
 
@@ -24,7 +24,7 @@ function badge(branch: string | null, ahead: number | undefined): string {
 export function TaskExplorer() {
   const task = useActiveTask()
   const status = useTasksStore((s) => s.status)
-  const repos = useTasksStore((s) => s.workspace?.repos ?? [])
+  const repos = useTasksStore((s) => s.workspace?.repos ?? NO_REPOS)
   const children = useExplorerStore((s) => s.children)
   const mode = useTasksStore((s) => s.explorerMode)
   const tr = useT()

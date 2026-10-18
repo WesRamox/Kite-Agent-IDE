@@ -20,6 +20,11 @@ interface TasksState {
   reset: () => void
 }
 
+// Valores vazios estáveis para seletores: no zustand 5, um seletor que devolve um array ou objeto
+// novo a cada leitura entra em loop de renderização (erro #185 do React).
+export const NO_REPOS: WorkspaceTasks['repos'] = []
+export const NO_LINKS: WorkspaceTasks['sessionLinks'] = {}
+
 export const useTasksStore = create<TasksState>((set) => ({
   workspace: null,
   activeTaskId: null,

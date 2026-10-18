@@ -558,3 +558,12 @@ Decisões fáceis de desfazer, não cobertas pelo `AGENTS.md`. Mais recente no f
 - **"Dispensar" (✕) na linha e no menu de contexto.** Desvio combinado do canvas (o desenho não
   tem esse botão). Dispensas ficam em `review.json` na pasta de perfil, por sessão ou por execução
   de agente do Kite (um agente reiniciado volta a aparecer), e são esquecidas depois de 7 dias.
+
+## Tela preta ao trocar de pasta: causa encontrada (0.1.2)
+
+- A tela de erro da 0.1.1 mostrou o erro #185 do React (loop de atualização). Três seletores do
+  zustand devolviam `?? []` ou `?? {}`: com o workspace zerado ao abrir outra pasta (por exemplo,
+  com o formulário de nova tarefa aberto na Central), cada leitura criava um valor novo, e o
+  `useSyncExternalStore` do zustand 5 renderizava sem parar. Não era o Wayland nem a NVIDIA.
+- Seletores devolvem valores vazios estáveis (`NO_REPOS`, `NO_LINKS` em `tasks.store.ts`).
+  Regressão coberta por `e2e/switch-folder.spec.ts`, que trava sem a correção.

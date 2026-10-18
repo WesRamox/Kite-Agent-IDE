@@ -4,7 +4,7 @@ import { isMac } from '../../lib/platform'
 import { useWorkspaceStore } from '../../stores/workspace.store'
 import { branchSlug } from '../tasks/branch-slug'
 import { createTaskWithAgent } from '../tasks/tasks.actions'
-import { useTasksStore } from '../tasks/tasks.store'
+import { useTasksStore, NO_REPOS } from '../tasks/tasks.store'
 import { useAgentsStore } from './agents.store'
 import { useT } from '../../lib/i18n'
 
@@ -18,7 +18,7 @@ const NO_AGENT = ''
 
 export function NewTaskForm({ onDone }: { onDone: () => void }) {
   const root = useWorkspaceStore((s) => s.root)
-  const repos = useTasksStore((s) => s.workspace?.repos ?? [])
+  const repos = useTasksStore((s) => s.workspace?.repos ?? NO_REPOS)
   const presets = useAgentsStore((s) => s.presets)
   const [name, setName] = useState('')
   const [branch, setBranch] = useState<string | null>(null)
