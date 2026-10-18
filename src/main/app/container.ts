@@ -24,6 +24,7 @@ import { AgentService, type AgentState } from '../services/agent.service'
 import { AppService } from '../services/app.service'
 import { FsService } from '../services/fs.service'
 import { GitWatchService } from '../services/git-watch.service'
+import { GitReviewService } from '../services/git-review.service'
 import { GitService } from '../services/git.service'
 import { GitHubAuthService } from '../services/github-auth.service'
 import { fetchGitHubUser, GitHubService } from '../services/github.service'
@@ -102,6 +103,7 @@ export function createServices(deps: ContainerDeps) {
     log: log.child('watch'),
   })
   const gitService = new GitService({ guard, run: createGitRunner() })
+  const gitReview = new GitReviewService({ run: createGitRunner() })
   const gitWatchService = new GitWatchService({
     gitDirs: (root) => gitService.gitDirs(root),
     subscribe,
@@ -212,6 +214,7 @@ export function createServices(deps: ContainerDeps) {
   )
   agents = new AgentService({
     git: gitService,
+    review: gitReview,
     pty: ptyService,
     shell: shellSpec,
     platform: process.platform,
@@ -263,7 +266,7 @@ export function createServices(deps: ContainerDeps) {
   })
   const sessionReview = new SessionReviewService({
     session: (id) => agentEvents.get(id),
-    git: gitService,
+    review: gitReview,
     store: new JsonStore<ReviewState>(
       join(app.getPath('userData'), 'review.json'),
       reviewStateSchema,
@@ -273,6 +276,7 @@ export function createServices(deps: ContainerDeps) {
   const reviewService = new TaskReviewService({
     tasks: taskService,
     git: gitService,
+    review: gitReview,
     github: githubService,
     log: log.child('review'),
   })

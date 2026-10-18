@@ -11,6 +11,7 @@ import type {
 import { AppException } from '../lib/errors'
 import type { Logger } from '../lib/logger'
 import type { GitHubService } from './github.service'
+import type { GitReviewService } from './git-review.service'
 import type { GitService } from './git.service'
 import type { TaskService } from './task.service'
 import { t } from '../lib/i18n'
@@ -18,15 +19,10 @@ import { isSimpleRefName } from '../lib/git-refs'
 
 export interface TaskReviewServiceDeps {
   tasks: Pick<TaskService, 'open'>
-  git: Pick<
-    GitService,
-    | 'status'
-    | 'changesSince'
-    | 'numstatSince'
-    | 'commitsSince'
-    | 'defaultBase'
-    | 'diffSince'
-    | 'commitAll'
+  git: Pick<GitService, 'status' | 'commitAll'>
+  review: Pick<
+    GitReviewService,
+    'changesSince' | 'numstatSince' | 'commitsSince' | 'defaultBase' | 'diffSince'
   >
   github: Pick<GitHubService, 'prForBranch' | 'createPR' | 'updatePRBody' | 'pushCurrent'>
   log: Logger
@@ -70,8 +66,8 @@ export class TaskReviewService {
       task.worktrees.map(async (w) => {
         const out: TaskChangesRepo = { worktree: w.path, base: 'main', files: [], error: null }
         try {
-          out.base = (await this.deps.git.defaultBase(w.path)) ?? 'main'
-          const { files } = await this.deps.git.changesSince(w.path, out.base)
+          out.base = (await this.deps.review.defaultBase(w.path)) ?? 'main'
+          const { files } = await this.deps.review.changesSince(w.path, out.base)
           out.files = files.map((f) => ({ rel: f.path, status: f.status }))
         } catch (err) {
           out.error = message(err)
@@ -89,8 +85,8 @@ export class TaskReviewService {
     rel: string,
   ): Promise<GitDiff> {
     const w = await this.worktree(root, taskId, worktree)
-    const { mergeBase } = await this.deps.git.changesSince(w.path, checkBranch(base))
-    return this.deps.git.diffSince(w.path, mergeBase, rel)
+    const { mergeBase } = await this.deps.review.changesSince(w.path, checkBranch(base))
+    return this.deps.review.diffSince(w.path, mergeBase, rel)
   }
 
   // PR de cada worktree (detalhes da tarefa). Sem login ou sem GitHub: null.
@@ -158,7 +154,7 @@ export class TaskReviewService {
         return r
       }
       const base = checkBranch(
-        input.bases[w.path] ?? (await this.deps.git.defaultBase(w.path)) ?? 'main',
+        input.bases[w.path] ?? (await this.deps.review.defaultBase(w.path)) ?? 'main',
       )
       const pr = await this.deps.github.createPR(w.path, {
         title: input.title.trim(),
@@ -190,16 +186,16 @@ export class TaskReviewService {
       error: null,
     }
     try {
-      out.base = baseOverride ?? (await this.deps.git.defaultBase(w.path)) ?? 'main'
+      out.base = baseOverride ?? (await this.deps.review.defaultBase(w.path)) ?? 'main'
       const status = await this.deps.git.status(w.path)
       if (status.isRepo) {
         out.uncommitted = status.files.length
         out.branch = status.branch ?? w.branch
       }
-      const { mergeBase, files } = await this.deps.git.changesSince(w.path, out.base)
+      const { mergeBase, files } = await this.deps.review.changesSince(w.path, out.base)
       out.mergeBase = mergeBase
       const untracked = files.filter((f) => f.status === 'untracked').map((f) => f.path)
-      const stats = await this.deps.git.numstatSince(w.path, mergeBase, untracked)
+      const stats = await this.deps.review.numstatSince(w.path, mergeBase, untracked)
       out.files = files.map((f) => ({
         rel: f.path,
         status: f.status,
@@ -208,7 +204,7 @@ export class TaskReviewService {
       }))
       out.added = out.files.reduce((n, f) => n + (f.added ?? 0), 0)
       out.deleted = out.files.reduce((n, f) => n + (f.deleted ?? 0), 0)
-      out.ahead = await this.deps.git.commitsSince(w.path, mergeBase)
+      out.ahead = await this.deps.review.commitsSince(w.path, mergeBase)
     } catch (err) {
       out.error = message(err)
     }

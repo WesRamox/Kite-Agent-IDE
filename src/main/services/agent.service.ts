@@ -17,6 +17,7 @@ import { StatusDetector } from '../lib/agent-status'
 import { AppException } from '../lib/errors'
 import type { JsonStore } from '../lib/json-store'
 import type { ShellSpec } from '../lib/shell'
+import type { GitReviewService } from './git-review.service'
 import type { GitService } from './git.service'
 import type { PtyService } from './pty.service'
 import { t } from '../lib/i18n'
@@ -30,6 +31,8 @@ export interface AgentState {
 
 export interface AgentServiceDeps {
   git: GitService
+  // Comparação com a base e remoção da worktree do agente.
+  review: Pick<GitReviewService, 'changesSince' | 'diffSince' | 'defaultBase' | 'removeWorktreeAt'>
   pty: Pick<PtyService, 'spawnAt' | 'write' | 'kill'>
   shell: ShellSpec
   platform: string
@@ -197,7 +200,7 @@ export class AgentService {
     if (task.alive) this.stop(id)
     // A pasta de uma tarefa multi-repo não é uma worktree do agente: fica.
     if (removeWorktree && !task.wsTaskId)
-      await this.deps.git.removeWorktreeAt(task.repoPath, task.worktreePath)
+      await this.deps.review.removeWorktreeAt(task.repoPath, task.worktreePath)
     this.state.tasks = this.state.tasks.filter((t) => t.id !== id)
     this.runtimes.delete(id)
     this.deps.emit({ ...task, removed: true })
@@ -213,15 +216,15 @@ export class AgentService {
   async review(id: string): Promise<AgentReview> {
     const task = this.task(id)
     const base = await this.reviewBase(task)
-    const { mergeBase, files } = await this.deps.git.changesSince(task.worktreePath, base)
+    const { mergeBase, files } = await this.deps.review.changesSince(task.worktreePath, base)
     return { base, mergeBase, files }
   }
 
   async reviewDiff(id: string, rel: string): Promise<GitDiff> {
     const task = this.task(id)
     const base = await this.reviewBase(task)
-    const { mergeBase } = await this.deps.git.changesSince(task.worktreePath, base)
-    return this.deps.git.diffSince(task.worktreePath, mergeBase, rel)
+    const { mergeBase } = await this.deps.review.changesSince(task.worktreePath, base)
+    return this.deps.review.diffSince(task.worktreePath, mergeBase, rel)
   }
 
   // Agentes abertos na pasta de uma tarefa (Fase 10) não guardam a base: quem sabe é a tarefa.
@@ -229,7 +232,7 @@ export class AgentService {
   // base só, e a revisão é a da tarefa.
   private async reviewBase(task: AgentTask): Promise<string> {
     if (task.baseBranch) return task.baseBranch
-    const base = await this.deps.git.defaultBase(task.worktreePath)
+    const base = await this.deps.review.defaultBase(task.worktreePath)
     if (!base) throw new AppException('NOT_A_REPO', t('error.reviewInTaskWorkspace'))
     return base
   }

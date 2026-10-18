@@ -9,6 +9,7 @@ import { JsonStore } from '../lib/json-store'
 import { WorkspaceGuard } from '../lib/workspace-guard'
 import { makeTree } from '../test/tmp'
 import { AgentService, type AgentState } from './agent.service'
+import { GitReviewService } from './git-review.service'
 import { GitService } from './git.service'
 import type { SpawnSpec } from './pty.service'
 
@@ -40,6 +41,7 @@ describe('AgentService', () => {
   const make = () =>
     new AgentService({
       git: new GitService({ guard, run: createGitRunner(ENV) }),
+      review: new GitReviewService({ run: createGitRunner(ENV) }),
       pty: {
         spawnAt: (spec) => {
           const id = `pty-${spawned.length + 1}`

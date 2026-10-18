@@ -71,6 +71,7 @@ function setup(
   const deps = {
     tasks: { open: vi.fn(async () => task) },
     git,
+    review: git,
     github,
     log: createLogger('test', 'error', () => {}),
   } as unknown as TaskReviewServiceDeps

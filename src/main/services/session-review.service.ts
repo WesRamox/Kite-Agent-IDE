@@ -5,7 +5,7 @@ import { z } from 'zod'
 import { AppException } from '../lib/errors'
 import type { JsonStore } from '../lib/json-store'
 import { isInside } from '../lib/workspace-guard'
-import type { GitService } from './git.service'
+import type { GitReviewService } from './git-review.service'
 import { t } from '../lib/i18n'
 
 // Itens de "Para revisar" que o usuário dispensou, com a hora em que dispensou.
@@ -14,7 +14,7 @@ export type ReviewState = z.infer<typeof reviewStateSchema>
 
 export interface SessionReviewServiceDeps {
   session: (id: string) => AgentSession | undefined
-  git: Pick<GitService, 'pendingFiles' | 'diffSince'>
+  review: Pick<GitReviewService, 'pendingFiles' | 'diffSince'>
   store: Pick<JsonStore<ReviewState>, 'read' | 'write'>
   now?: () => number
   // Dispensas mais antigas que isso são esquecidas (o item já saiu da lista).
@@ -50,7 +50,7 @@ export class SessionReviewService {
     const abs = path.resolve(cwd, file)
     const found = (await this.pending(s)).find((f) => f.abs === abs)
     if (!found) throw new AppException('FORBIDDEN_PATH', t('error.notEditedBySession'))
-    return this.deps.git.diffSince(found.toplevel, 'HEAD', found.rel)
+    return this.deps.review.diffSince(found.toplevel, 'HEAD', found.rel)
   }
 
   // Quantos arquivos editados por cada sessão ainda têm alterações não commitadas.
@@ -82,7 +82,7 @@ export class SessionReviewService {
   }
 
   private async pending(s: AgentSession): Promise<PendingFile[]> {
-    const files = await this.deps.git.pendingFiles(s.touchedPaths)
+    const files = await this.deps.review.pendingFiles(s.touchedPaths)
     return files.map((f) => ({ ...f, abs: path.join(f.toplevel, ...f.rel.split('/')) }))
   }
 

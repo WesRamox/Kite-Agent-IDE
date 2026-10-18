@@ -5,6 +5,7 @@ import { afterEach, beforeEach, describe, expect, it } from 'vitest'
 import { createGitRunner } from '../lib/git-runner'
 import { WorkspaceGuard } from '../lib/workspace-guard'
 import { makeTree } from '../test/tmp'
+import { GitReviewService } from './git-review.service'
 import { GitService } from './git.service'
 
 const ENV = {
@@ -27,6 +28,8 @@ describe('GitService', () => {
   let cleanup: () => Promise<void>
   let guard: WorkspaceGuard
   let svc: GitService
+  // Comparação com a base (revisão), testada no mesmo repositório temporário.
+  let review: GitReviewService
   const p = (...parts: string[]) => path.join(repo, ...parts)
 
   beforeEach(async () => {
@@ -42,6 +45,7 @@ describe('GitService', () => {
     guard = new WorkspaceGuard()
     await guard.addRoot(repo)
     svc = new GitService({ guard, run: createGitRunner(ENV) })
+    review = new GitReviewService({ run: createGitRunner(ENV) })
   })
   afterEach(() => cleanup())
 
@@ -190,19 +194,19 @@ describe('GitService', () => {
   })
 
   it('revisão de tarefa: base padrão, +/- desde o merge-base, commits à frente e commit de tudo', async () => {
-    expect(await svc.defaultBase(repo)).toBe('main')
+    expect(await review.defaultBase(repo)).toBe('main')
     git(repo, 'switch', '-q', '-c', 'PAY-412')
     await writeFile(p('a.txt'), 'um\ndois\ntres\n')
     git(repo, 'commit', '-q', '-am', 'mais linhas')
     await writeFile(p('novo.ts'), 'linha 1\nlinha 2\n')
     const mergeBase = git(repo, 'merge-base', 'main', 'HEAD').trim()
-    expect(await svc.commitsSince(repo, mergeBase)).toBe(1)
-    const stats = await svc.numstatSince(repo, mergeBase, ['novo.ts'])
+    expect(await review.commitsSince(repo, mergeBase)).toBe(1)
+    const stats = await review.numstatSince(repo, mergeBase, ['novo.ts'])
     expect(stats.get('a.txt')).toEqual({ added: 2, deleted: 0 })
     expect(stats.get('novo.ts')).toEqual({ added: 2, deleted: 0 })
     await svc.commitAll(repo, 'adiciona novo.ts')
     expect(git(repo, 'status', '--porcelain').trim()).toBe('')
-    expect(await svc.commitsSince(repo, mergeBase)).toBe(2)
+    expect(await review.commitsSince(repo, mergeBase)).toBe(2)
   })
 
   it('status de subpasta só lista arquivos dela', async () => {
@@ -224,18 +228,18 @@ describe('GitService', () => {
     await writeFile(p('a.txt'), 'main andou\n')
     git(repo, 'commit', '-q', '-am', 'main')
 
-    const review = await svc.changesSince(wt, 'main')
-    expect(review.files).toEqual([
+    const changes = await review.changesSince(wt, 'main')
+    expect(changes.files).toEqual([
       { path: 'a.txt', status: 'modified' },
       { path: 'novo.md', status: 'untracked' },
       { path: 'src/b.ts', status: 'modified' },
     ])
-    await expect(svc.diffSince(wt, review.mergeBase, 'a.txt')).resolves.toEqual({
+    await expect(review.diffSince(wt, changes.mergeBase, 'a.txt')).resolves.toEqual({
       original: 'um\n',
       modified: 'commitado\n',
       binary: false,
     })
-    await expect(svc.diffSince(wt, review.mergeBase, '../fora')).rejects.toMatchObject({
+    await expect(review.diffSince(wt, changes.mergeBase, '../fora')).rejects.toMatchObject({
       code: 'FORBIDDEN_PATH',
     })
   })
@@ -250,7 +254,7 @@ describe('GitService', () => {
     git(outro, 'init', '-q', '-b', 'main')
     await writeFile(path.join(outro, 'x.ts'), 'x\n')
 
-    const files = await svc.pendingFiles([
+    const files = await review.pendingFiles([
       p('a.txt'),
       p('nova', 'c.md'),
       p('src', 'b.ts'),
@@ -268,25 +272,25 @@ describe('GitService', () => {
 
     git(repo, 'add', '-A')
     git(repo, 'commit', '-q', '-m', 'agente')
-    await expect(svc.pendingFiles([p('a.txt'), p('nova', 'c.md')])).resolves.toEqual([])
+    await expect(review.pendingFiles([p('a.txt'), p('nova', 'c.md')])).resolves.toEqual([])
   })
 
   it('defaultBase usa a branch de onde a atual foi criada, senão main', async () => {
     git(repo, 'branch', 'dev')
     const fromDev = path.join(base, 'wt-dev')
     git(repo, 'worktree', 'add', '-q', '-b', 'TECH-1-x', fromDev, 'dev')
-    await expect(svc.defaultBase(fromDev)).resolves.toBe('dev')
+    await expect(review.defaultBase(fromDev)).resolves.toBe('dev')
     // Criada a partir de um commit (HEAD): não dá para saber; cai na main.
     const fromHead = path.join(base, 'wt-head')
     git(repo, 'worktree', 'add', '-q', '-b', 'TECH-2-x', fromHead, 'HEAD')
-    await expect(svc.defaultBase(fromHead)).resolves.toBe('main')
+    await expect(review.defaultBase(fromHead)).resolves.toBe('main')
   })
 
   it('defaultBase sem main nem master usa a branch aberta no repositório principal', async () => {
     git(repo, 'branch', '-m', 'main', 'dev')
     const wt = path.join(base, 'wt-x')
     git(repo, 'worktree', 'add', '-q', '-b', 'TECH-3-x', wt, 'HEAD')
-    await expect(svc.defaultBase(wt)).resolves.toBe('dev')
+    await expect(review.defaultBase(wt)).resolves.toBe('dev')
   })
 
   it('gitDirs de uma worktree inclui o diretório comum', async () => {
