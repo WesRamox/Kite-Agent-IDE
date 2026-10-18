@@ -8,6 +8,7 @@ import { beginCreate } from './explorer.actions'
 import { useExplorerStore } from './explorer.store'
 import { FileTree } from './FileTree'
 import { TaskExplorer } from '../tasks/TaskExplorer'
+import { WorkspaceSwitcher } from '../tasks/WorkspaceSwitcher'
 import { useTasksStore } from '../tasks/tasks.store'
 import type { TreeNodeData } from './tree-data'
 import { useT } from '../../lib/i18n'
@@ -57,6 +58,7 @@ export function ExplorerPanel() {
 
   return (
     <div className="flex min-h-0 flex-1 flex-col">
+      <WorkspaceSwitcher />
       <div className="group flex h-8 items-center gap-0.5 px-3.5">
         <span className="flex-1 truncate text-[11px] font-semibold tracking-[0.08em] text-fg uppercase">
           {basename(root)}

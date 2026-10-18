@@ -72,6 +72,10 @@ export default messages(
     'grouping.patternField': 'Padrão de pasta',
 
     'taskExplorer.switch': 'Trocar de tarefa',
+    'workspaceSwitcher.choose': 'Escolher tarefa',
+    'workspaceSwitcher.label': 'Workspace',
+    'workspaceSwitcher.hint': ({ mod, n }: { mod: string; n: number }) =>
+      n === 1 ? `${mod}K abre a tarefa do workspace` : `${mod}K abre uma das ${n} tarefas`,
     'taskExplorer.switchHint': ({ mod }: { mod: string }) => `${mod}K troca de tarefa`,
     'taskExplorer.searchHint': ({ mod, n }: { mod: string; n: number }) =>
       n === 1 ? `${mod}P busca no repo` : `${mod}P busca nos ${n} repos`,
@@ -249,6 +253,10 @@ export default messages(
     'grouping.patternField': 'Folder pattern',
 
     'taskExplorer.switch': 'Switch task',
+    'workspaceSwitcher.choose': 'Choose task',
+    'workspaceSwitcher.label': 'Workspace',
+    'workspaceSwitcher.hint': ({ mod, n }: { mod: string; n: number }) =>
+      n === 1 ? `${mod}K opens the workspace task` : `${mod}K opens one of ${n} tasks`,
     'taskExplorer.switchHint': ({ mod }: { mod: string }) => `${mod}K switches task`,
     'taskExplorer.searchHint': ({ mod, n }: { mod: string; n: number }) =>
       n === 1 ? `${mod}P searches the repo` : `${mod}P searches the ${n} repos`,

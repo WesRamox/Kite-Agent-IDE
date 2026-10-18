@@ -586,3 +586,10 @@ Decisões fáceis de desfazer, não cobertas pelo `AGENTS.md`. Mais recente no f
   a valid object name").
 - O menu de contexto é renderizado no `body`: dentro de um painel do dockview, `position: fixed`
   ficava relativo ao painel e o menu abria fora da tela.
+
+## Seletor de tarefa no explorer do workspace
+
+- Sem tarefa aberta, o explorer do workspace mostra no topo o mesmo seletor do explorer da tarefa
+  ("Workspace · <pasta>"), que abre a troca de tarefa (`Ctrl/Cmd+K`). Antes, só dava para escolher
+  pelo menu Tarefa ou pelo atalho. Só aparece num workspace com tarefas importadas. Desvio do
+  canvas pedido pelo usuário.

@@ -3,7 +3,7 @@ import { expect, test } from '@playwright/test'
 import { git, launch, makeWorkspace } from './app'
 
 // Ajustes em "Descobrir tarefas": worktree já agrupada, tarefa montada à mão e repositórios.
-test('descobrir tarefas: separar worktree, desfazer tarefa e tirar/restaurar repo', async () => {
+test('descobrir tarefas: separar worktree, desfazer tarefa, tirar/restaurar repo e escolher pelo explorer', async () => {
   test.setTimeout(60_000)
   const base = await makeWorkspace({
     'loja/api/server.ts': 'export const api = 1\n',
@@ -42,6 +42,15 @@ test('descobrir tarefas: separar worktree, desfazer tarefa e tirar/restaurar rep
     await expect(page.getByText('fora do workspace')).toBeVisible()
     await page.getByRole('button', { name: 'Restaurar web' }).click()
     await expect(found).toContainText('.worktrees/PAY-1/web')
+
+    // Depois de importar, o explorer do workspace tem o seletor de tarefa.
+    await page.getByRole('button', { name: /^Importar/ }).click()
+    await expect(page.getByText('Ctrl+K abre a tarefa do workspace')).toBeVisible()
+    await page.getByRole('button', { name: 'Escolher tarefa' }).click()
+    const switcher = page.getByRole('dialog', { name: 'Trocar de tarefa' })
+    await expect(switcher).toContainText('PAY-1')
+    await switcher.getByRole('button', { name: /PAY-1/ }).first().click()
+    await expect(page.getByRole('button', { name: 'Trocar de tarefa' })).toContainText('PAY-1')
   } finally {
     await ctx.cleanup()
   }
