@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { useEffect, useEffectEvent, useMemo, useRef, useState } from 'react'
 import { fuzzyFilter } from '../../lib/fuzzy'
 import { basename } from '../../lib/paths'
 import { useWorkspaceStore } from '../../stores/workspace.store'
@@ -44,10 +44,10 @@ function QuickOpenDialog({ roots }: { roots: QuickOpenRoot[] }) {
   const [selected, setSelected] = useState(0)
   const listRef = useRef<HTMLUListElement>(null)
 
-  useEffect(() => {
-    void useQuickOpenStore.getState().ensureFiles(roots)
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [files])
+  // Lista as raízes de novo quando a lista é invalidada (files volta a null), não a cada render
+  // (roots é um array novo a cada vez).
+  const ensureFiles = useEffectEvent(() => void useQuickOpenStore.getState().ensureFiles(roots))
+  useEffect(() => ensureFiles(), [files])
 
   const items = useMemo(() => fuzzyFilter(query, files ?? [], (f) => f.rel, 50), [files, query])
 

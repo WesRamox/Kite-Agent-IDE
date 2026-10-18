@@ -1,36 +1,17 @@
 import { DiffEditor } from '@monaco-editor/react'
 import type { IDockviewPanelProps } from 'dockview-react'
-import type { AgentReview, GitDiff } from '@shared/types'
 import { RefreshCw } from 'lucide-react'
-import { useCallback, useEffect, useState } from 'react'
+import { useState } from 'react'
 import { basename } from '../../lib/paths'
 import { detectLanguage } from '../../lib/language'
 import { monaco, useMonacoTheme } from '../editor/use-monaco'
 import { FileIcon } from '../../components/FileIcon'
 import { KIND_COLOR, KIND_LETTER } from '../../lib/git-format'
 import { useAgentsStore } from './agents.store'
+import { useAgentReview, useAgentReviewDiff, type ReviewParams } from './use-agent-review'
 import { useSessionsStore } from './sessions.store'
 import { useSettingsStore } from '../../stores/settings.store'
 import { useT } from '../../lib/i18n'
-
-// Revisão de um agente do Kite (o que mudou na worktree desde a branch de origem) ou de uma
-// sessão fora de tarefa (o que ela editou e ainda não foi commitado).
-type ReviewParams = { taskId: string; sessionId?: never } | { sessionId: string; taskId?: never }
-
-function source(params: ReviewParams) {
-  const { sessionId, taskId } = params
-  return sessionId !== undefined
-    ? {
-        key: `session:${sessionId}`,
-        review: () => window.api.agentSession.review(sessionId),
-        diff: (p: string) => window.api.agentSession.reviewDiff(sessionId, p),
-      }
-    : {
-        key: `task:${taskId}`,
-        review: () => window.api.agent.review(taskId),
-        diff: (p: string) => window.api.agent.reviewDiff(taskId, p),
-      }
-}
 
 export function ReviewPanel({ api, params }: IDockviewPanelProps<ReviewParams>) {
   const fontSize = useSettingsStore((s) => s.settings.editorFontSize)
@@ -40,65 +21,24 @@ export function ReviewPanel({ api, params }: IDockviewPanelProps<ReviewParams>) 
   const sessionStatus = useSessionsStore(
     (s) => s.sessions.find((x) => x.id === params.sessionId)?.status,
   )
-  const srcKey = source(params).key
-  const [review, setReview] = useState<AgentReview | null>(null)
-  const [error, setError] = useState<string | null>(null)
   const [selected, setSelected] = useState<string | null>(null)
-  const [diff, setDiff] = useState<GitDiff | null>(null)
-
-  const load = useCallback(async () => {
-    const res = await source(params).review()
-    if (!res.ok) {
-      setError(res.error.message)
-      return
-    }
-    setError(null)
-    setReview(res.data)
-    setSelected((cur) =>
-      cur && res.data.files.some((f) => f.path === cur) ? cur : (res.data.files[0]?.path ?? null),
-    )
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [srcKey])
 
   // Recarrega quando o status do agente muda (ele pode ter mexido em arquivos).
   const status = task?.status ?? sessionStatus
-  useEffect(() => {
-    let alive = true
-    void source(params)
-      .review()
-      .then((res) => {
-        if (!alive) return
-        if (!res.ok) {
-          setError(res.error.message)
-          return
-        }
-        setReview(res.data)
-        setSelected((cur) =>
-          cur && res.data.files.some((f) => f.path === cur)
-            ? cur
-            : (res.data.files[0]?.path ?? null),
-        )
-      })
-    return () => {
-      alive = false
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [srcKey, status])
-
-  useEffect(() => {
-    let alive = true
-    if (selected) {
-      void source(params)
-        .diff(selected)
-        .then((res) => {
-          if (alive) setDiff(res.ok ? res.data : null)
-        })
-    }
-    return () => {
-      alive = false
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [srcKey, selected, review])
+  const {
+    data: review,
+    error,
+    reload,
+  } = useAgentReview(params, {
+    refresh: status,
+    onData: (data) =>
+      setSelected((cur) =>
+        cur && data.files.some((f) => f.path === cur) ? cur : (data.files[0]?.path ?? null),
+      ),
+  })
+  const fileDiff = useAgentReviewDiff(params, selected, review)
+  // Diff com erro não aparece (como antes): só o da resposta boa mais recente.
+  const diff = fileDiff.error ? null : fileDiff.data
 
   return (
     <div className="flex h-full w-full flex-col overflow-hidden">
@@ -117,7 +57,7 @@ export function ReviewPanel({ api, params }: IDockviewPanelProps<ReviewParams>) 
         </span>
         <button
           type="button"
-          onClick={() => void load()}
+          onClick={reload}
           className="ml-auto flex items-center gap-1 hover:text-fg"
           aria-label={t('agentReview.refresh')}
         >

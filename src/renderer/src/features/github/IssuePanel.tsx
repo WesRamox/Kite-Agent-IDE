@@ -1,29 +1,11 @@
 import type { IDockviewPanelProps } from 'dockview-react'
-import type { IssueDetail } from '@shared/types'
 import { ExternalLink } from 'lucide-react'
-import { useEffect, useState } from 'react'
-import { useGitStore } from '../git/git.store'
 import { useT } from '../../lib/i18n'
+import { useIssueDetail } from './use-github-detail'
 
 export function IssuePanel({ params }: IDockviewPanelProps<{ number: number }>) {
-  const root = useGitStore((s) => s.root)
-  const [issue, setIssue] = useState<IssueDetail | null>(null)
-  const [error, setError] = useState<string | null>(null)
+  const { data: issue, error } = useIssueDetail(params.number)
   const t = useT()
-
-  useEffect(() => {
-    let alive = true
-    if (root) {
-      void window.api.github.getIssue(root, params.number).then((res) => {
-        if (!alive) return
-        if (res.ok) setIssue(res.data)
-        else setError(res.error.message)
-      })
-    }
-    return () => {
-      alive = false
-    }
-  }, [root, params.number])
 
   if (error) return <p className="p-6 text-danger">{error}</p>
   if (!issue)

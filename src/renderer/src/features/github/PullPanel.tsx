@@ -1,44 +1,16 @@
 import type { IDockviewPanelProps } from 'dockview-react'
-import type { PullDetail } from '@shared/types'
 import { ExternalLink, FolderGit2, RefreshCw } from 'lucide-react'
-import { useCallback, useEffect, useState } from 'react'
-import { useGitStore } from '../git/git.store'
+import { useState } from 'react'
 import { runState } from './checks'
 import { CheckIcon } from './CheckIcon'
 import { checkoutPull } from './github.actions'
 import { useT } from '../../lib/i18n'
+import { usePullDetail } from './use-github-detail'
 
 export function PullPanel({ params }: IDockviewPanelProps<{ number: number }>) {
-  const root = useGitStore((s) => s.root)
-  const [pr, setPr] = useState<PullDetail | null>(null)
-  const [error, setError] = useState<string | null>(null)
+  const { data: pr, error, reload } = usePullDetail(params.number)
   const [busy, setBusy] = useState(false)
   const t = useT()
-
-  const load = useCallback(async () => {
-    if (!root) return
-    const res = await window.api.github.getPR(root, params.number)
-    if (res.ok) {
-      setPr(res.data)
-      setError(null)
-    } else {
-      setError(res.error.message)
-    }
-  }, [root, params.number])
-
-  useEffect(() => {
-    let alive = true
-    if (root) {
-      void window.api.github.getPR(root, params.number).then((res) => {
-        if (!alive) return
-        if (res.ok) setPr(res.data)
-        else setError(res.error.message)
-      })
-    }
-    return () => {
-      alive = false
-    }
-  }, [root, params.number])
 
   if (error) return <p className="p-6 text-danger">{error}</p>
   if (!pr)
@@ -91,7 +63,7 @@ export function PullPanel({ params }: IDockviewPanelProps<{ number: number }>) {
             <button
               type="button"
               aria-label={t('github.refreshChecks')}
-              onClick={() => void load()}
+              onClick={reload}
               className="hover:text-fg"
             >
               <RefreshCw size={12} />

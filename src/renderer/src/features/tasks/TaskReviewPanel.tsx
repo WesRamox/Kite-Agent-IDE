@@ -1,16 +1,16 @@
 import { DiffEditor } from '@monaco-editor/react'
 import type { IDockviewPanelProps } from 'dockview-react'
-import type { GitChangeKind, GitDiff, ReviewFile, ReviewRepo, TaskReview } from '@shared/types'
-import { useEffect, useState } from 'react'
+import type { GitChangeKind, GitDiff, ReviewFile, ReviewRepo } from '@shared/types'
+import { useState } from 'react'
 import { CODE_FONT } from '../../lib/code-font'
 import { basename } from '../../lib/paths'
-import { useWorkspaceStore } from '../../stores/workspace.store'
 import { useAttentionItems } from '../agents/use-attention'
 import { detectLanguage } from '../../lib/language'
 import { monaco, useMonacoTheme } from '../editor/use-monaco'
 import { AskAgentDialog } from './AskAgentDialog'
 import { DeliverDialog } from './DeliverDialog'
 import { useDeliverRequest, type TaskReviewParams } from './review.actions'
+import { useTaskReview, useTaskReviewDiff } from './use-task-review'
 import { toast } from '../../stores/toast.store'
 import { useTasksStore } from './tasks.store'
 import { useSettingsStore } from '../../stores/settings.store'
@@ -47,7 +47,6 @@ interface Selected {
 type DialogState = { kind: 'deliver'; repos: string[]; openPRs: boolean } | { kind: 'ask' } | null
 
 export function TaskReviewPanel({ params }: IDockviewPanelProps<TaskReviewParams>) {
-  const root = useWorkspaceStore((s) => s.root)
   const task = useTasksStore((s) => s.workspace?.tasks.find((t) => t.id === params.taskId) ?? null)
   // Recarrega quando o status git de alguma worktree da tarefa muda (salvar, commitar...).
   const statusKey = useTasksStore((s) =>
@@ -61,51 +60,39 @@ export function TaskReviewPanel({ params }: IDockviewPanelProps<TaskReviewParams
   const waiting = useAttentionItems().some(
     (x) => x.wsTask?.id === params.taskId && x.group === 'waiting',
   )
-  const [review, setReview] = useState<TaskReview | null>(null)
-  const [error, setError] = useState<string | null>(null)
   const [selected, setSelected] = useState<Selected | null>(null)
   const [dialog, setDialog] = useState<DialogState>(null)
 
-  // Recarregar à mão (depois de commitar) incrementa o contador.
-  const [reloads, setReloads] = useState(0)
   const tr = useT()
-  const reload = () => setReloads((n) => n + 1)
 
   // Pedido de entrega (barra da tarefa): recarrega e abre o diálogo com o que dá para entregar.
   const deliverRequested = useDeliverRequest((s) => s.taskId === params.taskId)
 
-  useEffect(() => {
-    if (!root) return
-    let alive = true
-    void window.api.review.task(root, params.taskId, {}).then((res) => {
-      if (!alive) return
-      if (!res.ok) {
-        setError(res.error.message)
-        return
-      }
-      setError(null)
-      setReview(res.data)
+  const {
+    data: review,
+    error,
+    reload,
+  } = useTaskReview(params.taskId, {
+    refresh: `${statusKey}|${deliverRequested}`,
+    onData: (data) => {
       if (useDeliverRequest.getState().taskId === params.taskId) {
         useDeliverRequest.setState({ taskId: null })
-        const ready = res.data.repos.filter((r) => r.files.length > 0 || r.ahead > 0)
+        const ready = data.repos.filter((r) => r.files.length > 0 || r.ahead > 0)
         if (ready.length === 0) toast.info(t('review.nothingToDeliver'))
         else setDialog({ kind: 'deliver', repos: ready.map((r) => r.worktree), openPRs: true })
       }
       setSelected((cur) => {
         const still =
           cur &&
-          res.data.repos.some(
+          data.repos.some(
             (r) => r.worktree === cur.worktree && r.files.some((f) => f.rel === cur.rel),
           )
         if (still) return cur
-        const first = res.data.repos.find((r) => r.files.length > 0)
+        const first = data.repos.find((r) => r.files.length > 0)
         return first?.files[0] ? { worktree: first.worktree, rel: first.files[0].rel } : null
       })
-    })
-    return () => {
-      alive = false
-    }
-  }, [root, params.taskId, statusKey, reloads, deliverRequested])
+    },
+  })
 
   if (!task) return <p className="p-6 text-fg-muted">{tr('review.notFound')}</p>
   const repos = review?.repos ?? []
@@ -277,25 +264,15 @@ type DiffState =
 
 function FileDiff({ repo, rel, taskId }: { repo: ReviewRepo; rel: string; taskId: string }) {
   const fontSize = useSettingsStore((s) => s.settings.editorFontSize)
-  const root = useWorkspaceStore((s) => s.root)
   const monacoTheme = useMonacoTheme()
-  const [state, setState] = useState<DiffState>({ kind: 'loading' })
+  const diff = useTaskReviewDiff(taskId, repo, rel)
+  const state: DiffState = diff.error
+    ? { kind: 'error', message: diff.error }
+    : diff.data
+      ? { kind: 'ready', diff: diff.data }
+      : { kind: 'loading' }
   const [sideBySide, setSideBySide] = useState(false)
   const tr = useT()
-
-  useEffect(() => {
-    if (!root) return
-    let alive = true
-    void window.api.review.diff(root, taskId, repo.worktree, repo.base, rel).then((res) => {
-      if (!alive) return
-      setState(
-        res.ok ? { kind: 'ready', diff: res.data } : { kind: 'error', message: res.error.message },
-      )
-    })
-    return () => {
-      alive = false
-    }
-  }, [root, taskId, repo.worktree, repo.base, rel])
 
   const language = detectLanguage(basename(rel), monaco.languages.getLanguages())
   return (

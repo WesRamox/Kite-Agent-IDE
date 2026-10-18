@@ -1,7 +1,6 @@
 import { FONT_MAX, FONT_MIN } from '@shared/settings'
 import { THEMES } from '@shared/themes'
 import type { MessageKey } from '@shared/i18n'
-import type { AppInfo } from '@shared/types'
 import { Check, Minus, Plus } from 'lucide-react'
 import { useEffect, useRef, useState, type ReactNode } from 'react'
 import { useLayoutStore } from '../../stores/layout.store'
@@ -18,6 +17,7 @@ import { GroupingFieldset } from '../tasks/GroupingFieldset'
 import { useTasksStore } from '../tasks/tasks.store'
 import { closeModal } from '../../stores/modal.store'
 import { useT } from '../../lib/i18n'
+import { useAppInfo } from '../../lib/use-app-info'
 
 // Página de configurações: aparência, idioma, editor e terminal, agentes, tarefas, GitHub e sobre.
 // Mesmo visual das telas de configuração do canvas (Hooks.dc.html): cards em surface-1.
@@ -376,11 +376,8 @@ function GitHub() {
 }
 
 function About() {
-  const [info, setInfo] = useState<AppInfo | null>(null)
+  const info = useAppInfo()
   const t = useT()
-  useEffect(() => {
-    void window.api.app.getInfo().then((res) => res.ok && setInfo(res.data))
-  }, [])
   return (
     <Card>
       <Row

@@ -2,7 +2,8 @@ import type { AgentSession, AgentTask, Task, WaitReason } from '@shared/types'
 import { basename } from '../../lib/paths'
 import { CLI_LABEL } from '../../lib/agent-cli'
 import { tildePath } from '../../lib/session-format'
-import { t as tr } from '../../lib/i18n'
+import type { TFunction } from '@shared/i18n'
+import { t as currentT } from '../../lib/i18n'
 
 // Modelo da Central de atenção (Fase 7): junta as sessões vistas pelos hooks e os agentes
 // abertos pelo Kite numa lista só, agrupada pelo que pede do usuário.
@@ -36,12 +37,12 @@ export function shortKey(item: AttentionItem): string {
 }
 
 export function groupLabel(group: AttentionGroup): string {
-  return tr(`agents.group.${group}`)
+  return currentT(`agents.group.${group}`)
 }
 
 export const GROUP_ORDER: AttentionGroup[] = ['waiting', 'running', 'review', 'idle']
 
-function waitLabel(reason: WaitReason): string {
+function waitLabel(reason: WaitReason, tr: TFunction): string {
   return tr(`agents.session.${reason}`)
 }
 
@@ -87,6 +88,7 @@ function taskItem(
   task: AgentTask,
   session: AgentSession | undefined,
   f: ReviewFilter,
+  tr: TFunction,
 ): AttentionItem {
   const base = {
     id: `task:${task.id}`,
@@ -103,7 +105,7 @@ function taskItem(
     return {
       ...base,
       group: 'waiting',
-      meta: reason ? waitLabel(reason) : tr('agents.meta.waiting'),
+      meta: reason ? waitLabel(reason, tr) : tr('agents.meta.waiting'),
       waitReason: reason,
       since: session?.waitingSince ?? session?.lastEventAt ?? task.startedAt,
     }
@@ -126,7 +128,7 @@ function taskItem(
       since: task.endedAt ?? task.startedAt,
     }
   }
-  const meta = agentLabel(task)
+  const meta = agentLabel(task, tr)
   return {
     ...base,
     group: 'idle',
@@ -136,7 +138,12 @@ function taskItem(
   }
 }
 
-function sessionItem(s: AgentSession, now: number, f: ReviewFilter): AttentionItem | null {
+function sessionItem(
+  s: AgentSession,
+  now: number,
+  f: ReviewFilter,
+  tr: TFunction,
+): AttentionItem | null {
   const base = {
     id: `session:${s.id}`,
     key: basename(s.cwd) || tildePath(s.cwd),
@@ -151,7 +158,7 @@ function sessionItem(s: AgentSession, now: number, f: ReviewFilter): AttentionIt
     return {
       ...base,
       group: 'waiting',
-      meta: waitLabel(s.waitReason),
+      meta: waitLabel(s.waitReason, tr),
       waitReason: s.waitReason,
       since: s.waitingSince ?? s.lastEventAt,
     }
@@ -178,7 +185,7 @@ function sessionItem(s: AgentSession, now: number, f: ReviewFilter): AttentionIt
   return null
 }
 
-function agentLabel(a: AgentTask): string {
+function agentLabel(a: AgentTask, tr: TFunction): string {
   if (a.interrupted) return tr('agents.meta.interrupted')
   if (a.status === 'error') return tr('agents.meta.error', { code: a.exitCode })
   return tr('agents.meta.stopped')
@@ -192,6 +199,7 @@ function wsTaskItem(
   agents: AgentTask[],
   now: number,
   f: ReviewFilter,
+  tr: TFunction,
 ): AttentionItem {
   const repos = t.worktrees.map((w) => w.repoName).join(' · ')
   const agentOf = (s: AgentSession | undefined) =>
@@ -221,7 +229,7 @@ function wsTaskItem(
   if (waiting?.waitReason) {
     return item(
       'waiting',
-      waitLabel(waiting.waitReason),
+      waitLabel(waiting.waitReason, tr),
       waiting.waitingSince ?? waiting.lastEventAt,
       waiting,
       agentOf(waiting),
@@ -271,7 +279,7 @@ function wsTaskItem(
   if (lastAgent) {
     return item(
       'idle',
-      agentLabel(lastAgent),
+      agentLabel(lastAgent, tr),
       lastAgent.endedAt ?? lastAgent.startedAt,
       null,
       lastAgent,
@@ -287,6 +295,8 @@ export function attentionItems(
   wsTasks: Task[] = [],
   links: Map<string, string> = new Map(),
   f: ReviewFilter = NO_FILTER,
+  // Rótulos no idioma dado; o hook passa o do usuário para recalcular quando ele muda.
+  tr: TFunction = currentT,
 ): AttentionItem[] {
   const visible = new Set(wsTasks.map((t) => t.id))
   // Agentes abertos na pasta de uma tarefa (Fase 10) aparecem dentro do item dela.
@@ -301,7 +311,7 @@ export function attentionItems(
     if (!prev || s.lastEventAt > prev.lastEventAt) byTask.set(s.agentTaskId, s)
   }
   const known = new Set(standalone.map((t) => t.id))
-  const items = standalone.map((t) => taskItem(t, byTask.get(t.id), f))
+  const items = standalone.map((t) => taskItem(t, byTask.get(t.id), f, tr))
   // Sessões de agentes do Kite ficam no item do agente; as demais vão para a tarefa ligada.
   const free = sessions.filter((s) => !(s.agentTaskId && known.has(s.agentTaskId)))
   const linkedTo = new Map<string, AgentSession[]>()
@@ -313,12 +323,12 @@ export function attentionItems(
   }
   for (const t of wsTasks) {
     const agents = tasks.filter((a) => a.wsTaskId === t.id)
-    items.push(wsTaskItem(t, linkedTo.get(t.id) ?? [], agents, now, f))
+    items.push(wsTaskItem(t, linkedTo.get(t.id) ?? [], agents, now, f, tr))
   }
   for (const s of free) {
     const id = taskOf(s)
     if (id && visible.has(id)) continue
-    const item = sessionItem(s, now, f)
+    const item = sessionItem(s, now, f, tr)
     if (item) items.push(item)
   }
   return items
@@ -350,20 +360,20 @@ export function nextWaiting(items: AttentionItem[], current: string | null): Att
 // "há 6 min", "há 2 h", "agora".
 export function ago(ms: number): string {
   const min = Math.floor(ms / 60_000)
-  if (min < 1) return tr('agents.ago.now')
-  if (min < 60) return tr('agents.ago.min', { n: min })
+  if (min < 1) return currentT('agents.ago.now')
+  if (min < 60) return currentT('agents.ago.min', { n: min })
   const h = Math.floor(min / 60)
   return h < 24
-    ? tr('agents.ago.hours', { n: h })
-    : tr('agents.ago.days', { n: Math.floor(h / 24) })
+    ? currentT('agents.ago.hours', { n: h })
+    : currentT('agents.ago.days', { n: Math.floor(h / 24) })
 }
 
 // "2 min", "1 h 05 min".
 export function elapsed(ms: number): string {
   const min = Math.floor(ms / 60_000)
-  if (min < 1) return tr('agents.ago.now')
-  if (min < 60) return tr('agents.elapsed.min', { n: min })
-  return tr('agents.elapsed.hours', {
+  if (min < 1) return currentT('agents.ago.now')
+  if (min < 60) return currentT('agents.elapsed.min', { n: min })
+  return currentT('agents.elapsed.hours', {
     h: Math.floor(min / 60),
     min: String(min % 60).padStart(2, '0'),
   })
@@ -377,7 +387,8 @@ function rel(file: string, cwd: string): string {
 export function doing(item: AttentionItem): string {
   const s = item.session
   const act = s?.activity
-  if (!s || !act) return item.task && !s ? tr('agents.doing.terminal') : tr('agents.doing.thinking')
+  if (!s || !act)
+    return item.task && !s ? currentT('agents.doing.terminal') : currentT('agents.doing.thinking')
   const d = act.detail
   switch (act.tool) {
     case 'Edit':
@@ -385,33 +396,35 @@ export function doing(item: AttentionItem): string {
     case 'MultiEdit':
     case 'NotebookEdit':
       return d
-        ? tr('agents.doing.editing', { file: rel(d, s.cwd) })
-        : tr('agents.doing.editingFiles')
+        ? currentT('agents.doing.editing', { file: rel(d, s.cwd) })
+        : currentT('agents.doing.editingFiles')
     case 'Read':
       return d
-        ? tr('agents.doing.reading', { file: rel(d, s.cwd) })
-        : tr('agents.doing.readingFiles')
+        ? currentT('agents.doing.reading', { file: rel(d, s.cwd) })
+        : currentT('agents.doing.readingFiles')
     case 'Bash':
-      return d ? tr('agents.doing.running', { command: d }) : tr('agents.doing.runningCommand')
+      return d
+        ? currentT('agents.doing.running', { command: d })
+        : currentT('agents.doing.runningCommand')
     case 'Grep':
     case 'Glob':
-      return tr('agents.doing.searching')
+      return currentT('agents.doing.searching')
     case 'WebFetch':
     case 'WebSearch':
-      return tr('agents.doing.web')
+      return currentT('agents.doing.web')
     case 'Task':
     case 'Agent':
-      return tr('agents.doing.delegating')
+      return currentT('agents.doing.delegating')
     default:
-      return tr('agents.doing.using', { tool: act.tool })
+      return currentT('agents.doing.using', { tool: act.tool })
   }
 }
 
 export function chipLabel(item: AttentionItem): string {
-  if (item.waitReason === 'permission') return tr('agents.chip.permission')
-  if (item.waitReason === 'input') return tr('agents.chip.input')
-  if (item.waitReason === 'turn') return tr('agents.chip.turn')
-  return tr('agents.chip.waiting')
+  if (item.waitReason === 'permission') return currentT('agents.chip.permission')
+  if (item.waitReason === 'input') return currentT('agents.chip.input')
+  if (item.waitReason === 'turn') return currentT('agents.chip.turn')
+  return currentT('agents.chip.waiting')
 }
 
 function clock(ts: number): string {
@@ -422,7 +435,7 @@ function clock(ts: number): string {
 // "Claude Code · iniciado 10:42 em ~/projetos/loja" ou "… · rodando fora do Kite".
 export function origin(item: AttentionItem): string {
   if (item.task) {
-    return tr('agents.origin.started', {
+    return currentT('agents.origin.started', {
       who: item.task.presetName,
       time: clock(item.task.startedAt),
       where: tildePath(item.task.worktreePath),
@@ -431,10 +444,10 @@ export function origin(item: AttentionItem): string {
   const s = item.session
   if (!s) return ''
   return item.inKite
-    ? tr('agents.origin.started', {
+    ? currentT('agents.origin.started', {
         who: CLI_LABEL[s.cli],
         time: clock(s.startedAt),
         where: tildePath(s.cwd),
       })
-    : tr('agents.origin.outside', { who: CLI_LABEL[s.cli] })
+    : currentT('agents.origin.outside', { who: CLI_LABEL[s.cli] })
 }

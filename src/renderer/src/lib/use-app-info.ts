@@ -1,16 +1,6 @@
-import { useEffect, useState } from 'react'
 import type { AppInfo } from '@shared/types'
+import { useIpcQuery } from './use-ipc-query'
 
 export function useAppInfo(): AppInfo | null {
-  const [info, setInfo] = useState<AppInfo | null>(null)
-  useEffect(() => {
-    let alive = true
-    void window.api.app.getInfo().then((res) => {
-      if (alive && res.ok) setInfo(res.data)
-    })
-    return () => {
-      alive = false
-    }
-  }, [])
-  return info
+  return useIpcQuery(() => window.api.app.getInfo(), []).data
 }
