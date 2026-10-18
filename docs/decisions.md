@@ -640,3 +640,17 @@ Decisões fáceis de desfazer, não cobertas pelo `AGENTS.md`. Mais recente no f
   definição do produto, a arquitetura e os padrões de código, fonte única para qualquer agente.
   O `CLAUDE.md` só importa o `AGENTS.md` (`@AGENTS.md`) e acrescenta o que é específico do
   Claude Code. O histórico das fases continua neste arquivo e no git.
+
+## Refatoração R0: travas
+
+- **CI em push na `main` e em PR** (`.github/workflows/ci.yml`): formatação, lint, typecheck,
+  unidade com cobertura e auditoria; e2e num job separado em Linux, com `xvfb-run` e o sysctl
+  que libera user namespaces para o sandbox do Chromium no Ubuntu 24.04.
+- **Auditoria barra só `high`/`critical`.** As baixas aparecem no log sem travar o CI.
+- **Regras de camada no ESLint**: `electron`, `ipc/` e `app/` proibidos em `main/services` e
+  `main/lib`; Node, Electron e os outros processos proibidos em `shared`; Node e
+  `main`/`preload` proibidos no renderer; `no-console` no main fora do logger;
+  `exhaustive-deps` como erro. Nenhuma violação existente.
+- **Regra entre features adiada para o R4.** São 34 imports de arquivos internos entre features,
+  quase todos de helpers puros; o certo é movê-los para `components/`/`lib/` antes de travar.
+- **Cobertura só medida** (`pnpm test:coverage`, `@vitest/coverage-v8`), sem meta até o R5.

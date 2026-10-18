@@ -37,19 +37,20 @@ Os problemas reais:
 
 ### R0 — Travas (primeiro, porque protege todo o resto)
 
-- [ ] Workflow `ci.yml` em push/PR: `pnpm install --frozen-lockfile`, lint, typecheck, test.
+- [x] Workflow `ci.yml` em push/PR: `pnpm install --frozen-lockfile`, lint, typecheck, test.
       e2e num job separado em Linux com `xvfb-run`.
-- [ ] ESLint: `no-restricted-imports` impedindo `electron` em `main/services` e `main/lib`, e
+- [x] ESLint: `no-restricted-imports` impedindo `electron` em `main/services` e `main/lib`, e
       `main`/`preload` dentro do `renderer`.
-- [ ] ESLint: `react-hooks/exhaustive-deps` como `error`; `no-console` no main.
-- [ ] Cobertura no Vitest (`@vitest/coverage-v8`) só para medir a linha de base, sem meta ainda.
-- [ ] `pnpm audit --prod` no CI (informativo no começo).
+- [x] ESLint: `react-hooks/exhaustive-deps` como `error`; `no-console` no main.
+- [x] Cobertura no Vitest (`@vitest/coverage-v8`) só para medir a linha de base, sem meta ainda.
+- [x] `pnpm audit --prod` no CI, falhando só em severidade alta ou crítica.
 
 **Aceite:** um PR com lint quebrado fica vermelho. As regras novas podem entrar com a lista de
 violações atuais ignoradas por arquivo, removidas nas etapas seguintes.
 
 ### R1 — Segurança
 
+- [ ] `dompurify` (via Monaco) com 2 vulnerabilidades baixas: `pnpm.overrides` para `>=3.4.16`.
 - [ ] Allowlist de variáveis em `pty:create.env` (ou trocar por campos tipados). Teste com
       `LD_PRELOAD`, `NODE_OPTIONS`, `ELECTRON_RUN_AS_NODE`.
 - [ ] `registerHandler` recusa chamadas cujo `senderFrame.url` não seja o do bundle do renderer.
@@ -88,6 +89,10 @@ violações atuais ignoradas por arquivo, removidas nas etapas seguintes.
 
 ### R4 — Renderer
 
+- [ ] Helpers usados por várias features (`explorer/FileIcon`, `git/git-format`,
+      `editor/language`, `editor/monaco-setup`, `agents/session-format`, `tasks/task-links`…)
+      vão para `components/` ou `lib/`; depois, regra de lint que impede importar arquivos
+      internos de outra feature (34 imports em 2026-10-18).
 - [ ] Tirar `window.api` dos 10 componentes para `*.actions.ts`/`use-*.ts`.
 - [ ] Eliminar os 9 `eslint-disable exhaustive-deps` (`useEffectEvent`, refs, actions).
 - [ ] Quebrar `SettingsPanel` (uma seção por arquivo), `TaskReviewPanel` e `DiscoverPanel`.
@@ -97,6 +102,9 @@ violações atuais ignoradas por arquivo, removidas nas etapas seguintes.
 `eslint-disable` de hooks.
 
 ### R5 — Testes
+
+Linha de base de cobertura de linhas (R0, 2026-10-18): total 36,6%; `main/services` 91,5%,
+`main/lib` 93,1%, `main/ipc` 9,1%, `main/index.ts` 0%, renderer 9,3%.
 
 - [ ] Testes de stores e actions do renderer (attention, tasks, editor, terminal), com
       `window.api` falso.
