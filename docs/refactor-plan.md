@@ -130,8 +130,23 @@ Linha de base de cobertura de linhas (R0, 2026-10-18): total 36,6%; `main/servic
 ### R6 — Documentação
 
 - [x] `AGENTS.md` reescrito como definição do projeto e padrões; `CLAUDE.md` importa ele.
-- [ ] `CONTRIBUTING.md` e `README` refletem a estrutura nova (`main/app/`, `shared/types/`).
-- [ ] Decisões do caminho registradas em `docs/decisions.md`.
+- [x] `CONTRIBUTING.md` e `README` refletem a estrutura nova (`main/app/`, `shared/types/`).
+- [x] Decisões do caminho registradas em `docs/decisions.md` (uma seção por etapa).
+
+## Estado (2026-10-18)
+
+R0 a R6 feitos, um PR por etapa, empilhados: #1 (R0) ← #2 (R1) ← #3 (R2) ← #4 (R3) ← #5 (R4)
+← #6 (R5) ← #7 (R6). O merge vai na ordem; ao fechar um, o GitHub muda a base do seguinte para
+`main`.
+
+Em aberto (itens desmarcados acima):
+
+- **macOS:** reabrir a janela pelo Dock não reinicia os serviços (bug anterior; precisa de teste
+  em macOS).
+- **Fachada do `GitService`:** migrar os chamadores para o `GitReviewService` (opcional).
+- **Cobertura do renderer:** subir a meta conforme os painéis ganharem testes.
+- **Verificar em Windows/macOS:** checagem de origem do IPC (`file:///C:/…`, espaços no caminho),
+  fuses no `.app`, e avaliar `GrantFileProtocolExtraPrivileges` e a integridade do asar.
 
 ## Ordem e paralelismo
 

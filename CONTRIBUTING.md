@@ -54,11 +54,16 @@ src/
     index.ts    bootstrap only
     app/        composition root: services container, window, notifications, IPC registration
     services/   one class per domain, with injected dependencies (testable without Electron)
+    lib/        pure functions and utilities (git parsing, task grouping, path guard, logger)
     ipc/        one handler file per domain, arguments validated with zod
     hook/       kite-hook, the script the agent CLIs call
   preload/    exposes window.api (named functions only)
-  shared/     the IPC contract and shared types
-  renderer/   React UI, organized by feature (features/<name>)
+  shared/     the IPC contract, shared types (types/, one file per domain), i18n and themes
+  renderer/   React UI
+    features/<name>/  components, use-*.ts hooks, *.actions.ts, *.store.ts of each area
+    lib/              shared helpers (useIpcQuery, formatting, panel ids…)
+    components/       generic UI
+    test/             test helpers (installApi: a fake window.api)
 e2e/        end-to-end tests (Playwright driving Electron)
 docs/       decisions log, guide and README images
 ```
@@ -95,13 +100,17 @@ or a parameter mismatch.
 - TypeScript strict, no `any`: use `unknown` and validate it.
 - Main-process services are classes with injected dependencies. Every new service function gets a
   unit test.
-- Keep React components small; put logic in hooks and stores.
+- Keep React components small; put logic in hooks and stores. Components never call `window.api`:
+  data goes through a `use-*.ts` hook built on `useIpcQuery`, actions through `*.actions.ts`.
+- Features only import each other's components, actions, stores, hooks and types (enforced by
+  ESLint); shared helpers go in `lib/`.
 - Errors reach the renderer as `{ ok: false, error: { code, message } }` and are shown as toasts.
 - Never log file contents, tokens or agent messages.
 - File operations only inside the folders the user opened.
 - [Conventional Commits](https://www.conventionalcommits.org/) (`feat:`, `fix:`, `docs:`…).
 - Before opening a PR, run `pnpm lint`, `pnpm typecheck` and `pnpm test`, plus the e2e tests if you
-  changed the UI.
+  changed the UI. CI runs all of them on every PR, including coverage thresholds
+  (`pnpm test:coverage`).
 
 The project definition and coding standards (in Portuguese) are in [`AGENTS.md`](AGENTS.md). Decisions not
 covered there are recorded in [`docs/decisions.md`](docs/decisions.md). New screens follow the
