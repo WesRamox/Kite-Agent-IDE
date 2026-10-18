@@ -71,15 +71,18 @@ describe('PtyService', () => {
     service.create({ cwd: path.join(dir, 'ws', 'src'), cols: 80, rows: 24, ...extra })
 
   it('cria o pty com o shell padrão, cwd e env limpo', async () => {
-    const { id, pid } = await create({ env: { FOO: '1' } })
+    const { id, pid } = await create({ env: { FOO: '1', LD_PRELOAD: '/tmp/x.so' } })
     expect(id).toMatch(/^[0-9a-f-]{36}$/)
     expect(pid).toBe(4242)
     const [file, args, opts] = spawn.mock.calls[0] ?? []
     expect(file).toBe('/bin/bash')
     expect(args).toEqual([])
     expect(opts).toMatchObject({ cols: 80, rows: 24, cwd: path.join(dir, 'ws', 'src') })
-    expect(opts?.env).toMatchObject({ PATH: '/bin', FOO: '1', TERM: 'xterm-256color' })
+    expect(opts?.env).toMatchObject({ PATH: '/bin', TERM: 'xterm-256color' })
     expect(opts?.env).not.toHaveProperty('ELECTRON_RENDERER_URL')
+    // Variáveis vindas do renderer nunca chegam ao processo.
+    expect(opts?.env).not.toHaveProperty('FOO')
+    expect(opts?.env).not.toHaveProperty('LD_PRELOAD')
   })
 
   it('recusa cwd fora do workspace', async () => {

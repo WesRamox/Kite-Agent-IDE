@@ -78,7 +78,6 @@ export class PtyService {
       args: shell.args,
       cols: options.cols,
       rows: options.rows,
-      env: options.env,
     })
   }
 

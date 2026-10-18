@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import { z } from 'zod'
 import { AppException } from '../lib/errors'
+import { setLanguage } from '../lib/i18n'
 import { createLogger } from '../lib/logger'
 import { createHandler } from './handle'
 
@@ -55,5 +56,26 @@ describe('createHandler', () => {
       ok: false,
       error: { code: 'INTERNAL', message: 'Erro interno' },
     })
+  })
+  it('traduz erros do sistema no idioma atual, não no do carregamento', async () => {
+    const h = createHandler(
+      'app:getInfo',
+      z.tuple([]),
+      () => {
+        throw Object.assign(new Error('EACCES'), { code: 'EACCES' })
+      },
+      silent,
+    )
+    try {
+      setLanguage('en')
+      await expect(h([])).resolves.toEqual({
+        ok: false,
+        error: { code: 'PERMISSION_DENIED', message: 'Permission denied' },
+      })
+      setLanguage('pt-BR')
+      await expect(h([])).resolves.toMatchObject({ error: { message: 'Sem permissão' } })
+    } finally {
+      setLanguage('pt-BR')
+    }
   })
 })

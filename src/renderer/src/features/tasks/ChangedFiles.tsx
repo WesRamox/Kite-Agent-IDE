@@ -1,49 +1,23 @@
 import type { DirEntry, Task, TaskChangesRepo } from '@shared/types'
 import { ChevronRight } from 'lucide-react'
-import { useEffect, useMemo, useState } from 'react'
+import { useMemo, useState } from 'react'
 import { join } from '../../lib/paths'
-import { useWorkspaceStore } from '../../stores/workspace.store'
 import { openFile } from '../editor/editor.actions'
 import { useEditorStore } from '../editor/editor.store'
-import { FileIcon } from '../explorer/FileIcon'
-import { KIND_COLOR, kindLabel, KIND_LETTER } from '../git/git-format'
+import { FileIcon } from '../../components/FileIcon'
+import { KIND_COLOR, kindLabel, KIND_LETTER } from '../../lib/git-format'
 import { groupChanges } from './changed-files'
 import { openTaskReview } from './review.actions'
-import { useTasksStore } from './tasks.store'
+import { useTaskChanges } from './use-task-changes'
 import { useT } from '../../lib/i18n'
 
 // Explorer da tarefa em "Alterados": por worktree, só os arquivos que mudaram contra a branch
 // base (commitados na branch ou não), agrupados por pasta.
 
-const REFRESH_MS = 300
-
 const ROW = 'flex h-[26px] shrink-0 items-center gap-1.5 rounded-[5px] pr-2.5'
 
 function fullPath(worktree: string, rel: string): string {
   return rel.split('/').reduce(join, worktree)
-}
-
-// Recarrega quando o status git de alguma worktree da tarefa muda (o watcher do .git dispara).
-function useTaskChanges(task: Task): TaskChangesRepo[] | null {
-  const root = useWorkspaceStore((s) => s.root)
-  const status = useTasksStore((s) => s.status)
-  const [changes, setChanges] = useState<{ taskId: string; repos: TaskChangesRepo[] } | null>(null)
-  const signal = task.worktrees.map((w) => status[w.path])
-  useEffect(() => {
-    if (!root) return
-    let alive = true
-    const timer = setTimeout(() => {
-      void window.api.review.changes(root, task.id).then((res) => {
-        if (alive && res.ok) setChanges({ taskId: task.id, repos: res.data })
-      })
-    }, REFRESH_MS)
-    return () => {
-      alive = false
-      clearTimeout(timer)
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [root, task.id, ...signal])
-  return changes?.taskId === task.id ? changes.repos : null
 }
 
 export function ChangedFiles({

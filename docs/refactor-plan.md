@@ -50,73 +50,103 @@ violações atuais ignoradas por arquivo, removidas nas etapas seguintes.
 
 ### R1 — Segurança
 
-- [ ] `dompurify` (via Monaco) com 2 vulnerabilidades baixas: `pnpm.overrides` para `>=3.4.16`.
-- [ ] Allowlist de variáveis em `pty:create.env` (ou trocar por campos tipados). Teste com
+- [x] `dompurify` (via Monaco): não se aplica (Monaco embute a própria cópia e ninguém usa
+      `IN_PLACE`); rever ao atualizar o Monaco.
+- [x] `pty:create` sem `env`: o campo saiu do contrato (nenhuma tela usava). Teste com
       `LD_PRELOAD`, `NODE_OPTIONS`, `ELECTRON_RUN_AS_NODE`.
-- [ ] `registerHandler` recusa chamadas cujo `senderFrame.url` não seja o do bundle do renderer.
-- [ ] `lib/git-refs.ts` com uma única `assertBranchName`; os três serviços passam a usá-la.
+- [x] `registerHandler` recusa chamadas cujo `senderFrame.url` não seja o do bundle do renderer.
+- [x] `lib/git-refs.ts` com uma única `assertBranchName`; os três serviços passam a usá-la.
       Teste com nomes começando em `-`, `..`, espaços, `@{`.
-- [ ] Revisar os outros canais que recebem string livre (`agent:savePresets`, `task:*`,
+- [x] Revisar os outros canais que recebem string livre (`agent:savePresets`, `task:*`,
       `github:*`): limites zod e o que cada um permite executar. Registrar o modelo de ameaça
       dos presets (comando do usuário roda no shell de propósito) em `decisions.md`.
-- [ ] Fuses do Electron no empacotamento (`@electron/fuses`): desligar o que não é usado.
+- [x] Fuses do Electron no empacotamento (`@electron/fuses`): desligar o que não é usado.
       `RunAsNode` precisa continuar ligado por causa do `kite-hook`; documentar.
-- [ ] `EACCES` no i18n.
+- [x] `EACCES` no i18n (e erros do sistema traduzidos no idioma atual).
 
 **Aceite:** testes novos com entradas maliciosas passando; e2e verde.
 
 ### R2 — Composição do main
 
-- [ ] `main/app/window.ts` (criação e eventos da janela).
-- [ ] `main/app/notifications.ts` (`notifyAgent`, `notifySession`).
-- [ ] `main/app/hook-bundle.ts`.
-- [ ] `main/app/container.ts` (`createServices`) e `main/app/lifecycle.ts` (dispose no fechamento:
+- [x] `main/app/main-window.ts` (criação e eventos da janela), `native-theme.ts`, `profile.ts`,
+      `register-ipc.ts`.
+- [x] `main/app/notifications.ts` (`notifyAgent`, `notifySession`).
+- [x] `main/app/hook-bundle.ts`.
+- [x] `main/app/container.ts` (`createServices`) e `main/app/lifecycle.ts` (dispose no fechamento:
       um único `disposeAll()` em vez da lista no `closed`).
-- [ ] `main/index.ts` fica só com bootstrap (< 80 linhas).
+- [x] `main/index.ts` fica só com bootstrap (< 80 linhas).
+
+- [ ] **macOS:** ao fechar a janela e reabrir pelo Dock, os serviços encerrados no `closed`
+      (watchers, spool de agentes, ticker) não são reiniciados. Bug anterior à refatoração;
+      corrigir com teste em macOS.
 
 **Aceite:** `index.ts` só orquestra; e2e de fechar/reabrir (`phase2`, `recovery`) verdes.
 
 ### R3 — Serviços e tipos
 
-- [ ] Dividir `git.service.ts` por responsabilidade (status/diff, branch, worktree, base),
-      mantendo `GitService` como fachada para não mexer nos chamadores.
-- [ ] Dividir `task.service.ts` (descoberta, ajustes manuais, watch) e `agent.service.ts`
-      (presets, ciclo de vida, status).
-- [ ] `shared/types.ts` → `shared/types/<dominio>.ts` com um `index.ts` que reexporta.
-- [ ] Trocar os `.catch(() => …)` silenciosos por log ou comentário justificando.
+- [x] Dividir `git.service.ts`: revisão contra a base em `GitReviewService` (fachada no
+      `GitService`), execução em `lib/git-exec.ts`. 591 → 361 linhas.
+- [x] `task.service.ts`: ajustes em `lib/task-config.ts` (funções puras), worktrees em
+      `lib/task-worktrees.ts` (569 → 386). `agent.service.ts`: presets e restauração em
+      `lib/agent-state.ts` (422 → 394).
+- [x] `shared/types.ts` → `shared/types/<dominio>.ts` com um `index.ts` que reexporta.
+- [x] `.catch` silenciosos revisados: sondagens ficam; ações de melhor esforço ganharam
+      comentário; a busca de PR na revisão passou a logar. Regra refinada no `AGENTS.md`.
+
+- [ ] Migrar os chamadores dos métodos de revisão para depender do `GitReviewService` direto e
+      tirar a fachada (opcional; mexe em deps e testes de 3 serviços).
 
 **Aceite:** nenhum arquivo de serviço acima de 400 linhas; testes existentes intactos.
 
 ### R4 — Renderer
 
-- [ ] Helpers usados por várias features (`explorer/FileIcon`, `git/git-format`,
+- [x] Helpers usados por várias features (`explorer/FileIcon`, `git/git-format`,
       `editor/language`, `editor/monaco-setup`, `agents/session-format`, `tasks/task-links`…)
       vão para `components/` ou `lib/`; depois, regra de lint que impede importar arquivos
       internos de outra feature (34 imports em 2026-10-18).
-- [ ] Tirar `window.api` dos 10 componentes para `*.actions.ts`/`use-*.ts`.
-- [ ] Eliminar os 9 `eslint-disable exhaustive-deps` (`useEffectEvent`, refs, actions).
-- [ ] Quebrar `SettingsPanel` (uma seção por arquivo), `TaskReviewPanel` e `DiscoverPanel`.
-- [ ] Padronizar onde ficam os stores (globais em `stores/`, de feature na feature).
+- [x] Tirar `window.api` dos 10 componentes para `*.actions.ts`/`use-*.ts`.
+- [x] Eliminar os 9 `eslint-disable exhaustive-deps` (`useEffectEvent`, refs, actions).
+- [x] Quebrar `SettingsPanel` (uma seção por arquivo), `TaskReviewPanel` e `DiscoverPanel`.
+- [x] Padronizar onde ficam os stores (globais em `stores/`, de feature na feature).
 
-**Aceite:** `grep window.api` em `.tsx` vazio (exceto `ErrorBoundary`, se justificado); lint sem
-`eslint-disable` de hooks.
+**Aceite:** `grep window.api` em `.tsx` vazio; lint sem `eslint-disable` de hooks (exceto dentro
+do `useIpcQuery`, justificado).
 
 ### R5 — Testes
 
 Linha de base de cobertura de linhas (R0, 2026-10-18): total 36,6%; `main/services` 91,5%,
 `main/lib` 93,1%, `main/ipc` 9,1%, `main/index.ts` 0%, renderer 9,3%.
 
-- [ ] Testes de stores e actions do renderer (attention, tasks, editor, terminal), com
+- [x] Testes de stores e actions do renderer (attention, tasks, editor, terminal), com
       `window.api` falso.
-- [ ] Teste de contrato: todo canal de `InvokeChannels` tem handler registrado e função no
+- [x] Teste de contrato: todo canal de `InvokeChannels` tem handler registrado e função no
       preload.
-- [ ] Definir meta de cobertura a partir da linha de base do R0 (ex.: main ≥ 80%, lib ≥ 90%).
+- [x] Metas de cobertura (linhas): `main/services` e `main/lib` ≥ 90%, renderer ≥ 15%; branches
+      ≥ 70% (services) e 80% (lib). Cola com o Electron fora da medição (coberta pelo e2e).
+      Depois do R5: total 43,4%, renderer 16,8% (era 9,3%).
+- [ ] Subir a meta do renderer conforme novas features trouxerem testes (painéis do Git, tarefas,
+      terminais).
 
 ### R6 — Documentação
 
 - [x] `AGENTS.md` reescrito como definição do projeto e padrões; `CLAUDE.md` importa ele.
-- [ ] `CONTRIBUTING.md` e `README` refletem a estrutura nova (`main/app/`, `shared/types/`).
-- [ ] Decisões do caminho registradas em `docs/decisions.md`.
+- [x] `CONTRIBUTING.md` e `README` refletem a estrutura nova (`main/app/`, `shared/types/`).
+- [x] Decisões do caminho registradas em `docs/decisions.md` (uma seção por etapa).
+
+## Estado (2026-10-18)
+
+R0 a R6 feitos, um PR por etapa, empilhados: #1 (R0) ← #2 (R1) ← #3 (R2) ← #4 (R3) ← #5 (R4)
+← #6 (R5) ← #7 (R6). O merge vai na ordem; ao fechar um, o GitHub muda a base do seguinte para
+`main`.
+
+Em aberto (itens desmarcados acima):
+
+- **macOS:** reabrir a janela pelo Dock não reinicia os serviços (bug anterior; precisa de teste
+  em macOS).
+- **Fachada do `GitService`:** migrar os chamadores para o `GitReviewService` (opcional).
+- **Cobertura do renderer:** subir a meta conforme os painéis ganharem testes.
+- **Verificar em Windows/macOS:** checagem de origem do IPC (`file:///C:/…`, espaços no caminho),
+  fuses no `.app`, e avaliar `GrantFileProtocolExtraPrivileges` e a integridade do asar.
 
 ## Ordem e paralelismo
 

@@ -12,6 +12,7 @@ import type {
   StartAgentInput,
 } from '@shared/types'
 import { agentCommandLine, agentProcess, taskSlug } from '../lib/agent-command'
+import { DEFAULT_PRESETS, mergePresets, restoreAgentState } from '../lib/agent-state'
 import { StatusDetector } from '../lib/agent-status'
 import { AppException } from '../lib/errors'
 import type { JsonStore } from '../lib/json-store'
@@ -20,13 +21,7 @@ import type { GitService } from './git.service'
 import type { PtyService } from './pty.service'
 import { t } from '../lib/i18n'
 
-export const DEFAULT_PRESETS: AgentPreset[] = [
-  { id: 'claude', name: 'Claude Code', command: 'claude', promptMode: 'arg', promptFlag: '' },
-  { id: 'codex', name: 'Codex', command: 'codex', promptMode: 'arg', promptFlag: '' },
-  { id: 'gemini', name: 'Gemini CLI', command: 'gemini', promptMode: 'arg', promptFlag: '-i' },
-  { id: 'opencode', name: 'OpenCode', command: 'opencode', promptMode: 'type', promptFlag: '' },
-  { id: 'custom', name: 'Comando customizado', command: '', promptMode: 'type', promptFlag: '' },
-]
+export { DEFAULT_PRESETS } from '../lib/agent-state'
 
 export interface AgentState {
   presets: AgentPreset[]
@@ -73,21 +68,7 @@ export class AgentService {
   // Carrega o estado salvo. Agentes que estavam rodando quando o app fechou ficam marcados
   // como interrompidos (o processo não sobrevive ao app).
   async init(): Promise<void> {
-    const saved = await this.deps.store.read()
-    this.state = {
-      presets: mergePresets(saved.presets),
-      tasks: saved.tasks.map((t) =>
-        t.alive
-          ? {
-              ...t,
-              alive: false,
-              interrupted: true,
-              status: 'error',
-              endedAt: t.endedAt ?? this.now(),
-            }
-          : t,
-      ),
-    }
+    this.state = restoreAgentState(await this.deps.store.read(), this.now())
     await this.persist()
   }
 
@@ -410,13 +391,4 @@ export class AgentService {
     this.saveTimer = null
     await this.deps.store.write(this.state)
   }
-}
-
-// Presets padrão sempre presentes (com o que o usuário editou por cima); extras do usuário
-// são mantidos.
-function mergePresets(saved: AgentPreset[]): AgentPreset[] {
-  const byId = new Map(saved.map((p) => [p.id, p]))
-  const merged = DEFAULT_PRESETS.map((d) => ({ ...d, ...byId.get(d.id), id: d.id }))
-  const extras = saved.filter((p) => !DEFAULT_PRESETS.some((d) => d.id === p.id))
-  return [...merged, ...extras]
 }

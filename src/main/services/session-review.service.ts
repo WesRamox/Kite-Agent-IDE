@@ -59,6 +59,7 @@ export class SessionReviewService {
     for (const id of ids) {
       const s = this.deps.session(id)
       if (!s) continue
+      // Contagem para o selo da Central: repositório inacessível conta como nada pendente.
       counts[id] = (await this.pending(s).catch(() => [])).length
     }
     return counts

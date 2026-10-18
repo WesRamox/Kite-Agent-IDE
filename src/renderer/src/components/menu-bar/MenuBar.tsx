@@ -1,5 +1,5 @@
 import { Check, ChevronRight } from 'lucide-react'
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { useEffect, useEffectEvent, useMemo, useRef, useState } from 'react'
 import { useActiveTask } from '../../features/tasks/tasks.store'
 import { basename } from '../../lib/paths'
 import { useWorkspaceStore } from '../../stores/workspace.store'
@@ -98,12 +98,15 @@ export function MenuBar() {
   const root = useWorkspaceStore((s) => s.root)
   const task = useActiveTask()
   const t = useT()
-  // Os itens leem o estado na hora de abrir (habilitados, recentes, tema); os rótulos seguem o
-  // idioma, que pode chegar do main depois da primeira renderização.
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  const menus: MenuDef[] = useMemo(() => buildMenus(), [t, open])
+  // Fechado, a barra mostra os rótulos no idioma atual (que pode chegar do main depois da
+  // primeira renderização). Ao abrir, os itens são montados de novo com o estado do momento
+  // (habilitados, recentes, tema).
+  const labels = useMemo(() => buildMenus(t), [t])
+  const [opened, setOpened] = useState<MenuDef[] | null>(null)
+  const menus: MenuDef[] = open !== null && opened ? opened : labels
 
   const show = (index: number | null) => {
+    setOpened(index === null ? null : buildMenus(t))
     setOpen(index)
     setActive(-1)
     setSub(null)
@@ -123,59 +126,66 @@ export function MenuBar() {
     setSub(entry?.kind === 'sub' ? { index, active: -1 } : null)
   }
 
-  useEffect(() => {
+  // Handlers sempre com o estado atual; o efeito só liga e desliga os listeners.
+  const onDown = useEffectEvent((e: MouseEvent) => {
+    if (!ref.current?.contains(e.target as Node)) close()
+  })
+  const onBlur = useEffectEvent(() => close())
+  const onKey = useEffectEvent((e: KeyboardEvent) => {
     if (open === null) return
-    const onDown = (e: MouseEvent) => {
-      if (!ref.current?.contains(e.target as Node)) close()
-    }
-    const onKey = (e: KeyboardEvent) => {
-      const items = enabled(menus[open]?.items ?? [])
-      const subItems =
-        sub && items[sub.index]?.kind === 'sub'
-          ? enabled((items[sub.index] as Extract<MenuEntry, { kind: 'sub' }>).items)
-          : null
-      let handled = true
-      if (e.key === 'Escape') {
-        if (sub && sub.active >= 0) setSub(null)
-        else close()
-      } else if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
-        const step = e.key === 'ArrowDown' ? 1 : -1
-        if (subItems && sub && sub.active >= 0) {
-          setSub({ ...sub, active: (sub.active + step + subItems.length) % subItems.length })
-        } else if (items.length > 0) {
-          setActive((a) =>
-            a < 0 && step < 0 ? items.length - 1 : (a + step + items.length) % items.length,
-          )
-          setSub(null)
-        }
-      } else if (e.key === 'ArrowRight') {
-        const entry = items[active]
-        if (entry?.kind === 'sub' && (!sub || sub.active < 0) && !entry.disabled) {
-          setSub({ index: active, active: 0 })
-        } else show((open + 1) % menus.length)
-      } else if (e.key === 'ArrowLeft') {
-        if (sub && sub.active >= 0) setSub({ ...sub, active: -1 })
-        else show((open - 1 + menus.length) % menus.length)
-      } else if (e.key === 'Enter' || e.key === ' ') {
-        const target = subItems && sub && sub.active >= 0 ? subItems[sub.active] : items[active]
-        if (target?.kind === 'sub') setSub({ index: active, active: 0 })
-        else if (target) run(target)
-      } else handled = false
-      if (handled) {
-        e.preventDefault()
-        e.stopPropagation()
+    const items = enabled(menus[open]?.items ?? [])
+    const subItems =
+      sub && items[sub.index]?.kind === 'sub'
+        ? enabled((items[sub.index] as Extract<MenuEntry, { kind: 'sub' }>).items)
+        : null
+    let handled = true
+    if (e.key === 'Escape') {
+      if (sub && sub.active >= 0) setSub(null)
+      else close()
+    } else if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
+      const step = e.key === 'ArrowDown' ? 1 : -1
+      if (subItems && sub && sub.active >= 0) {
+        setSub({ ...sub, active: (sub.active + step + subItems.length) % subItems.length })
+      } else if (items.length > 0) {
+        setActive((a) =>
+          a < 0 && step < 0 ? items.length - 1 : (a + step + items.length) % items.length,
+        )
+        setSub(null)
       }
+    } else if (e.key === 'ArrowRight') {
+      const entry = items[active]
+      if (entry?.kind === 'sub' && (!sub || sub.active < 0) && !entry.disabled) {
+        setSub({ index: active, active: 0 })
+      } else show((open + 1) % menus.length)
+    } else if (e.key === 'ArrowLeft') {
+      if (sub && sub.active >= 0) setSub({ ...sub, active: -1 })
+      else show((open - 1 + menus.length) % menus.length)
+    } else if (e.key === 'Enter' || e.key === ' ') {
+      const target = subItems && sub && sub.active >= 0 ? subItems[sub.active] : items[active]
+      if (target?.kind === 'sub') setSub({ index: active, active: 0 })
+      else if (target) run(target)
+    } else handled = false
+    if (handled) {
+      e.preventDefault()
+      e.stopPropagation()
     }
-    window.addEventListener('mousedown', onDown, true)
-    window.addEventListener('keydown', onKey, true)
-    window.addEventListener('blur', close)
+  })
+
+  const isOpen = open !== null
+  useEffect(() => {
+    if (!isOpen) return
+    const down = (e: MouseEvent) => onDown(e)
+    const key = (e: KeyboardEvent) => onKey(e)
+    const blur = () => onBlur()
+    window.addEventListener('mousedown', down, true)
+    window.addEventListener('keydown', key, true)
+    window.addEventListener('blur', blur)
     return () => {
-      window.removeEventListener('mousedown', onDown, true)
-      window.removeEventListener('keydown', onKey, true)
-      window.removeEventListener('blur', close)
+      window.removeEventListener('mousedown', down, true)
+      window.removeEventListener('keydown', key, true)
+      window.removeEventListener('blur', blur)
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [open, active, sub, menus])
+  }, [isOpen])
 
   const title = [root ? basename(root) : null, task?.name].filter(Boolean).join(' — ')
 

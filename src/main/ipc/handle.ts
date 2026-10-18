@@ -5,17 +5,18 @@ import { AppException } from '../lib/errors'
 import type { Logger } from '../lib/logger'
 import { t } from '../lib/i18n'
 
-const ERRNO_TO_ERROR: Record<string, AppError> = {
-  ENOENT: { code: 'NOT_FOUND', message: t('error.notFound') },
-  EEXIST: { code: 'ALREADY_EXISTS', message: t('error.alreadyExists') },
-  ENOTEMPTY: { code: 'ALREADY_EXISTS', message: t('error.destNotEmpty') },
-  EACCES: { code: 'PERMISSION_DENIED', message: 'Sem permissão' },
-  EPERM: { code: 'PERMISSION_DENIED', message: t('error.notPermitted') },
+// Traduzido na hora do erro, não no carregamento do módulo: o idioma pode mudar em uso.
+const ERRNO_TO_ERROR: Record<string, () => AppError> = {
+  ENOENT: () => ({ code: 'NOT_FOUND', message: t('error.notFound') }),
+  EEXIST: () => ({ code: 'ALREADY_EXISTS', message: t('error.alreadyExists') }),
+  ENOTEMPTY: () => ({ code: 'ALREADY_EXISTS', message: t('error.destNotEmpty') }),
+  EACCES: () => ({ code: 'PERMISSION_DENIED', message: t('error.permissionDenied') }),
+  EPERM: () => ({ code: 'PERMISSION_DENIED', message: t('error.notPermitted') }),
 }
 
 function errnoError(err: unknown): AppError | undefined {
   const code = (err as { code?: unknown } | null)?.code
-  return typeof code === 'string' ? ERRNO_TO_ERROR[code] : undefined
+  return typeof code === 'string' ? ERRNO_TO_ERROR[code]?.() : undefined
 }
 
 function fail(code: ErrorCode, message: string): { ok: false; error: AppError } {

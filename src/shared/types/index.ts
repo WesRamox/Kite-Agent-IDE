@@ -1,0 +1,9 @@
+// Tipos de domínio compartilhados entre main, preload e renderer, um arquivo por domínio.
+export type * from './common'
+export type * from './app'
+export type * from './fs'
+export type * from './terminal'
+export type * from './git'
+export type * from './github'
+export type * from './agents'
+export type * from './tasks'

@@ -16,9 +16,10 @@ import { VIEWS } from '../../lib/views'
 import { useLayoutStore } from '../../stores/layout.store'
 import { useThemeStore } from '../../stores/theme.store'
 import { useWorkspaceStore } from '../../stores/workspace.store'
-import { tildePath } from '../../features/agents/session-format'
+import { tildePath } from '../../lib/session-format'
 import { openSettings } from '../../features/settings/settings.actions'
-import { t } from '../../lib/i18n'
+import type { TFunction } from '@shared/i18n'
+import { t as currentT } from '../../lib/i18n'
 
 // Menus da barra superior: só ações do Kite (pastas, tarefas, agentes, terminais e visual).
 // Os atalhos mostrados são os que o app já trata (use-keybindings.ts).
@@ -68,17 +69,18 @@ async function showAbout(): Promise<void> {
   const { name, version, versions } = res.data
   await window.api.dialog.confirm({
     message: `${name} ${version}`,
-    detail: t('menu.aboutDetail', {
+    detail: currentT('menu.aboutDetail', {
       electron: versions.electron,
       chrome: versions.chrome,
       node: versions.node,
     }),
-    buttons: [t('menu.ok')],
+    buttons: [currentT('menu.ok')],
   })
 }
 
 // Lê o estado na hora de abrir o menu: itens habilitados, recentes, tema atual, tarefa aberta.
-export function buildMenus(): MenuDef[] {
+// Lê o estado na hora (habilitados, recentes, tema): chame ao abrir o menu.
+export function buildMenus(t: TFunction = currentT): MenuDef[] {
   const root = useWorkspaceStore.getState().root
   const recent = useWorkspaceStore.getState().recent.filter((p) => p !== root)
   const layout = useLayoutStore.getState()

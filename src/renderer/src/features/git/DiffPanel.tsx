@@ -2,13 +2,12 @@ import { DiffEditor } from '@monaco-editor/react'
 import type { IDockviewPanelProps } from 'dockview-react'
 import type { GitDiff } from '@shared/types'
 import { FileText } from 'lucide-react'
-import { useEffect, useState } from 'react'
 import { basename } from '../../lib/paths'
 import { openFile } from '../editor/editor.actions'
-import { detectLanguage } from '../editor/language'
-import { monaco, useMonacoTheme } from '../editor/monaco-setup'
+import { detectLanguage } from '../../lib/language'
+import { monaco, useMonacoTheme } from '../editor/use-monaco'
 import type { DiffParams } from './git.actions'
-import { useGitStore } from './git.store'
+import { useGitDiff } from './use-git-diff'
 import { CODE_FONT } from '../../lib/code-font'
 import { useSettingsStore } from '../../stores/settings.store'
 import { useT } from '../../lib/i18n'
@@ -21,24 +20,12 @@ export function DiffPanel({ api, params }: IDockviewPanelProps<DiffParams>) {
   const monacoTheme = useMonacoTheme()
   const t = useT()
   const { path, staged } = params
-  const root = useGitStore((s) => s.root)
-  // Recarrega quando o status do git muda (novo stage, arquivo salvo, commit...).
-  const status = useGitStore((s) => s.status)
-  const [state, setState] = useState<State>({ kind: 'loading' })
-
-  useEffect(() => {
-    if (!root) return
-    let alive = true
-    void window.api.git.diff(root, path, staged).then((res) => {
-      if (!alive) return
-      setState(
-        res.ok ? { kind: 'ready', diff: res.data } : { kind: 'error', message: res.error.message },
-      )
-    })
-    return () => {
-      alive = false
-    }
-  }, [root, path, staged, status])
+  const diff = useGitDiff(path, staged)
+  const state: State = diff.error
+    ? { kind: 'error', message: diff.error }
+    : diff.data
+      ? { kind: 'ready', diff: diff.data }
+      : { kind: 'loading' }
 
   const language = detectLanguage(basename(path), monaco.languages.getLanguages())
 

@@ -1,6 +1,7 @@
 import { Component, type ErrorInfo, type ReactNode } from 'react'
 import { t } from '../lib/i18n'
 import { KiteLogo } from './KiteLogo'
+import { copyText } from '../lib/clipboard'
 
 // Um erro de renderização desmonta a árvore inteira do React e deixa a janela vazia. Aqui ele vira
 // uma tela com o erro e "Recarregar"; o console.error chega ao log do main (logs/main.log).
@@ -44,7 +45,7 @@ export class ErrorBoundary extends Component<{ children: ReactNode }, State> {
             </button>
             <button
               type="button"
-              onClick={() => void window.api.clipboard.writeText(details)}
+              onClick={() => copyText(details)}
               className="h-8 rounded-[7px] border border-border bg-surface-2 px-3 hover:bg-surface-3"
             >
               {t('crash.copy')}

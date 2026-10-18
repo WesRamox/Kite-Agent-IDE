@@ -19,6 +19,14 @@ asarUnpack:
   - out/main/chunks/**
   - resources/**
 npmRebuild: true
+# Fuses: recursos do binário do Electron desligados no app empacotado. RunAsNode fica ligado porque
+# o kite-hook roda com ELECTRON_RUN_AS_NODE. Ver docs/decisions.md.
+electronFuses:
+  runAsNode: true
+  enableCookieEncryption: true
+  enableNodeOptionsEnvironmentVariable: false
+  enableNodeCliInspectArguments: false
+  onlyLoadAppFromAsar: true
 linux:
   target:
     - AppImage

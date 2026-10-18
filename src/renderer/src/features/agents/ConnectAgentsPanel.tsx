@@ -1,11 +1,11 @@
 import type { AgentCli, AgentSession, HooksStatus } from '@shared/types'
 import { useState } from 'react'
 import { ContextMenu, type MenuItem } from '../../components/ContextMenu'
-import { linkSessions } from '../tasks/task-links'
+import { linkSessions } from '../../lib/task-links'
 import { linkSession } from '../tasks/tasks.actions'
 import { useTasksStore } from '../tasks/tasks.store'
 import { openAgentTerminal } from './agents.actions'
-import { CLI_LABEL, CLI_SHORT, CLIS } from './cli'
+import { CLI_LABEL, CLI_SHORT, CLIS } from '../../lib/agent-cli'
 import { showAttentionView } from './attention.actions'
 import { useAttentionStore } from './attention.store'
 import { useAgentsStore } from './agents.store'
@@ -15,7 +15,7 @@ import {
   sessionTone,
   tildePath,
   type SessionTone,
-} from './session-format'
+} from '../../lib/session-format'
 import { installHooks, uninstallHooks } from './sessions.actions'
 import { useSessionsStore } from './sessions.store'
 import { useT } from '../../lib/i18n'

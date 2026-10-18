@@ -1,6 +1,6 @@
 import '@xterm/xterm/css/xterm.css'
 import type { IDockviewPanelProps } from 'dockview-react'
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useEffectEvent, useRef, useState } from 'react'
 import { handleTerminalExit, type TerminalParams } from './terminal.actions'
 import type { TerminalSession } from './terminal-session'
 import { useTerminalUiStore } from './terminal-ui.store'
@@ -15,16 +15,21 @@ export function TerminalPanel({ api, params }: IDockviewPanelProps<TerminalParam
   const searchOpen = useTerminalUiStore((s) => s.searchOpen === api.id)
   const closeSearch = useTerminalUiStore((s) => s.closeSearch)
 
-  useEffect(() => {
-    const el = containerRef.current
-    if (!el) return
-    const s = getOrCreateSession(api.id, {
+  // A sessão vive enquanto o painel existir: params só valem na criação, não recriam o terminal.
+  const createSession = useEffectEvent(() =>
+    getOrCreateSession(api.id, {
       source: params.agentTaskId
         ? { kind: 'agent', taskId: params.agentTaskId }
         : { kind: 'shell', cwd: params.cwd ?? '', restore: params.restore, input: params.input },
       onExit: (event) => handleTerminalExit(api.id, event),
       onOpenSearch: () => useTerminalUiStore.getState().openSearch(api.id),
-    })
+    }),
+  )
+
+  useEffect(() => {
+    const el = containerRef.current
+    if (!el) return
+    const s = createSession()
     setSession(s)
     void s.attach(el).then(() => {
       if (api.isActive) s.focus()
@@ -51,8 +56,6 @@ export function TerminalPanel({ api, params }: IDockviewPanelProps<TerminalParam
       observer.disconnect()
       subs.forEach((d) => d.dispose())
     }
-    // A sessão vive enquanto o painel existir; params só valem na criação.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [api])
 
   return (

@@ -654,3 +654,69 @@ Decisões fáceis de desfazer, não cobertas pelo `AGENTS.md`. Mais recente no f
 - **Regra entre features adiada para o R4.** São 34 imports de arquivos internos entre features,
   quase todos de helpers puros; o certo é movê-los para `components/`/`lib/` antes de travar.
 - **Cobertura só medida** (`pnpm test:coverage`, `@vitest/coverage-v8`), sem meta até o R5.
+
+## Refatoração R1: segurança
+
+- **`pty:create` sem `env`.** Nenhuma tela passava variáveis; o campo saiu do contrato em vez de
+  ganhar allowlist. Agentes continuam recebendo `KITE_*` pelo `spawnAt`, interno do main.
+- **Origem do IPC.** `registerHandler` compara `event.senderFrame.url` com o `index.html` do
+  bundle (sem hash/query) ou, fora do app empacotado, com a origem de `ELECTRON_RENDERER_URL`.
+  Verificado no app empacotado (Linux, dentro do `app.asar`). Windows/macOS: verificar depois
+  (caminhos `file:///C:/…` e espaços).
+- **Modelo de ameaça dos presets.** O comando de um preset roda no shell do usuário de propósito,
+  e o renderer já pode escrever em qualquer terminal. Um renderer comprometido equivale a
+  execução de código; as defesas são não carregar conteúdo remoto, CSP, navegação bloqueada e a
+  checagem de origem do IPC. Os limites zod servem contra abuso e erro, não contra isso.
+- **Validação de branch** em `lib/git-refs.ts` (`assertBranchName`, `isSimpleRefName`).
+- **Fuses** pelo `electronFuses` do electron-builder: `NODE_OPTIONS` e argumentos `--inspect`
+  desligados, só carregar o app do asar, cookies criptografados. `RunAsNode` ligado (kite-hook).
+  Efeito colateral: o Playwright não se conecta ao app _empacotado_ (usa `--inspect`); o e2e roda
+  no build não empacotado e não é afetado. `GrantFileProtocolExtraPrivileges` e a validação de
+  integridade do asar ficaram como estão: mudam o carregamento por `file://` e precisam de teste
+  em macOS/Windows.
+- **`dompurify` 3.4.15** (auditoria, 2 baixas, modo `IN_PLACE`): o Monaco embute a própria cópia
+  e ninguém usa `IN_PLACE`; sem override. Rever ao atualizar o Monaco.
+
+## Refatoração R3: serviços e tipos
+
+- **`shared/types/` por domínio** (`common`, `app`, `fs`, `terminal`, `git`, `github`, `agents`,
+  `tasks`), com `index.ts` reexportando (`export type *`). Os imports `@shared/types` não mudaram.
+- **`GitService` como fachada.** A comparação com a base (merge-base, numstat, base padrão, diff
+  contra a base, arquivos pendentes) foi para `GitReviewService`; o `GitService` delega para não
+  mexer nos chamadores agora. A execução (`execGit`, `showOrEmpty`, `cleanGitMessage`,
+  `GitRunner`) foi para `lib/git-exec.ts`, o que também tirou o import de `services/` que havia
+  em `lib/git-runner.ts`.
+- **Ajustes de tarefa como funções puras** (`lib/task-config.ts`): o `TaskService` lê a
+  configuração, aplica e grava; as funções têm teste de unidade sem disco.
+- **Sondagem × ação** nos `.catch`: converter falha em "não existe" é sondagem e não precisa de
+  comentário; ignorar falha de uma ação precisa (regra no `AGENTS.md`).
+
+## Refatoração R4: renderer
+
+- **Regra entre features** (ESLint, regex em `no-restricted-imports`): de outra feature só
+  componentes `PascalCase`, `*.actions`, `*.store`, `use-*` e imports de tipo. Helpers
+  compartilhados foram para `lib/` (`git-format`, `language`, `session-format`, `task-links`,
+  `agent-cli`, `branch-slug`, `panels`) e o `FileIcon` para `components/`. `monaco-setup` virou
+  `editor/use-monaco` e `git-sync` virou `git-sync.actions`.
+- **`useIpcQuery`** em vez de `useEffect` + `window.api` + flag `alive` em cada componente. Os
+  deps passam pelo `exhaustive-deps` via `additionalHooks`; gatilhos que o `load` não lê vão em
+  `refresh`. O único `eslint-disable` de hooks do renderer é o dele, por receber deps genéricos.
+- **Testes com DOM**: `happy-dom` e `@testing-library/react` (dependências de desenvolvimento),
+  ativados por arquivo com `@vitest-environment`, para não pesar nos testes do main.
+- **Central com o tradutor como entrada**: `attentionItems` recebe o `t` (padrão: o global); o
+  hook passa o do `useT()`, que muda com o idioma. Antes, o idioma entrava no `useMemo` sem ser
+  usado.
+- **Menu**: os itens são montados ao abrir (estado do momento); fechado, a barra usa os rótulos
+  do idioma atual. Handlers de teclado e clique com `useEffectEvent`: os listeners só são
+  ligados e desligados ao abrir e fechar.
+- **Stores**: os de `stores/` já eram todos globais (layout, tema, toasts, modal, contexto,
+  workspace, configurações); os de feature já ficavam na feature. Nada a mover.
+
+## Refatoração R5: testes
+
+- **Contrato IPC testado pelo código-fonte.** Como `InvokeChannels` é só tipo, o teste lê
+  `ipc-contract.ts`, os `registerHandler` do main e os `invoke`/`subscribe` do preload e compara.
+- **`installApi`** para testes do renderer: um `window.api` falso com `Proxy` que falha com o nome
+  do canal quando o teste esquece de defini-lo.
+- **Metas de cobertura por área**, um pouco abaixo do medido. Bootstrap, `main/app`, menu,
+  registro no `ipcMain` e `kite-hook` ficam fora da medição de unidade (são exercitados pelo e2e).

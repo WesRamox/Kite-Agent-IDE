@@ -4,7 +4,7 @@ import { basename, isInside, rebase } from '../../lib/paths'
 import { toast } from '../../stores/toast.store'
 import { closeDiff, isDiffPanel } from '../git/git.actions'
 import { closeTerminal } from '../terminal/terminal.actions'
-import { isAgentPanel, isTerminalPanel } from '../terminal/terminals'
+import { isAgentPanel, isTerminalPanel } from '../../lib/panels'
 import { useEditorStore } from './editor.store'
 import {
   acknowledgeDisk,

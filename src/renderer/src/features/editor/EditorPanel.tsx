@@ -3,7 +3,7 @@ import type { IDockviewPanelProps } from 'dockview-react'
 import { useEffect, useRef } from 'react'
 import { useEditorStore } from './editor.store'
 import { uriFor } from './models'
-import { type monaco, useMonacoTheme } from './monaco-setup'
+import { type monaco, useMonacoTheme } from './use-monaco'
 import { CODE_FONT } from '../../lib/code-font'
 import { useSettingsStore } from '../../stores/settings.store'
 

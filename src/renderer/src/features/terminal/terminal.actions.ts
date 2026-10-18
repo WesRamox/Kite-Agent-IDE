@@ -5,14 +5,8 @@ import { useSettingsStore } from '../../stores/settings.store'
 import { toast } from '../../stores/toast.store'
 import { useWorkspaceStore } from '../../stores/workspace.store'
 import { taskBaseDir } from '../tasks/tasks.store'
-import {
-  disposeSession,
-  getSession,
-  isAgentPanel,
-  isTerminalPanel,
-  panelByPty,
-  TERMINAL_PREFIX,
-} from './terminals'
+import { disposeSession, getSession, panelByPty, sessionIds } from './terminals'
+import { isAgentPanel, isTerminalPanel, TERMINAL_PREFIX } from '../../lib/panels'
 import { closeModal } from '../../stores/modal.store'
 import { t } from '../../lib/i18n'
 
@@ -170,4 +164,9 @@ export async function restoreTerminalSessions(root: string): Promise<void> {
   if (!useSettingsStore.getState().settings.restoreTerminals) return
   const saved = await attempt(window.api.terminal.loadSessions(root), t('terminal.restoreError'))
   for (const session of saved ?? []) openTerminal({ restore: session })
+}
+
+// Fonte nova nos terminais já abertos (os novos leem das configurações).
+export function applyTerminalFontSize(size: number): void {
+  for (const id of sessionIds()) getSession(id)?.setFontSize(size)
 }

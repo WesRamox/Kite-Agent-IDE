@@ -3,6 +3,7 @@ import { GitHubMark } from '../../components/GitHubMark'
 import { cancelLogin, login } from './github.actions'
 import { useGitHubStore } from './github.store'
 import { useT } from '../../lib/i18n'
+import { copyText } from '../../lib/clipboard'
 
 export function LoginBox() {
   const state = useGitHubStore((s) => s.login)
@@ -23,7 +24,7 @@ export function LoginBox() {
         <div className="flex gap-2">
           <button
             type="button"
-            onClick={() => void window.api.clipboard.writeText(userCode)}
+            onClick={() => copyText(userCode)}
             className="flex items-center gap-1 rounded-md border border-border px-2 py-1 hover:bg-surface-2"
           >
             <Copy size={12} /> {t('github.copy')}

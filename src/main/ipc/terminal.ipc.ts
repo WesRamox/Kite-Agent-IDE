@@ -12,12 +12,13 @@ import { absPath } from './schemas'
 const id = z.string().uuid()
 const dim = z.number().int().min(1).max(2000)
 
-const createSchema = z.object({
+// Sem `env`: o renderer não define variáveis de ambiente (LD_PRELOAD, NODE_OPTIONS…). Chaves
+// desconhecidas são descartadas pelo zod antes de chegar ao serviço.
+export const ptyCreateSchema = z.object({
   cwd: absPath,
   shell: absPath.optional(),
   cols: dim,
   rows: dim,
-  env: z.record(z.string().max(256), z.string().max(32_768)).optional(),
 })
 
 export function registerTerminalIpc(
@@ -25,7 +26,7 @@ export function registerTerminalIpc(
   sessions: TerminalSessionService,
   log: Logger,
 ): void {
-  registerHandler('pty:create', z.tuple([createSchema]), (o) => pty.create(o), log)
+  registerHandler('pty:create', z.tuple([ptyCreateSchema]), (o) => pty.create(o), log)
   registerHandler(
     'pty:write',
     z.tuple([id, z.string().max(1_000_000)]),

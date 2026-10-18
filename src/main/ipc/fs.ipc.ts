@@ -10,7 +10,8 @@ export function registerFsIpc(fs: FsService, watch: WatchService, log: Logger): 
   registerHandler('fs:readFile', z.tuple([absPath]), (p) => fs.readFile(p), log)
   registerHandler(
     'fs:writeFile',
-    z.tuple([absPath, z.string(), z.enum(['utf8', 'utf8bom'])]),
+    // 64 Mi caracteres: muito acima do que o editor abre (5 MB), só barra o absurdo.
+    z.tuple([absPath, z.string().max(64 * 1024 * 1024), z.enum(['utf8', 'utf8bom'])]),
     (p, content, encoding) => fs.writeFile(p, content, encoding),
     log,
   )

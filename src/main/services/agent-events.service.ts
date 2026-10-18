@@ -47,6 +47,7 @@ export class AgentEventService {
       const info = await stat(file).catch(() => null)
       if (!info) continue
       if (this.now() - info.mtimeMs > retention) {
+        // Limpeza de melhor esforço: o arquivo volta a ser candidato na próxima abertura.
         await unlink(file).catch(() => {})
         continue
       }
@@ -88,6 +89,7 @@ export class AgentEventService {
   private queueRead(file: string): Promise<void> {
     const prev = this.reading.get(file) ?? Promise.resolve()
     const next = prev.then(() => this.readNew(file, true))
+    // A fila só precisa seguir; quem chamou recebe o erro pelo `next`.
     this.reading.set(
       file,
       next.catch(() => {}),

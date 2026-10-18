@@ -118,9 +118,9 @@ renderer ──(window.api)──▶ preload ──(IPC)──▶ main/ipc ─�
 - Só `main/index.ts`, `main/app/*` (composição, janela, notificações), `main/menu.ts` e
   `main/ipc/register.ts` falam com o Electron diretamente.
 - `renderer/` só importa de `shared/` e de si mesmo.
-- Uma feature do renderer não importa arquivos internos de outra, só `*.actions.ts`,
-  `*.store.ts` e `use-*.ts` expostos de propósito. Componente compartilhado vai para
-  `components/`.
+- Entre features do renderer, só a interface de propósito: componentes (`PascalCase.tsx`),
+  `*.actions.ts`, `*.store.ts`, `use-*.ts` e imports de tipo. Helper usado por mais de uma
+  feature vai para `lib/`; UI genérica, para `components/`. O ESLint barra o resto.
 
 ### Estrutura de pastas
 
@@ -148,9 +148,6 @@ src/
 e2e/                    # specs Playwright
 docs/                   # decisões, plano de refatoração, guia
 ```
-
-`main/app/` e `shared/types/` são o destino da refatoração (ver `docs/refactor-plan.md`);
-enquanto não existirem, o equivalente está em `main/index.ts` e `shared/types.ts`.
 
 ---
 
@@ -187,8 +184,10 @@ Canal novo, nesta ordem:
 - Erro esperado: `throw new AppException(code, t('error.xxx'))`. O `createHandler` devolve
   `{ ok: false, error: { code, message } }`; erro inesperado vira `INTERNAL` sem detalhes para o
   renderer, com detalhes no log do main.
-- Proibido engolir erro em silêncio. `.catch(() => {})` ou `catch {}` só com comentário dizendo
-  por que é seguro, e com `log.warn`/`log.debug` quando a falha ajudar a diagnosticar.
+- Proibido engolir erro em silêncio. Sondagem é permitida: converter a falha num valor que
+  significa "não existe" ou "não sei" (`readFile(...).catch(() => null)`, ref inexistente → `''`).
+  Falha de uma **ação** (escrever, apagar, chamar rede, soltar recurso) só pode ser ignorada com
+  comentário dizendo por que é seguro, e com `log.warn`/`log.debug` quando ajudar a diagnosticar.
 - `err as Error` só depois de `err instanceof Error`; senão, `String(err)`.
 
 ### Logs
@@ -214,8 +213,11 @@ Canal novo, nesta ordem:
 - **Processos:** nunca monte linha de comando concatenando dado externo. Use array de argumentos;
   quando o shell for inevitável, `shQuote`/`psQuote` (`lib/agent-command.ts`). Argumento de git
   vindo de fora não pode começar com `-`; use `--` antes de paths.
-- **Ambiente:** variáveis vindas do renderer passam por allowlist (nunca `LD_PRELOAD`,
-  `NODE_OPTIONS`, `ELECTRON_RUN_AS_NODE`, `BASH_ENV` etc.).
+- **Ambiente:** o renderer não define variáveis de ambiente de processos. Se um dia precisar,
+  só por allowlist (nunca `LD_PRELOAD`, `NODE_OPTIONS`, `ELECTRON_RUN_AS_NODE`, `BASH_ENV` etc.).
+- **Origem do IPC:** `registerHandler` só atende o `index.html` do renderer (ou o Vite em dev).
+- **Fuses do Electron** (`electron-builder.yml`): `NODE_OPTIONS` e `--inspect` desligados no app
+  empacotado; `RunAsNode` ligado por causa do `kite-hook`.
 - `shell.openExternal` só com `http:`/`https:` validado.
 - **Segredos:** token do GitHub só via `TokenStore` (`safeStorage`). Nunca em JSON de perfil,
   `localStorage` ou log.
@@ -240,14 +242,18 @@ features/<feature>/
   <feature>.ts           # lógica pura e testável
 ```
 
-- **Componentes não chamam `window.api`.** Isso fica em `*.actions.ts` ou `use-*.ts`, usando
-  `attempt()` (`lib/ipc.ts`), que transforma `{ ok: false }` em toast amigável.
+- **Componentes não chamam `window.api`.** Isso fica em `*.actions.ts`, `use-*.ts` ou `lib/`.
+  Ações usam `attempt()` (`lib/ipc.ts`), que transforma `{ ok: false }` em toast amigável.
+- **Buscar dados do main** é um hook `use-<algo>.ts` da feature com `useIpcQuery`
+  (`lib/use-ipc-query.ts`): refaz a busca quando os deps mudam (conferidos pelo ESLint), descarta
+  respostas antigas e tem `reload`, `delayMs`, `identity`, `refresh` e `onData`.
 - Estado global (layout, tema, toasts, modal) em `stores/`; estado de uma feature, nela.
 - Seletores finos do Zustand (`useStore((s) => s.campo)`), nunca o store inteiro.
 - Componente com mais de ~200 linhas ou mais de um `useEffect` de dados: extraia hook ou
   subcomponente.
-- `eslint-disable` de `react-hooks/exhaustive-deps` é proibido. Use `useEffectEvent`, ref estável
-  ou mova a lógica para uma action.
+- `eslint-disable` de `react-hooks/exhaustive-deps` é proibido (a única exceção é o próprio
+  `useIpcQuery`). Valor que o efeito lê mas que não deve disparar o efeito: `useEffectEvent`.
+  Valor que deve recalcular um `useMemo`: passe-o de fato para a função (ex.: o `t` do `useT()`).
 
 ### Interface
 
@@ -336,6 +342,12 @@ Atalho novo não pode colidir com estes nem com os do Monaco e do terminal.
 - Teste descreve comportamento ("recusa caminho fora da raiz via symlink"), não implementação.
 - Toda validação de segurança (guard, schemas, quoting, merge de hooks, env) tem teste com a
   entrada maliciosa.
+- Teste de renderer que precisa de DOM (hooks, componentes): `// @vitest-environment happy-dom`
+  no topo do arquivo e `@testing-library/react`. Actions e hooks que chamam o main: `installApi`
+  (`renderer/src/test/fake-api.ts`) com só os canais usados.
+- O contrato IPC tem teste (`main/ipc/contract.test.ts`): canal sem handler ou sem função no
+  preload quebra o `pnpm test`.
+- Cobertura (`pnpm test:coverage`) tem meta por área em `vitest.config.ts`; ela só sobe.
 - e2e com Playwright dirigindo o app construído, perfil temporário (`KITE_USER_DATA_DIR`) e
   arquivos de hook isolados (`KITE_CLAUDE_SETTINGS` etc.). Nunca toca o perfil real.
 

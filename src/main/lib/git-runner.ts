@@ -1,5 +1,5 @@
 import { simpleGit } from 'simple-git'
-import type { GitRunner } from '../services/git.service'
+import type { GitRunner } from './git-exec'
 import { terminalEnv } from './shell'
 
 // Editores e pagers interativos: o app nunca abre um, e sem eles o git não fica esperando.

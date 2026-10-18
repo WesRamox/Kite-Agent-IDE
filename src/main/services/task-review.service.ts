@@ -14,6 +14,7 @@ import type { GitHubService } from './github.service'
 import type { GitService } from './git.service'
 import type { TaskService } from './task.service'
 import { t } from '../lib/i18n'
+import { isSimpleRefName } from '../lib/git-refs'
 
 export interface TaskReviewServiceDeps {
   tasks: Pick<TaskService, 'open'>
@@ -31,12 +32,9 @@ export interface TaskReviewServiceDeps {
   log: Logger
 }
 
-// Nome de branch vindo do renderer vira argumento do git: nada de opções (-x) ou caracteres
-// estranhos.
-const BRANCH = /^[A-Za-z0-9][A-Za-z0-9._/-]{0,199}$/
-
+// Nome de branch vindo do renderer vira argumento do git.
 function checkBranch(name: string): string {
-  if (!BRANCH.test(name) || name.includes('..')) {
+  if (!isSimpleRefName(name)) {
     throw new AppException('INVALID_ARGS', t('error.invalidBaseBranch', { branch: name }))
   }
   return name
@@ -220,7 +218,11 @@ export class TaskReviewService {
 
   private async pr(worktree: string, branch: string | null): Promise<PullSummary | null> {
     if (!branch) return null
-    return this.deps.github.prForBranch(worktree, branch).catch(() => null)
+    return this.deps.github.prForBranch(worktree, branch).catch((err: unknown) => {
+      // Sem GitHub (offline, sem login) a revisão segue, só sem o PR.
+      this.deps.log.debug('PR da branch indisponível', { error: message(err) })
+      return null
+    })
   }
 
   private async worktree(root: string, taskId: string, path: string): Promise<TaskWorktree> {
