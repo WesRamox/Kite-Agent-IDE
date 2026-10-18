@@ -128,7 +128,8 @@ export default tseslint.config(
     plugins: { 'react-hooks': reactHooks, 'react-refresh': reactRefresh },
     rules: {
       ...reactHooks.configs.recommended.rules,
-      'react-hooks/exhaustive-deps': 'error',
+      // useIpcQuery recebe deps como um useEffect: o ESLint confere os deps de cada chamada.
+      'react-hooks/exhaustive-deps': ['error', { additionalHooks: '(useIpcQuery)' }],
       'react-refresh/only-export-components': ['warn', { allowConstantExport: true }],
     },
   },
