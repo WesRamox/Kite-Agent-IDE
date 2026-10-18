@@ -242,14 +242,18 @@ features/<feature>/
   <feature>.ts           # lógica pura e testável
 ```
 
-- **Componentes não chamam `window.api`.** Isso fica em `*.actions.ts` ou `use-*.ts`, usando
-  `attempt()` (`lib/ipc.ts`), que transforma `{ ok: false }` em toast amigável.
+- **Componentes não chamam `window.api`.** Isso fica em `*.actions.ts`, `use-*.ts` ou `lib/`.
+  Ações usam `attempt()` (`lib/ipc.ts`), que transforma `{ ok: false }` em toast amigável.
+- **Buscar dados do main** é um hook `use-<algo>.ts` da feature com `useIpcQuery`
+  (`lib/use-ipc-query.ts`): refaz a busca quando os deps mudam (conferidos pelo ESLint), descarta
+  respostas antigas e tem `reload`, `delayMs`, `identity`, `refresh` e `onData`.
 - Estado global (layout, tema, toasts, modal) em `stores/`; estado de uma feature, nela.
 - Seletores finos do Zustand (`useStore((s) => s.campo)`), nunca o store inteiro.
 - Componente com mais de ~200 linhas ou mais de um `useEffect` de dados: extraia hook ou
   subcomponente.
-- `eslint-disable` de `react-hooks/exhaustive-deps` é proibido. Use `useEffectEvent`, ref estável
-  ou mova a lógica para uma action.
+- `eslint-disable` de `react-hooks/exhaustive-deps` é proibido (a única exceção é o próprio
+  `useIpcQuery`). Valor que o efeito lê mas que não deve disparar o efeito: `useEffectEvent`.
+  Valor que deve recalcular um `useMemo`: passe-o de fato para a função (ex.: o `t` do `useT()`).
 
 ### Interface
 
@@ -338,6 +342,8 @@ Atalho novo não pode colidir com estes nem com os do Monaco e do terminal.
 - Teste descreve comportamento ("recusa caminho fora da raiz via symlink"), não implementação.
 - Toda validação de segurança (guard, schemas, quoting, merge de hooks, env) tem teste com a
   entrada maliciosa.
+- Teste de renderer que precisa de DOM (hooks, componentes): `// @vitest-environment happy-dom`
+  no topo do arquivo e `@testing-library/react`.
 - e2e com Playwright dirigindo o app construído, perfil temporário (`KITE_USER_DATA_DIR`) e
   arquivos de hook isolados (`KITE_CLAUDE_SETTINGS` etc.). Nunca toca o perfil real.
 

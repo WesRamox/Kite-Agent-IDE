@@ -690,3 +690,24 @@ Decisões fáceis de desfazer, não cobertas pelo `AGENTS.md`. Mais recente no f
   configuração, aplica e grava; as funções têm teste de unidade sem disco.
 - **Sondagem × ação** nos `.catch`: converter falha em "não existe" é sondagem e não precisa de
   comentário; ignorar falha de uma ação precisa (regra no `AGENTS.md`).
+
+## Refatoração R4: renderer
+
+- **Regra entre features** (ESLint, regex em `no-restricted-imports`): de outra feature só
+  componentes `PascalCase`, `*.actions`, `*.store`, `use-*` e imports de tipo. Helpers
+  compartilhados foram para `lib/` (`git-format`, `language`, `session-format`, `task-links`,
+  `agent-cli`, `branch-slug`, `panels`) e o `FileIcon` para `components/`. `monaco-setup` virou
+  `editor/use-monaco` e `git-sync` virou `git-sync.actions`.
+- **`useIpcQuery`** em vez de `useEffect` + `window.api` + flag `alive` em cada componente. Os
+  deps passam pelo `exhaustive-deps` via `additionalHooks`; gatilhos que o `load` não lê vão em
+  `refresh`. O único `eslint-disable` de hooks do renderer é o dele, por receber deps genéricos.
+- **Testes com DOM**: `happy-dom` e `@testing-library/react` (dependências de desenvolvimento),
+  ativados por arquivo com `@vitest-environment`, para não pesar nos testes do main.
+- **Central com o tradutor como entrada**: `attentionItems` recebe o `t` (padrão: o global); o
+  hook passa o do `useT()`, que muda com o idioma. Antes, o idioma entrava no `useMemo` sem ser
+  usado.
+- **Menu**: os itens são montados ao abrir (estado do momento); fechado, a barra usa os rótulos
+  do idioma atual. Handlers de teclado e clique com `useEffectEvent`: os listeners só são
+  ligados e desligados ao abrir e fechar.
+- **Stores**: os de `stores/` já eram todos globais (layout, tema, toasts, modal, contexto,
+  workspace, configurações); os de feature já ficavam na feature. Nada a mover.

@@ -100,17 +100,17 @@ violações atuais ignoradas por arquivo, removidas nas etapas seguintes.
 
 ### R4 — Renderer
 
-- [ ] Helpers usados por várias features (`explorer/FileIcon`, `git/git-format`,
+- [x] Helpers usados por várias features (`explorer/FileIcon`, `git/git-format`,
       `editor/language`, `editor/monaco-setup`, `agents/session-format`, `tasks/task-links`…)
       vão para `components/` ou `lib/`; depois, regra de lint que impede importar arquivos
       internos de outra feature (34 imports em 2026-10-18).
-- [ ] Tirar `window.api` dos 10 componentes para `*.actions.ts`/`use-*.ts`.
-- [ ] Eliminar os 9 `eslint-disable exhaustive-deps` (`useEffectEvent`, refs, actions).
-- [ ] Quebrar `SettingsPanel` (uma seção por arquivo), `TaskReviewPanel` e `DiscoverPanel`.
-- [ ] Padronizar onde ficam os stores (globais em `stores/`, de feature na feature).
+- [x] Tirar `window.api` dos 10 componentes para `*.actions.ts`/`use-*.ts`.
+- [x] Eliminar os 9 `eslint-disable exhaustive-deps` (`useEffectEvent`, refs, actions).
+- [x] Quebrar `SettingsPanel` (uma seção por arquivo), `TaskReviewPanel` e `DiscoverPanel`.
+- [x] Padronizar onde ficam os stores (globais em `stores/`, de feature na feature).
 
-**Aceite:** `grep window.api` em `.tsx` vazio (exceto `ErrorBoundary`, se justificado); lint sem
-`eslint-disable` de hooks.
+**Aceite:** `grep window.api` em `.tsx` vazio; lint sem `eslint-disable` de hooks (exceto dentro
+do `useIpcQuery`, justificado).
 
 ### R5 — Testes
 
