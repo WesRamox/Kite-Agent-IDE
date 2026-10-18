@@ -149,9 +149,6 @@ e2e/                    # specs Playwright
 docs/                   # decisões, plano de refatoração, guia
 ```
 
-`shared/types/` é destino da refatoração (ver `docs/refactor-plan.md`); enquanto não existir,
-os tipos estão em `shared/types.ts`.
-
 ---
 
 ## 4. Padrões do main process
@@ -187,8 +184,10 @@ Canal novo, nesta ordem:
 - Erro esperado: `throw new AppException(code, t('error.xxx'))`. O `createHandler` devolve
   `{ ok: false, error: { code, message } }`; erro inesperado vira `INTERNAL` sem detalhes para o
   renderer, com detalhes no log do main.
-- Proibido engolir erro em silêncio. `.catch(() => {})` ou `catch {}` só com comentário dizendo
-  por que é seguro, e com `log.warn`/`log.debug` quando a falha ajudar a diagnosticar.
+- Proibido engolir erro em silêncio. Sondagem é permitida: converter a falha num valor que
+  significa "não existe" ou "não sei" (`readFile(...).catch(() => null)`, ref inexistente → `''`).
+  Falha de uma **ação** (escrever, apagar, chamar rede, soltar recurso) só pode ser ignorada com
+  comentário dizendo por que é seguro, e com `log.warn`/`log.debug` quando ajudar a diagnosticar.
 - `err as Error` só depois de `err instanceof Error`; senão, `String(err)`.
 
 ### Logs

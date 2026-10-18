@@ -676,3 +676,17 @@ Decisões fáceis de desfazer, não cobertas pelo `AGENTS.md`. Mais recente no f
   em macOS/Windows.
 - **`dompurify` 3.4.15** (auditoria, 2 baixas, modo `IN_PLACE`): o Monaco embute a própria cópia
   e ninguém usa `IN_PLACE`; sem override. Rever ao atualizar o Monaco.
+
+## Refatoração R3: serviços e tipos
+
+- **`shared/types/` por domínio** (`common`, `app`, `fs`, `terminal`, `git`, `github`, `agents`,
+  `tasks`), com `index.ts` reexportando (`export type *`). Os imports `@shared/types` não mudaram.
+- **`GitService` como fachada.** A comparação com a base (merge-base, numstat, base padrão, diff
+  contra a base, arquivos pendentes) foi para `GitReviewService`; o `GitService` delega para não
+  mexer nos chamadores agora. A execução (`execGit`, `showOrEmpty`, `cleanGitMessage`,
+  `GitRunner`) foi para `lib/git-exec.ts`, o que também tirou o import de `services/` que havia
+  em `lib/git-runner.ts`.
+- **Ajustes de tarefa como funções puras** (`lib/task-config.ts`): o `TaskService` lê a
+  configuração, aplica e grava; as funções têm teste de unidade sem disco.
+- **Sondagem × ação** nos `.catch`: converter falha em "não existe" é sondagem e não precisa de
+  comentário; ignorar falha de uma ação precisa (regra no `AGENTS.md`).

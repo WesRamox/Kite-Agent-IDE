@@ -84,12 +84,17 @@ violações atuais ignoradas por arquivo, removidas nas etapas seguintes.
 
 ### R3 — Serviços e tipos
 
-- [ ] Dividir `git.service.ts` por responsabilidade (status/diff, branch, worktree, base),
-      mantendo `GitService` como fachada para não mexer nos chamadores.
-- [ ] Dividir `task.service.ts` (descoberta, ajustes manuais, watch) e `agent.service.ts`
-      (presets, ciclo de vida, status).
-- [ ] `shared/types.ts` → `shared/types/<dominio>.ts` com um `index.ts` que reexporta.
-- [ ] Trocar os `.catch(() => …)` silenciosos por log ou comentário justificando.
+- [x] Dividir `git.service.ts`: revisão contra a base em `GitReviewService` (fachada no
+      `GitService`), execução em `lib/git-exec.ts`. 591 → 361 linhas.
+- [x] `task.service.ts`: ajustes em `lib/task-config.ts` (funções puras), worktrees em
+      `lib/task-worktrees.ts` (569 → 386). `agent.service.ts`: presets e restauração em
+      `lib/agent-state.ts` (422 → 394).
+- [x] `shared/types.ts` → `shared/types/<dominio>.ts` com um `index.ts` que reexporta.
+- [x] `.catch` silenciosos revisados: sondagens ficam; ações de melhor esforço ganharam
+      comentário; a busca de PR na revisão passou a logar. Regra refinada no `AGENTS.md`.
+
+- [ ] Migrar os chamadores dos métodos de revisão para depender do `GitReviewService` direto e
+      tirar a fachada (opcional; mexe em deps e testes de 3 serviços).
 
 **Aceite:** nenhum arquivo de serviço acima de 400 linhas; testes existentes intactos.
 
