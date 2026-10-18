@@ -33,6 +33,7 @@ export class JsonStore<T> {
       await rename(tmp, this.file)
     }
     const next = this.queue.then(run, run)
+    // A fila só precisa seguir; quem chamou recebe o erro pelo `next`.
     this.queue = next.catch(() => {})
     return next
   }

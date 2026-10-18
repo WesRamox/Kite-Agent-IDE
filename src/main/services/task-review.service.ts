@@ -218,7 +218,11 @@ export class TaskReviewService {
 
   private async pr(worktree: string, branch: string | null): Promise<PullSummary | null> {
     if (!branch) return null
-    return this.deps.github.prForBranch(worktree, branch).catch(() => null)
+    return this.deps.github.prForBranch(worktree, branch).catch((err: unknown) => {
+      // Sem GitHub (offline, sem login) a revisão segue, só sem o PR.
+      this.deps.log.debug('PR da branch indisponível', { error: message(err) })
+      return null
+    })
   }
 
   private async worktree(root: string, taskId: string, path: string): Promise<TaskWorktree> {
