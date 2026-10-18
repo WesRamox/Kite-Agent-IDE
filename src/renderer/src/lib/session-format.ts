@@ -1,5 +1,5 @@
 import type { AgentSession, AgentTask } from '@shared/types'
-import { t } from '../../lib/i18n'
+import { t } from './i18n'
 
 export type SessionTone = 'waiting' | 'running' | 'muted'
 

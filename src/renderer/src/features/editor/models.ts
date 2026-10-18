@@ -1,8 +1,8 @@
 import type { FileEncoding } from '@shared/types'
 import { basename } from '../../lib/paths'
 import { useEditorStore } from './editor.store'
-import { detectLanguage } from './language'
-import { monaco } from './monaco-setup'
+import { detectLanguage } from '../../lib/language'
+import { monaco } from './use-monaco'
 
 interface ModelEntry {
   model: monaco.editor.ITextModel

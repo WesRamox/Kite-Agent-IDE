@@ -1,5 +1,5 @@
 import type { GitChangeKind } from '@shared/types'
-import { t } from '../../lib/i18n'
+import { t } from './i18n'
 
 export const KIND_LETTER: Record<GitChangeKind, string> = {
   modified: 'M',

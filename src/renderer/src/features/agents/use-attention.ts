@@ -1,6 +1,6 @@
 import type { AgentSession, AgentTask, WorkspaceTasks } from '@shared/types'
 import { useMemo } from 'react'
-import { linkSessions } from '../tasks/task-links'
+import { linkSessions } from '../../lib/task-links'
 import { useTasksStore } from '../tasks/tasks.store'
 import { useAgentsStore } from './agents.store'
 import {

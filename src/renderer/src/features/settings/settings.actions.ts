@@ -1,7 +1,7 @@
 import { useEffect } from 'react'
 import { useModalStore } from '../../stores/modal.store'
 import { useSettingsStore } from '../../stores/settings.store'
-import { getSession, sessionIds } from '../terminal/terminals'
+import { applyTerminalFontSize } from '../terminal/terminal.actions'
 
 // Abre as configurações numa janela sobreposta.
 export function openSettings(): void {
@@ -16,7 +16,7 @@ export function useSettingsSync(): void {
     return useSettingsStore.subscribe((state, prev) => {
       const size = state.settings.terminalFontSize
       if (size === prev.settings.terminalFontSize) return
-      for (const id of sessionIds()) getSession(id)?.setFontSize(size)
+      applyTerminalFontSize(size)
     })
   }, [])
 }

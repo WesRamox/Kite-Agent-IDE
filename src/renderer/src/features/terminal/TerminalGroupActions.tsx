@@ -6,7 +6,7 @@ import { useAgentsStore } from '../agents/agents.store'
 import { startAgentInTask } from '../tasks/tasks.actions'
 import { useTasksStore } from '../tasks/tasks.store'
 import { openTerminal, splitTerminal } from './terminal.actions'
-import { isAgentPanel, isTerminalPanel } from './terminals'
+import { isAgentPanel, isTerminalPanel } from '../../lib/panels'
 import { useT } from '../../lib/i18n'
 
 function Action(props: {

@@ -1,6 +1,6 @@
 import { FolderGit2, GitBranch, SquareTerminal } from 'lucide-react'
 import { openCentral, showAttentionView } from '../features/agents/attention.actions'
-import { CLI_LABEL, CLIS } from '../features/agents/cli'
+import { CLI_LABEL, CLIS } from '../lib/agent-cli'
 import { openConnectAgents } from '../features/agents/sessions.actions'
 import { useSessionsStore } from '../features/agents/sessions.store'
 import { useAttentionGroups } from '../features/agents/use-attention'

@@ -83,6 +83,36 @@ export default tseslint.config(
     },
   },
   {
+    // Entre features só a interface de propósito: componentes, actions, stores e hooks (e tipos).
+    // Helper usado por mais de uma feature vai para lib/ ou components/.
+    files: ['src/renderer/src/features/**/*.{ts,tsx}'],
+    rules: {
+      'no-restricted-imports': [
+        'error',
+        {
+          paths: ['electron'],
+          patterns: [
+            {
+              group: ['node:*'],
+              message: 'O renderer roda em sandbox; peça ao main via window.api.',
+            },
+            {
+              group: ['**/main/**', '**/preload/**'],
+              message: 'Use window.api e tipos de @shared.',
+            },
+            {
+              regex: String.raw`^\.\./(?!\.\.)[^/]+/(?![A-Z])(?!use-)(?!.*\.(actions|store)$)`,
+              caseSensitive: true,
+              allowTypeImports: true,
+              message:
+                'Arquivo interno de outra feature. Use o componente, a action, o store ou o hook; helper compartilhado vai para lib/.',
+            },
+          ],
+        },
+      ],
+    },
+  },
+  {
     // Scripts Node em CommonJS (ex.: agente falso dos testes e2e).
     files: ['**/*.cjs'],
     languageOptions: { globals: globals.node, sourceType: 'commonjs' },

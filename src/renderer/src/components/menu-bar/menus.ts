@@ -16,7 +16,7 @@ import { VIEWS } from '../../lib/views'
 import { useLayoutStore } from '../../stores/layout.store'
 import { useThemeStore } from '../../stores/theme.store'
 import { useWorkspaceStore } from '../../stores/workspace.store'
-import { tildePath } from '../../features/agents/session-format'
+import { tildePath } from '../../lib/session-format'
 import { openSettings } from '../../features/settings/settings.actions'
 import { t } from '../../lib/i18n'
 

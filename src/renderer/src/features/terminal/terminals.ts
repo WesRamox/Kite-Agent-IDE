@@ -6,21 +6,6 @@ import { terminalTheme } from './terminal-theme'
 // terminal.
 const sessions = new Map<string, TerminalSession>()
 
-export const TERMINAL_PREFIX = 'terminal:'
-export const AGENT_PREFIX = 'agent:'
-
-export function isTerminalPanel(id: string): boolean {
-  return id.startsWith(TERMINAL_PREFIX)
-}
-
-export function isAgentPanel(id: string): boolean {
-  return id.startsWith(AGENT_PREFIX)
-}
-
-export function agentPanelId(taskId: string): string {
-  return `${AGENT_PREFIX}${taskId}`
-}
-
 export function getOrCreateSession(id: string, options: SessionOptions): TerminalSession {
   let session = sessions.get(id)
   if (!session) {

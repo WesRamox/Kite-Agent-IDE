@@ -4,7 +4,7 @@ import { getDockApi } from '../../lib/dock'
 import { attempt } from '../../lib/ipc'
 import { toast } from '../../stores/toast.store'
 import { useGitStore } from '../git/git.store'
-import { refreshGit } from '../git/git-sync'
+import { refreshGit } from '../git/git-sync.actions'
 import { useGitHubStore } from './github.store'
 import { t } from '../../lib/i18n'
 

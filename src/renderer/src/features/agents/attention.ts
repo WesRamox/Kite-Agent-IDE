@@ -1,7 +1,7 @@
 import type { AgentSession, AgentTask, Task, WaitReason } from '@shared/types'
 import { basename } from '../../lib/paths'
-import { CLI_LABEL } from './cli'
-import { tildePath } from './session-format'
+import { CLI_LABEL } from '../../lib/agent-cli'
+import { tildePath } from '../../lib/session-format'
 import { t as tr } from '../../lib/i18n'
 
 // Modelo da Central de atenção (Fase 7): junta as sessões vistas pelos hooks e os agentes

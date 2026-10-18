@@ -2,7 +2,7 @@ import type { Task, TaskWorktree } from '@shared/types'
 import { MoreHorizontal, X } from 'lucide-react'
 import { useState } from 'react'
 import { ContextMenu, type MenuItem } from '../../components/ContextMenu'
-import { tildePath } from '../agents/session-format'
+import { tildePath } from '../../lib/session-format'
 import {
   addExternalRepo,
   ignoreWorktree,

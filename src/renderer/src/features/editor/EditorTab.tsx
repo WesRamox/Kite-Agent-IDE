@@ -1,6 +1,6 @@
 import type { IDockviewPanelHeaderProps } from 'dockview-react'
 import { X } from 'lucide-react'
-import { FileIcon } from '../explorer/FileIcon'
+import { FileIcon } from '../../components/FileIcon'
 import { useActiveTask, worktreeOf } from '../tasks/tasks.store'
 import { closeFile } from './editor.actions'
 import { useEditorStore } from './editor.store'

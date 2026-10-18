@@ -1,8 +1,8 @@
 import type { GitFileChange } from '@shared/types'
 import { Minus, Plus } from 'lucide-react'
 import { basename, dirname, relative } from '../../lib/paths'
-import { FileIcon } from '../explorer/FileIcon'
-import { KIND_COLOR, kindLabel, KIND_LETTER } from './git-format'
+import { FileIcon } from '../../components/FileIcon'
+import { KIND_COLOR, kindLabel, KIND_LETTER } from '../../lib/git-format'
 import { openDiff, stage, unstage } from './git.actions'
 import { useT } from '../../lib/i18n'
 

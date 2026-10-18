@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { fuzzyFilter } from '../../lib/fuzzy'
 import { useWorkspaceStore } from '../../stores/workspace.store'
-import { tildePath } from '../agents/session-format'
+import { tildePath } from '../../lib/session-format'
 import { TaskDot } from './TaskDot'
 import { openDiscover, openTask, showWorkspace } from './tasks.actions'
 import { useTasksStore } from './tasks.store'

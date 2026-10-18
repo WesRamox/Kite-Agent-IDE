@@ -118,9 +118,9 @@ renderer ──(window.api)──▶ preload ──(IPC)──▶ main/ipc ─�
 - Só `main/index.ts`, `main/app/*` (composição, janela, notificações), `main/menu.ts` e
   `main/ipc/register.ts` falam com o Electron diretamente.
 - `renderer/` só importa de `shared/` e de si mesmo.
-- Uma feature do renderer não importa arquivos internos de outra, só `*.actions.ts`,
-  `*.store.ts` e `use-*.ts` expostos de propósito. Componente compartilhado vai para
-  `components/`.
+- Entre features do renderer, só a interface de propósito: componentes (`PascalCase.tsx`),
+  `*.actions.ts`, `*.store.ts`, `use-*.ts` e imports de tipo. Helper usado por mais de uma
+  feature vai para `lib/`; UI genérica, para `components/`. O ESLint barra o resto.
 
 ### Estrutura de pastas
 

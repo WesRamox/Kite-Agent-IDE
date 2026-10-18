@@ -4,7 +4,7 @@ import { basename } from '../../lib/paths'
 import { useWorkspaceStore } from '../../stores/workspace.store'
 import { useActiveTask } from '../tasks/tasks.store'
 import { openFile } from '../editor/editor.actions'
-import { FileIcon } from '../explorer/FileIcon'
+import { FileIcon } from '../../components/FileIcon'
 import { useQuickOpenStore, type QuickOpenRoot } from './quick-open.store'
 import { useT } from '../../lib/i18n'
 
