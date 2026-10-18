@@ -81,7 +81,6 @@ export interface PtyCreateOptions {
   shell?: string
   cols: number
   rows: number
-  env?: Record<string, string>
 }
 
 export interface PtyDataEvent {
