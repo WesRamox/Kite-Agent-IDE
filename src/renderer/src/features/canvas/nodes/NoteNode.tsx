@@ -4,6 +4,7 @@ import { copyText } from '../../../lib/clipboard'
 import { useT } from '../../../lib/i18n'
 import type { FlowNodeOf } from '../canvas'
 import { patchNode } from '../canvas.actions'
+import { NoteEditor } from './NoteEditor'
 import { NodeFrame } from './NodeFrame'
 
 export function NoteNode({ id, data, selected }: NodeProps<FlowNodeOf<'note'>>) {
@@ -17,16 +18,14 @@ export function NoteNode({ id, data, selected }: NodeProps<FlowNodeOf<'note'>>) 
       title={t('canvas.note')}
       menu={[{ label: t('canvas.menu.copyText'), onSelect: () => copyText(data.text) }]}
     >
-      <textarea
-        aria-label={t('canvas.note')}
+      <NoteEditor
         value={data.text}
         placeholder={t('canvas.notePlaceholder')}
-        onChange={(e) =>
+        onChange={(text) =>
           patchNode(id, (d) =>
-            d.kind === 'note' ? { ...d, text: e.target.value.slice(0, 20_000) } : d,
+            d.kind === 'note' ? { ...d, text: text.slice(0, 20_000) } : d,
           )
         }
-        className="nodrag nowheel h-full w-full resize-none bg-transparent p-3 text-[13px] leading-relaxed text-fg/90 outline-none placeholder:text-fg-muted/60"
       />
     </NodeFrame>
   )

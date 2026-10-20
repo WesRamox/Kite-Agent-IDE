@@ -14,39 +14,50 @@ import {
   setNodeLabel,
 } from '../canvas.actions'
 
-// Cor escolhida pela pessoa (tokens do tema): borda, faixa do cabeçalho e ícone.
+// Cor escolhida pela pessoa (tokens do tema): borda, cabeçalho, fundo, ícone e ponto.
 const COLORS: Record<
   CanvasNodeColor,
-  { border: string; header: string; icon: string; dot: string }
+  { border: string; header: string; bg: string; icon: string; dot: string }
 > = {
   accent: {
-    border: 'border-accent/70',
-    header: 'bg-accent/20',
+    border: 'border-accent/60',
+    header: 'bg-accent/25',
+    bg: 'bg-accent/8',
     icon: 'text-accent',
     dot: 'bg-accent',
   },
-  info: { border: 'border-info/70', header: 'bg-info/20', icon: 'text-info', dot: 'bg-info' },
+  info: {
+    border: 'border-info/60',
+    header: 'bg-info/25',
+    bg: 'bg-info/8',
+    icon: 'text-info',
+    dot: 'bg-info',
+  },
   success: {
-    border: 'border-success/70',
-    header: 'bg-success/20',
+    border: 'border-success/60',
+    header: 'bg-success/25',
+    bg: 'bg-success/8',
     icon: 'text-success',
     dot: 'bg-success',
   },
   warning: {
-    border: 'border-warning/70',
-    header: 'bg-warning/20',
+    border: 'border-warning/60',
+    header: 'bg-warning/25',
+    bg: 'bg-warning/8',
     icon: 'text-warning',
     dot: 'bg-warning',
   },
   danger: {
-    border: 'border-danger/70',
-    header: 'bg-danger/20',
+    border: 'border-danger/60',
+    header: 'bg-danger/25',
+    bg: 'bg-danger/8',
     icon: 'text-danger',
     dot: 'bg-danger',
   },
   merged: {
-    border: 'border-merged/70',
-    header: 'bg-merged/20',
+    border: 'border-merged/60',
+    header: 'bg-merged/25',
+    bg: 'bg-merged/8',
     icon: 'text-merged',
     dot: 'bg-merged',
   },
@@ -133,7 +144,9 @@ export function NodeFrame({
         e.stopPropagation()
         setAt({ x: e.clientX, y: e.clientY })
       }}
-      className={`kite-node flex h-full w-full flex-col rounded-[10px] border bg-surface-1 font-geist text-fg ${
+      className={`kite-node flex h-full w-full flex-col rounded-[10px] border font-geist text-fg ${
+        color?.bg ?? 'bg-surface-1'
+      } ${
         selected ? 'kite-node--selected border-accent' : (color?.border ?? 'border-border')
       }`}
     >
