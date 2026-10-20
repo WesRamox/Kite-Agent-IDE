@@ -31,7 +31,10 @@ export async function scanRepos(root: string, depth = 2): Promise<ScanResult> {
   let visited = 0
   const walk = async (dir: string, level: number): Promise<void> => {
     if (++visited > MAX_DIRS) return
-    const kind = await gitKind(dir)
+    // A pasta aberta sendo ela mesma uma worktree é o workspace daquela worktree, não do
+    // repositório principal dela.
+    const found = await gitKind(dir)
+    const kind = level === 0 && found === 'linked' ? null : found
     if (kind) (kind === 'repo' ? repos : linked).push(await realpath(dir))
     // Uma worktree não tem outros repositórios dentro que interessem.
     if (kind === 'linked' || level >= depth) return

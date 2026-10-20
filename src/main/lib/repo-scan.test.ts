@@ -58,4 +58,9 @@ describe('scanRepos', () => {
       path.join('api', 'lib'),
     ])
   })
+
+  it('pasta aberta que é uma worktree não conta como worktree a resolver', async () => {
+    const dir = await tree({ '.git': 'gitdir: /x/.git/worktrees/wt\n', 'a.txt': 'a' })
+    expect(await scanRepos(dir)).toEqual({ repos: [], linked: [] })
+  })
 })
