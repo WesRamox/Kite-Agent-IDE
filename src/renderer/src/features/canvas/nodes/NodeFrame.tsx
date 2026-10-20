@@ -144,7 +144,11 @@ export function NodeFrame({
         lineClassName="kite-resize-line"
         handleClassName="kite-resize-handle"
       />
+      <Handle type="target" position={Position.Top} className="kite-handle kite-handle--in" />
+      <Handle type="target" position={Position.Bottom} className="kite-handle kite-handle--in" />
       <Handle type="target" position={Position.Left} className="kite-handle kite-handle--in" />
+      <Handle type="source" position={Position.Top} className="kite-handle kite-handle--out" />
+      <Handle type="source" position={Position.Bottom} className="kite-handle kite-handle--out" />
       <Handle type="source" position={Position.Right} className="kite-handle kite-handle--out" />
       <header
         className={`flex h-9 shrink-0 cursor-grab items-center gap-2 rounded-t-[10px] border-b border-border px-2.5 active:cursor-grabbing ${
