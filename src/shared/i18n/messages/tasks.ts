@@ -46,6 +46,8 @@ export default messages(
       'O Kite continua observando o workspace: quando a sua skill criar uma worktree nova, ela entra na tarefa certa sozinha.',
     'discover.found.label': 'Tarefas encontradas',
     'discover.none': 'Nenhuma tarefa com este agrupamento.',
+    'discover.scanDepth': 'Procurar repositórios até',
+    'discover.scanDepthLevels': ({ n }: N) => `${n} ${n === 1 ? 'nível' : 'níveis'}`,
     'discover.noneNew':
       'Nenhuma tarefa nova. Worktrees criadas depois aparecem aqui até você importar.',
     'discover.decidedExpand': ({ n }: N) =>
@@ -244,6 +246,8 @@ export default messages(
       'Kite keeps watching the workspace: when your skill creates a new worktree, it joins the right task on its own.',
     'discover.found.label': 'Tasks found',
     'discover.none': 'No tasks with this grouping.',
+    'discover.scanDepth': 'Look for repositories up to',
+    'discover.scanDepthLevels': ({ n }: N) => `${n} ${n === 1 ? 'level' : 'levels'} deep`,
     'discover.noneNew': 'No new tasks. Worktrees created later show up here until you import them.',
     'discover.decidedExpand': ({ n }: N) =>
       `Show ${n} ${n === 1 ? 'task already imported or dismissed' : 'tasks already imported or dismissed'}`,

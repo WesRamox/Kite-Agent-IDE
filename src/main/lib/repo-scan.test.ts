@@ -15,8 +15,10 @@ describe('scanRepos', () => {
     cleanup = t.cleanup
     return t.dir
   }
+  const rel = (dir: string, list: string[]) => list.map((r) => path.relative(dir, r))
+  const noWorktrees = { depth: 2, worktreeDirs: [] }
 
-  it('acha repositórios até dois níveis e ignora node_modules e pastas ocultas', async () => {
+  it('acha repositórios até a profundidade pedida e ignora node_modules e pastas ocultas', async () => {
     const dir = await tree({
       'api/.git/': '',
       'grupo/web/.git/': '',
@@ -24,8 +26,15 @@ describe('scanRepos', () => {
       'node_modules/pkg/.git/': '',
       '.cache/x/.git/': '',
     })
-    const { repos } = await scanRepos(dir)
-    expect(repos.map((r) => path.relative(dir, r))).toEqual(['api', path.join('grupo', 'web')])
+    expect(rel(dir, (await scanRepos(dir, noWorktrees)).repos)).toEqual([
+      'api',
+      path.join('grupo', 'web'),
+    ])
+    expect(rel(dir, (await scanRepos(dir, { depth: 3, worktreeDirs: [] })).repos)).toEqual([
+      'api',
+      path.join('grupo', 'fundo', 'demais'),
+      path.join('grupo', 'web'),
+    ])
   })
 
   it('acha repositórios dentro de outro repositório', async () => {
@@ -34,33 +43,46 @@ describe('scanRepos', () => {
       'plataforma/api-core/.git/': '',
       'plataforma/web-app/.git/': '',
     })
-    const { repos } = await scanRepos(dir)
-    expect(repos.map((r) => path.relative(dir, r))).toEqual([
+    expect(rel(dir, (await scanRepos(dir, noWorktrees)).repos)).toEqual([
       'plataforma',
       path.join('plataforma', 'api-core'),
       path.join('plataforma', 'web-app'),
     ])
   })
 
-  it('lista worktrees e submódulos (.git arquivo), inclusive dentro de .worktrees', async () => {
+  it('lista worktrees e submódulos (.git arquivo), inclusive na pasta de worktrees oculta', async () => {
     const dir = await tree({
       'api/.git/': '',
       'api/lib/.git': 'gitdir: ../.git/modules/lib\n',
       '.worktrees/PAY-77/web/.git': 'gitdir: /x/.git/worktrees/web\n',
       '.worktrees/PAY-77/TASK.md': '# t\n',
-      '.worktrees/solta/.git': 'gitdir: /x/.git/worktrees/solta\n',
+      '.outra/PAY-78/web/.git': 'gitdir: /x/.git/worktrees/web2\n',
     })
-    const { repos, linked } = await scanRepos(dir)
-    expect(repos.map((r) => path.relative(dir, r))).toEqual(['api'])
-    expect(linked.map((r) => path.relative(dir, r))).toEqual([
+    const { repos, linked } = await scanRepos(dir, {
+      depth: 2,
+      worktreeDirs: [{ dir: path.join(dir, '.worktrees'), levels: 2 }],
+    })
+    expect(rel(dir, repos)).toEqual(['api'])
+    expect(rel(dir, linked)).toEqual([
       path.join('.worktrees', 'PAY-77', 'web'),
-      path.join('.worktrees', 'solta'),
       path.join('api', 'lib'),
     ])
   })
 
+  it('a pasta de worktrees vem do padrão: qualquer nome e qualquer número de níveis', async () => {
+    const dir = await tree({
+      'tarefas/fundo/PAY-1-web/.git': 'gitdir: /x/.git/worktrees/a\n',
+      'tarefas/fundo/x/y/.git': 'gitdir: /x/.git/worktrees/b\n',
+    })
+    const { linked } = await scanRepos(dir, {
+      depth: 0,
+      worktreeDirs: [{ dir: path.join(dir, 'tarefas/fundo'), levels: 1 }],
+    })
+    expect(rel(dir, linked)).toEqual([path.join('tarefas', 'fundo', 'PAY-1-web')])
+  })
+
   it('pasta aberta que é uma worktree não conta como worktree a resolver', async () => {
     const dir = await tree({ '.git': 'gitdir: /x/.git/worktrees/wt\n', 'a.txt': 'a' })
-    expect(await scanRepos(dir)).toEqual({ repos: [], linked: [] })
+    expect(await scanRepos(dir, noWorktrees)).toEqual({ repos: [], linked: [] })
   })
 })

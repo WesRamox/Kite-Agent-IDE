@@ -13,6 +13,8 @@ import {
   renameTask,
   restoreRepo,
   setHidden,
+  setScanDepth,
+  worktreePattern,
 } from './task-config'
 
 const base = DEFAULT_CONFIG
@@ -87,6 +89,26 @@ describe('setHidden e importTasks', () => {
     expect(c.imported).toBe(true)
     expect(isPending(c, t3)).toBe(false)
     expect(isPending(c, t1)).toBe(true)
+  })
+})
+
+describe('varredura', () => {
+  it('profundidade fica entre os limites', () => {
+    expect(setScanDepth(base, 3).scanDepth).toBe(3)
+    expect(setScanDepth(base, 0).scanDepth).toBe(1)
+    expect(setScanDepth(base, 99).scanDepth).toBe(5)
+  })
+
+  it('pasta das worktrees: o padrão configurado só no modo padrão e com {repo}', () => {
+    const custom = { mode: 'pattern' as const, pattern: 'tarefas/{tarefa}/{repo}' }
+    expect(worktreePattern(base)).toBe('.worktrees/{tarefa}/{repo}')
+    expect(worktreePattern({ ...base, grouping: custom })).toBe('tarefas/{tarefa}/{repo}')
+    expect(worktreePattern({ ...base, grouping: { ...custom, mode: 'auto' } })).toBe(
+      '.worktrees/{tarefa}/{repo}',
+    )
+    expect(
+      worktreePattern({ ...base, grouping: { mode: 'pattern', pattern: 'wt/{tarefa}' } }),
+    ).toBe('.worktrees/{tarefa}/{repo}')
   })
 })
 

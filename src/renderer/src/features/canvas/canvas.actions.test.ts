@@ -47,6 +47,7 @@ const openTask = (t: Task) =>
       tasks: [t],
       unassigned: [],
       grouping: { mode: 'auto', pattern: '.worktrees/{tarefa}/{repo}' },
+      scanDepth: 2,
       imported: true,
       sessionLinks: {},
     } satisfies WorkspaceTasks,

@@ -21,6 +21,7 @@ const workspace = (patch: Partial<WorkspaceTasks>): WorkspaceTasks => ({
   tasks: [],
   unassigned: [{ repo: '/ws/api', repoName: 'api', path: '/ws/wt', branch: 'x', head: 'a' }],
   grouping: { mode: 'auto', pattern: '.worktrees/{tarefa}/{repo}' },
+  scanDepth: 2,
   imported: false,
   sessionLinks: {},
   ...patch,

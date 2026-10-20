@@ -12,6 +12,7 @@ import {
   moveWorktree,
   removeRepo,
   restoreRepo,
+  setScanDepth,
   setTaskHidden,
 } from './tasks.actions'
 import { useTasksStore } from './tasks.store'
@@ -19,6 +20,8 @@ import { useTasksStore } from './tasks.store'
 // Tela 4 do canvas "Kite — Tarefas multi-repo" (Discover.dc.html).
 
 const LABEL = 'text-[11px] font-semibold uppercase tracking-[0.08em] text-fg-muted'
+// Mesmos limites do main (task-config): mais fundo que isso a varredura fica lenta.
+const SCAN_DEPTHS = [1, 2, 3, 4, 5]
 
 export function DiscoverPanel() {
   const ws = useTasksStore((s) => s.workspace)
@@ -130,6 +133,20 @@ function DiscoverBody() {
                     </button>
                   </div>
                 ))}
+                <label className="mt-1 flex items-center gap-2 text-xs text-fg-muted">
+                  {tr('discover.scanDepth')}
+                  <select
+                    value={ws.scanDepth}
+                    onChange={(e) => void setScanDepth(Number(e.target.value))}
+                    className="h-6 rounded border border-border bg-surface-0 px-1 text-xs text-fg"
+                  >
+                    {SCAN_DEPTHS.map((n) => (
+                      <option key={n} value={n}>
+                        {tr('discover.scanDepthLevels', { n })}
+                      </option>
+                    ))}
+                  </select>
+                </label>
                 <button
                   type="button"
                   onClick={() => void addExternalRepo()}

@@ -797,9 +797,12 @@ Kite só importa a tarefa e liga o agente a ela.
 - **Varredura acha repos aninhados e o dono das worktrees.** A varredura descia até 2 níveis mas
   parava no primeiro repositório e pulava `.worktrees`: repos dentro de outro repo (ex.:
   `plataforma/api-core`) e worktrees cujo clone está em outra pasta não apareciam. Agora ela
-  desce dentro de repos (ainda até 2 níveis), lista as pastas com `.git` arquivo (worktrees e
-  submódulos), inclusive em `.worktrees/<tarefa>/<repo>`, e pergunta ao git (`worktree list`) o
-  repositório principal de cada uma.
+  desce dentro de repos, lista as pastas com `.git` arquivo (worktrees e submódulos) e pergunta ao
+  git (`worktree list`) o repositório principal de cada uma. Nada de nome de pasta fixo: a pasta
+  de worktrees varrida (mesmo oculta) é a parte fixa do padrão que o Kite usa para tarefas novas
+  (o configurado no modo padrão, senão `.worktrees/{tarefa}/{repo}`), descendo tantos níveis
+  quantos o padrão tem. A profundidade da varredura (1 a 5, padrão 2) é escolhida por workspace
+  na tela Descobrir (`scanDepth`); o limite de pastas visitadas subiu de 2000 para 5000.
 - **Descobrir é uma caixa de entrada.** Antes, importar só escondia as desmarcadas e a tela
   continuava mostrando tudo; tarefa criada depois ia direto para a Central. Agora tarefa nova
   (`pending`) espera na descoberta até ser importada ou descartada, e as já decididas ficam

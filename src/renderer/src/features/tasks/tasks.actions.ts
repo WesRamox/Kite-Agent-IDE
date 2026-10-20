@@ -186,6 +186,8 @@ async function change(
 
 export const setGrouping = (g: TaskGrouping) =>
   change((d) => window.api.task.setGrouping(d, g), t('tasks.groupingError'))
+export const setScanDepth = (depth: number) =>
+  change((d) => window.api.task.setScanDepth(d, depth), t('tasks.groupingError'))
 export const renameTask = (id: string, name: string) =>
   change((d) => window.api.task.rename(d, id, name), t('tasks.renameError'))
 export const moveWorktree = (path: string, target: string) =>

@@ -3,9 +3,15 @@ import path from 'node:path'
 import { DEFAULT_IGNORED_NAMES } from './ignore-rules'
 
 const SKIP = new Set(DEFAULT_IGNORED_NAMES)
-// Pasta oculta onde o Kite (e skills que seguem o mesmo padrão) põem as worktrees das tarefas.
-const WORKTREES_DIR = '.worktrees'
-const MAX_DIRS = 2000
+const MAX_DIRS = 5000
+
+export interface ScanOptions {
+  // Níveis abaixo da pasta aberta.
+  depth: number
+  // Pastas de worktrees de tarefas (a pasta fixa do padrão configurado) e quantos níveis descer
+  // nelas. Varridas mesmo ocultas ou fora do alcance de `depth`.
+  worktreeDirs: { dir: string; levels: number }[]
+}
 
 export interface ScanResult {
   // Repositórios principais: `.git` é uma pasta.
@@ -23,9 +29,13 @@ async function gitKind(dir: string): Promise<'repo' | 'linked' | null> {
 }
 
 // Repositórios na pasta aberta: ela mesma e subpastas até `depth` níveis, inclusive dentro de
-// outro repositório (repos aninhados ou submódulos) e em `.worktrees`. Pula pastas ignoradas
-// (node_modules, dist...) e as demais pastas ocultas.
-export async function scanRepos(root: string, depth = 2): Promise<ScanResult> {
+// outro repositório (repos aninhados ou submódulos), e worktrees nas pastas de worktrees. Pula
+// pastas ignoradas (node_modules, dist...) e as demais pastas ocultas.
+export async function scanRepos(
+  root: string,
+  { depth, worktreeDirs }: ScanOptions,
+): Promise<ScanResult> {
+  const special = new Set(worktreeDirs.map((w) => path.resolve(w.dir)))
   const repos: string[] = []
   const linked: string[] = []
   let visited = 0
@@ -40,30 +50,23 @@ export async function scanRepos(root: string, depth = 2): Promise<ScanResult> {
     if (kind === 'linked' || level >= depth) return
     const entries = await readdir(dir, { withFileTypes: true }).catch(() => [])
     for (const e of entries) {
-      if (!e.isDirectory() || SKIP.has(e.name)) continue
-      if (e.name === WORKTREES_DIR) await walkWorktrees(path.join(dir, e.name))
-      else if (!e.name.startsWith('.')) await walk(path.join(dir, e.name), level + 1)
-    }
-  }
-  // .worktrees/<tarefa>/<repo> ou .worktrees/<repo>: dois níveis, contados à parte para que a
-  // pasta oculta não esgote a profundidade de quem abriu um nível acima.
-  const walkWorktrees = async (dir: string): Promise<void> => {
-    for (const e of await readdir(dir, { withFileTypes: true }).catch(() => [])) {
-      if (!e.isDirectory() || e.name.startsWith('.')) continue
+      if (!e.isDirectory() || SKIP.has(e.name) || e.name.startsWith('.')) continue
       const sub = path.join(dir, e.name)
-      if (++visited > MAX_DIRS) return
-      if ((await gitKind(sub)) === 'linked') {
-        linked.push(await realpath(sub))
-        continue
-      }
-      for (const w of await readdir(sub, { withFileTypes: true }).catch(() => [])) {
-        if (!w.isDirectory() || w.name.startsWith('.')) continue
-        const wt = path.join(sub, w.name)
-        if (++visited > MAX_DIRS) return
-        if ((await gitKind(wt)) === 'linked') linked.push(await realpath(wt))
-      }
+      if (!special.has(path.resolve(sub))) await walk(sub, level + 1)
     }
   }
+  // <pasta>/<tarefa>/<repo> (ou com menos níveis): só worktrees, não desce dentro delas.
+  const walkWorktrees = async (dir: string, levels: number): Promise<void> => {
+    for (const e of await readdir(dir, { withFileTypes: true }).catch(() => [])) {
+      if (!e.isDirectory() || e.name.startsWith('.') || SKIP.has(e.name)) continue
+      if (++visited > MAX_DIRS) return
+      const sub = path.join(dir, e.name)
+      if ((await gitKind(sub)) === 'linked') linked.push(await realpath(sub))
+      else if (levels > 1) await walkWorktrees(sub, levels - 1)
+    }
+  }
+  // Primeiro as pastas de worktrees: são poucas e não podem ficar de fora pelo limite de pastas.
+  for (const w of worktreeDirs) await walkWorktrees(w.dir, w.levels)
   await walk(root, 0)
   return { repos: [...new Set(repos)].sort(), linked: [...new Set(linked)].sort() }
 }

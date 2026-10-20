@@ -78,6 +78,7 @@ const api: Api = {
     discover: invoke('task:discover'),
     watch: invoke('task:watch'),
     setGrouping: invoke('task:setGrouping'),
+    setScanDepth: invoke('task:setScanDepth'),
     rename: invoke('task:rename'),
     move: invoke('task:move'),
     ignore: invoke('task:ignore'),

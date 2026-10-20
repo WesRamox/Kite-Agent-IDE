@@ -58,6 +58,20 @@ export function normalizePattern(pattern: string): string {
   return pattern.replaceAll('{task}', '{tarefa}')
 }
 
+// Pasta fixa do padrão e quantos níveis vêm depois dela: ".worktrees/{tarefa}/{repo}" →
+// { dir: '.worktrees', levels: 2 }. Padrão que começa num marcador (sem pasta fixa): null.
+export function patternBase(pattern: string): { dir: string; levels: number } | null {
+  const parts = normalizePattern(pattern)
+    .trim()
+    .replace(/\\/g, '/')
+    .replace(/^\.?\//, '')
+    .split('/')
+    .filter((p) => p !== '')
+  const first = parts.findIndex((p) => p.includes('{'))
+  if (first <= 0) return null
+  return { dir: parts.slice(0, first).join('/'), levels: parts.length - first }
+}
+
 // ".worktrees/{tarefa}/{repo}" → regex que captura a tarefa no caminho relativo (com '/').
 export function patternRegex(pattern: string): RegExp | null {
   const clean = normalizePattern(pattern)

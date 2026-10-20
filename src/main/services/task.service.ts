@@ -11,8 +11,18 @@ import type { JsonStore } from '../lib/json-store'
 import type { Logger } from '../lib/logger'
 import { scanRepos } from '../lib/repo-scan'
 import * as cfgOps from '../lib/task-config'
-import { DEFAULT_CONFIG, type TaskState, type WorkspaceTaskConfig } from '../lib/task-config'
-import { groupWorktrees, type RepoWorktrees, type TaskOverrides } from '../lib/task-grouping'
+import {
+  DEFAULT_CONFIG,
+  DEFAULT_SCAN_DEPTH,
+  type TaskState,
+  type WorkspaceTaskConfig,
+} from '../lib/task-config'
+import {
+  groupWorktrees,
+  patternBase,
+  type RepoWorktrees,
+  type TaskOverrides,
+} from '../lib/task-grouping'
 import {
   addWorktree,
   commonBranch,
@@ -101,6 +111,7 @@ export class TaskService {
       tasks: full,
       unassigned,
       grouping: cfg.grouping,
+      scanDepth: cfg.scanDepth ?? DEFAULT_SCAN_DEPTH,
       imported: cfg.imported,
       sessionLinks: cfg.sessionLinks,
     }
@@ -190,6 +201,10 @@ export class TaskService {
   ): Promise<WorkspaceTasks> {
     const ws = await this.discover(root)
     return this.update(root, (c) => cfgOps.importTasks(c, ws.tasks, imported, dismissed))
+  }
+
+  setScanDepth(root: string, depth: number): Promise<WorkspaceTasks> {
+    return this.update(root, (c) => cfgOps.setScanDepth(c, depth))
   }
 
   setHidden(root: string, taskId: string, hidden: boolean): Promise<WorkspaceTasks> {
@@ -295,10 +310,7 @@ export class TaskService {
     const first = repos[0]?.path ?? root
     await assertBranchName(this.deps.run, first, branch)
     const key = worktreeDirName(branch)
-    const pattern =
-      cfg.grouping.mode === 'pattern' && cfg.grouping.pattern.includes('{repo}')
-        ? cfg.grouping.pattern
-        : DEFAULT_CONFIG.grouping.pattern
+    const pattern = cfgOps.worktreePattern(cfg)
     const single = repos.length === 1 && first === root
     const plan = repos.map((r) => {
       const repo = r as { path: string; name: string }
@@ -410,7 +422,11 @@ export class TaskService {
 
   private async repos(root: string, cfg: WorkspaceTaskConfig): Promise<string[]> {
     const ignored = new Set(cfg.ignoredRepos ?? [])
-    const scan = await scanRepos(root)
+    const base = patternBase(cfgOps.worktreePattern(cfg))
+    const scan = await scanRepos(root, {
+      depth: cfg.scanDepth ?? DEFAULT_SCAN_DEPTH,
+      worktreeDirs: base ? [{ dir: path.resolve(root, base.dir), levels: base.levels }] : [],
+    })
     // Worktrees achadas na pasta aberta trazem o repositório delas, mesmo que o clone esteja
     // em outra pasta ou num nível que a varredura não alcança.
     const owners = await Promise.all(scan.linked.map((d) => mainWorktree(this.deps.run, d)))

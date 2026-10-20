@@ -1,5 +1,6 @@
 import { z } from 'zod'
 import type { Logger } from '../lib/logger'
+import { MAX_SCAN_DEPTH, MIN_SCAN_DEPTH } from '../lib/task-config'
 import type { TaskService } from '../services/task.service'
 import { registerHandler } from './register'
 import { absPath } from './schemas'
@@ -13,6 +14,12 @@ const grouping = z.object({
 export function registerTaskIpc(tasks: TaskService, log: Logger): void {
   registerHandler('task:discover', z.tuple([absPath]), (r) => tasks.discover(r), log)
   registerHandler('task:watch', z.tuple([absPath]), (r) => tasks.watch(r), log)
+  registerHandler(
+    'task:setScanDepth',
+    z.tuple([absPath, z.number().int().min(MIN_SCAN_DEPTH).max(MAX_SCAN_DEPTH)]),
+    (r, depth) => tasks.setScanDepth(r, depth),
+    log,
+  )
   registerHandler(
     'task:setGrouping',
     z.tuple([absPath, grouping]),

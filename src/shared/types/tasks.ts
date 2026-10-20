@@ -55,6 +55,8 @@ export interface WorkspaceTasks {
   tasks: Task[]
   unassigned: TaskWorktree[]
   grouping: TaskGrouping
+  // Até quantos níveis abaixo da pasta aberta a varredura procura repositórios.
+  scanDepth: number
   // O usuário já passou pela tela de descoberta.
   imported: boolean
   // Vínculos manuais sessão → tarefa (vencem a detecção automática).

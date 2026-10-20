@@ -23,6 +23,7 @@ const ws = (tasks: Task[], imported = true): WorkspaceTasks => ({
   tasks,
   unassigned: [],
   grouping: { mode: 'auto', pattern: '' },
+  scanDepth: 2,
   imported,
   sessionLinks: {},
 })

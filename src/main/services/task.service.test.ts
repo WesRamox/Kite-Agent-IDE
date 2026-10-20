@@ -153,6 +153,29 @@ describe('TaskService', () => {
     expect(task?.worktrees.map((w) => w.repoName)).toEqual(['api', 'web-app'])
   })
 
+  it('procura worktrees na pasta do padrão configurado e repos na profundidade escolhida', async () => {
+    const clone = path.join(base, 'fora/web-app')
+    await mkdir(clone, { recursive: true })
+    await writeFile(path.join(clone, 'a.txt'), 'f')
+    git(clone, 'init', '-q', '-b', 'main')
+    git(clone, 'add', '.')
+    git(clone, 'commit', '-q', '-m', 'i')
+    git(clone, 'worktree', 'add', '-q', '-b', 'PAY-80', path.join(root, 'tarefas/PAY-80/web-app'))
+    const deep = path.join(root, 'a/b/fundo')
+    await mkdir(deep, { recursive: true })
+    git(deep, 'init', '-q', '-b', 'main')
+    const before = await svc.discover(root)
+    expect(before.repos.map((r) => r.name)).not.toContain('web-app')
+    expect(before.scanDepth).toBe(2)
+    await svc.setGrouping(root, { mode: 'pattern', pattern: 'tarefas/{tarefa}/{repo}' })
+    const after = await svc.setScanDepth(root, 3)
+    expect(after.scanDepth).toBe(3)
+    expect(after.repos.map((r) => r.name)).toEqual(expect.arrayContaining(['web-app', 'fundo']))
+    expect(after.tasks.find((t) => t.key === 'PAY-80')?.worktrees.map((w) => w.repoName)).toEqual([
+      'web-app',
+    ])
+  })
+
   it('acha repositórios dentro de outro repositório', async () => {
     const plataforma = path.join(root, 'plataforma')
     await mkdir(path.join(plataforma, 'api-core'), { recursive: true })
