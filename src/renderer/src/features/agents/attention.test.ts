@@ -24,6 +24,7 @@ const session = (patch: Partial<AgentSession> = {}): AgentSession => ({
   firstPrompt: null,
   touchedPaths: [],
   touchedCount: 0,
+  createdWorktrees: [],
   agentTaskId: null,
   ptyId: null,
   startedAt: 0,

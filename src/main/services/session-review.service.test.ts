@@ -16,6 +16,7 @@ const session: AgentSession = {
   firstPrompt: 'Tem algum arquivo faltando commit?',
   touchedPaths: ['/nao-existe/loja/src/a.ts', '/nao-existe/lib/b.ts', '/nao-existe/loja/c.ts'],
   touchedCount: 3,
+  createdWorktrees: [],
   agentTaskId: null,
   ptyId: null,
   startedAt: 0,

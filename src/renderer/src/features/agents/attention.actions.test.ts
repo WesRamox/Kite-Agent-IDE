@@ -28,6 +28,7 @@ function session(patch: Partial<AgentSession>): AgentSession {
     firstPrompt: 'corrige o bug',
     touchedPaths: ['/ws/api/a.ts'],
     touchedCount: 1,
+    createdWorktrees: [],
     agentTaskId: null,
     ptyId: null,
     startedAt: NOW - 100,

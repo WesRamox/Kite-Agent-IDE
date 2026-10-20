@@ -812,3 +812,11 @@ importa a tarefa e liga o agente a ela.
   "Descobrir" da Central. O aviso espera 1,5 s para o agrupamento assentar e não se repete para a
   mesma worktree; o botão procura a tarefa pela worktree na hora do clique (o id pode ter mudado).
   Avisos com botão ficam 15 s na tela.
+- **Agente que criou as worktrees fica ligado à tarefa.** O hook já guarda o comando de shell
+  (`toolDetail`, até 500 caracteres) no `PreToolUse`; o reducer da sessão procura `git worktree
+  add` nele (acompanhando `cd`, `git -C`, aspas e o `/c/` do Git Bash) e guarda as pastas criadas
+  (`createdWorktrees`, só caminhos). Na ligação sessão → tarefa, depois do vínculo manual e do cwd,
+  vale a tarefa da worktree criada mais recente (antes dos arquivos editados, para a sessão que
+  monta uma tarefa nova não ficar presa na anterior). Limite: skill que cria as worktrees por um
+  script (o comando não traz o caminho) não é detectada; aí vale o vínculo pelos arquivos
+  editados ou o manual. `PowerShell` entrou na lista de ferramentas de shell.

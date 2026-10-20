@@ -37,7 +37,14 @@ const EDIT_TOOLS = new Set([
   'replace',
   'edit',
 ])
-const SHELL_TOOLS = new Set(['Bash', 'shell', 'local_shell', 'exec_command', 'run_shell_command'])
+const SHELL_TOOLS = new Set([
+  'Bash',
+  'PowerShell',
+  'shell',
+  'local_shell',
+  'exec_command',
+  'run_shell_command',
+])
 
 // Eventos do Gemini CLI com o nome equivalente do Claude Code (o Codex já usa os mesmos nomes).
 const GEMINI_EVENTS: Record<string, string> = {

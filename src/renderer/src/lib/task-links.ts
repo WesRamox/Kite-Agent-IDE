@@ -5,12 +5,19 @@ function inside(dir: string, target: string): boolean {
   return target === dir || target.startsWith(base)
 }
 
+// Caminho para comparar com o que veio do comando do agente (barras e caixa do Windows, Git
+// Bash): sem barra no fim, só "/", minúsculas.
+function norm(p: string): string {
+  return p.replace(/\\/g, '/').replace(/\/+$/, '').toLowerCase()
+}
+
 function dirsOf(task: Task): string[] {
   return [...(task.folder ? [task.folder] : []), ...task.worktrees.map((w) => w.path)]
 }
 
-// Tarefa de cada sessão: vínculo manual; senão o cwd dentro da tarefa; senão a tarefa onde
-// ficam a maioria dos arquivos editados (sessão aberta na raiz do workspace).
+// Tarefa de cada sessão: vínculo manual; senão o cwd dentro da tarefa; senão a tarefa da última
+// worktree que a sessão criou (a skill que monta a tarefa); senão a tarefa onde ficam a maioria
+// dos arquivos editados (sessão aberta na raiz do workspace).
 export function linkSessions(
   sessions: AgentSession[],
   tasks: Task[],
@@ -29,6 +36,11 @@ export function linkSessions(
       links.set(s.id, byCwd.id)
       continue
     }
+    const byCreated = createdTask(s, tasks)
+    if (byCreated) {
+      links.set(s.id, byCreated.id)
+      continue
+    }
     const votes = new Map<string, number>()
     for (const file of s.touchedPaths) {
       const t = tasks.find((x) => x.worktrees.some((w) => inside(w.path, file)))
@@ -38,6 +50,15 @@ export function linkSessions(
     if (best) links.set(s.id, best[0])
   }
   return links
+}
+
+function createdTask(s: AgentSession, tasks: Task[]): Task | undefined {
+  for (const dir of s.createdWorktrees) {
+    const d = norm(dir)
+    const task = tasks.find((t) => t.worktrees.some((w) => norm(w.path) === d))
+    if (task) return task
+  }
+  return undefined
 }
 
 // Arquivos editados pela sessão em cada worktree da tarefa (chips "api 3 alterados").

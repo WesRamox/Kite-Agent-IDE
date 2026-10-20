@@ -86,6 +86,9 @@ export interface AgentSession {
   // Arquivos editados pelo agente (os mais recentes primeiro, limitado).
   touchedPaths: string[]
   touchedCount: number
+  // Pastas criadas por `git worktree add` nesta sessão (as mais recentes primeiro): o agente que
+  // montou a tarefa fica ligado a ela.
+  createdWorktrees: string[]
   agentTaskId: string | null
   // Terminal do Kite em que o agente roda, se for o caso.
   ptyId: string | null
