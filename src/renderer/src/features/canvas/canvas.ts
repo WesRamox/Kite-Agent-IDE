@@ -1,4 +1,4 @@
-import type { CanvasNodeData, CanvasNodeKind, CanvasState } from '@shared/types'
+import type { CanvasHandleSide, CanvasNodeData, CanvasNodeKind, CanvasState } from '@shared/types'
 import type { Edge, Node, Viewport } from '@xyflow/react'
 
 // Conversão entre o quadro salvo (CanvasState) e o formato do React Flow, e os tamanhos de cada
@@ -13,7 +13,7 @@ export const NODE_SIZE: Record<CanvasNodeKind, { width: number; height: number }
   agent: { width: 620, height: 380 },
   terminal: { width: 620, height: 360 },
   browser: { width: 760, height: 500 },
-  note: { width: 280, height: 220 },
+  note: { width: 400, height: 280 },
   summary: { width: 320, height: 190 },
   code: { width: 620, height: 420 },
 }
@@ -56,9 +56,19 @@ export function newNode(
   }
 }
 
-export function edgeId(source: string, target: string): string {
-  return `e-${source}-${target}`
+// Os dois blocos podem se ligar por mais de um par de lados, então os lados entram no id.
+export function edgeId(c: {
+  source: string
+  target: string
+  sourceHandle?: string | null
+  targetHandle?: string | null
+}): string {
+  return `e-${c.source}-${c.sourceHandle ?? 'right'}-${c.target}-${c.targetHandle ?? 'left'}`
 }
+
+const SIDES: readonly CanvasHandleSide[] = ['top', 'right', 'bottom', 'left']
+const asSide = (h: string | null | undefined): CanvasHandleSide | undefined =>
+  SIDES.find((s) => s === h)
 
 export function toFlowNodes(state: CanvasState): FlowNode[] {
   return state.nodes.map((n) => ({
@@ -72,7 +82,12 @@ export function toFlowNodes(state: CanvasState): FlowNode[] {
 }
 
 export function toFlowEdges(state: CanvasState): Edge[] {
-  return state.edges.map((e) => ({ ...e, type: EDGE_TYPE }))
+  return state.edges.map((e) => ({
+    ...e,
+    sourceHandle: e.sourceHandle ?? 'right',
+    targetHandle: e.targetHandle ?? 'left',
+    type: EDGE_TYPE,
+  }))
 }
 
 const clamp = (v: number, min: number, max: number) => Math.min(max, Math.max(min, Math.round(v)))
@@ -91,7 +106,13 @@ export function fromFlow(nodes: FlowNode[], edges: Edge[], viewport: Viewport): 
         data: n.data,
       }
     }),
-    edges: edges.map(({ id, source, target }) => ({ id, source, target })),
+    edges: edges.map(({ id, source, target, sourceHandle, targetHandle }) => ({
+      id,
+      source,
+      target,
+      sourceHandle: asSide(sourceHandle),
+      targetHandle: asSide(targetHandle),
+    })),
     viewport: {
       x: clamp(viewport.x, -1_000_000, 1_000_000),
       y: clamp(viewport.y, -1_000_000, 1_000_000),

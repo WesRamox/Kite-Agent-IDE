@@ -173,8 +173,8 @@ test('quadro: blocos de nota, navegador local e agente, ligados e salvos', async
     await page.locator('.react-flow__controls-fitview').click()
     await link(
       page,
-      page.locator('.react-flow__node-note .kite-handle--out'),
-      page.locator('.react-flow__node-browser .kite-handle--in'),
+      page.locator('.react-flow__node-note .kite-handle[data-handleid="right"]'),
+      page.locator('.react-flow__node-browser .kite-handle[data-handleid="left"]'),
     )
     await expect(page.locator('.react-flow__edge')).toHaveCount(1)
 
@@ -218,8 +218,10 @@ test('quadro: blocos de nota, navegador local e agente, ligados e salvos', async
     // Cor pelo botão direito e nome com dois cliques.
     const firstNote = page.locator('.react-flow__node-note').first()
     await firstNote.locator('header').click({ button: 'right' })
-    await page.getByRole('button', { name: 'Azul' }).click()
+    await page.getByRole('button', { name: 'Azul', exact: true }).click()
     await expect(firstNote.locator('header')).toHaveClass(/bg-info/)
+    // A cor tinge o bloco todo, não só a borda e o cabeçalho.
+    await expect(firstNote.locator('.kite-node')).toHaveClass(/bg-info\/8/)
     await firstNote.getByTitle('Dois cliques para renomear').dblclick()
     await page.keyboard.type('Plano do Pix')
     await page.keyboard.press('Enter')
@@ -255,7 +257,11 @@ test('quadro: blocos de nota, navegador local e agente, ligados e salvos', async
     await page.locator('.react-flow__controls-fitview').click()
     // Da nota para o terminal (a ligação vale nos dois sentidos); a alça de saída do terminal
     // pode ficar sob o minimapa.
-    await link(page, note.locator('.kite-handle--out'), shell.locator('.kite-handle--in'))
+    await link(
+      page,
+      note.locator('.kite-handle[data-handleid="right"]'),
+      shell.locator('.kite-handle[data-handleid="left"]'),
+    )
     await expect(page.locator('.react-flow__edge')).toHaveCount(1)
     const ids = await expect
       .poll(async () => {
@@ -286,7 +292,7 @@ test('quadro: blocos de nota, navegador local e agente, ligados e salvos', async
         texto: ' + escrito pelo agente',
         modo: 'acrescentar',
       })
-      await expect(noteText).toHaveValue('segredo do quadro + escrito pelo agente')
+      await expect(noteText).toHaveText('segredo do quadro + escrito pelo agente')
       // Bloco que não está ligado: recusado.
       expect(await fromTerminal.call('quadro_ler', { bloco: 'outro' })).toContain('não está ligado')
       await fromNote.call('quadro_enviar', { bloco: ids.term, texto: 'echo mcp > pelo-agente.txt' })

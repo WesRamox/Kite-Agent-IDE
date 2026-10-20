@@ -3,6 +3,7 @@ import {
   Background,
   BackgroundVariant,
   Controls,
+  ConnectionMode,
   MiniMap,
   Panel,
   ReactFlow,
@@ -81,6 +82,7 @@ function Board() {
   const edges = useCanvasStore((s) => s.edges)
   const [viewport] = useState(() => useCanvasStore.getState().viewport)
   const [menu, setMenu] = useState(false)
+  const [connecting, setConnecting] = useState(false)
   const [context, setContext] = useState<{ x: number; y: number; items: MenuItem[] } | null>(null)
   const flow = useReactFlow()
   const t = useT()
@@ -113,7 +115,9 @@ function Board() {
   }
 
   return (
-    <div className="kite-canvas relative h-full w-full bg-surface-0">
+    <div
+      className={`kite-canvas relative h-full w-full bg-surface-0 ${connecting ? 'kite-connecting' : ''}`}
+    >
       <ReactFlow<FlowNode>
         nodes={nodes}
         edges={edges}
@@ -121,7 +125,10 @@ function Board() {
         edgeTypes={edgeTypes}
         onNodesChange={onNodesChange}
         onEdgesChange={onEdgesChange}
+        onConnectStart={() => setConnecting(true)}
+        onConnectEnd={() => setConnecting(false)}
         onConnect={connect}
+        connectionMode={ConnectionMode.Loose}
         isValidConnection={(c) => c.source !== c.target}
         defaultViewport={viewport}
         onMoveEnd={(_event, vp) => setViewport(vp)}

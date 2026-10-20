@@ -277,7 +277,7 @@ export function onEdgesChange(changes: EdgeChange[]): void {
 
 export function connect(c: Connection): void {
   if (c.source === c.target) return
-  const edge: Edge = { ...c, id: edgeId(c.source, c.target), type: EDGE_TYPE }
+  const edge: Edge = { ...c, id: edgeId(c), type: EDGE_TYPE }
   store().set({ edges: addEdge(edge, store().edges) })
   scheduleSave()
 }

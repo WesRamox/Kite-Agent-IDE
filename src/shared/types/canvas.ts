@@ -10,7 +10,9 @@ export type CanvasNodeData = { label?: string; color?: CanvasNodeColor } & (
   | { kind: 'agent'; agentId: string }
   | { kind: 'terminal'; cwd: string }
   | { kind: 'browser'; url: string }
-  | { kind: 'note'; text: string }
+  // `text` é o texto simples (o que o agente lê e escreve); `html` é a versão formatada, só para
+  // a tela. Sem `html` (nota antiga, ou o agente escreveu nela), vale o `text`.
+  | { kind: 'note'; text: string; html?: string }
   | { kind: 'summary'; taskId: string }
   | { kind: 'code'; path?: string; text?: string; language?: string }
 )
@@ -26,10 +28,16 @@ export interface CanvasNode {
   data: CanvasNodeData
 }
 
+// Lado do bloco em que a ligação encosta. Sem lado (quadros antigos): sai pela direita e entra
+// pela esquerda.
+export type CanvasHandleSide = 'top' | 'right' | 'bottom' | 'left'
+
 export interface CanvasEdge {
   id: string
   source: string
   target: string
+  sourceHandle?: CanvasHandleSide
+  targetHandle?: CanvasHandleSide
 }
 
 export interface CanvasState {

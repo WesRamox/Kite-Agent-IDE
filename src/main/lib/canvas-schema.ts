@@ -6,6 +6,7 @@ import type { CanvasState, WorkspaceCanvas } from '@shared/types'
 const id = z.string().min(1).max(200)
 const coord = z.number().finite().min(-1_000_000).max(1_000_000)
 const size = z.number().finite().min(40).max(5000)
+const side = z.enum(['top', 'right', 'bottom', 'left']).optional()
 
 // Nome e cor que a pessoa dá a qualquer bloco.
 const common = {
@@ -19,7 +20,12 @@ const nodeData = z.discriminatedUnion('kind', [
   // dentro das pastas abertas.
   z.object({ kind: z.literal('terminal'), cwd: z.string().min(1).max(4096), ...common }),
   z.object({ kind: z.literal('browser'), url: z.string().max(4000).refine(isWebUrl), ...common }),
-  z.object({ kind: z.literal('note'), text: z.string().max(20_000), ...common }),
+  z.object({
+    kind: z.literal('note'),
+    text: z.string().max(20_000),
+    html: z.string().max(100_000).optional(),
+    ...common,
+  }),
   z.object({ kind: z.literal('summary'), taskId: z.string().min(1).max(4200), ...common }),
   z.object({
     kind: z.literal('code'),
@@ -34,7 +40,9 @@ export const canvasStateSchema = z.object({
   nodes: z
     .array(z.object({ id, x: coord, y: coord, width: size, height: size, data: nodeData }))
     .max(200),
-  edges: z.array(z.object({ id, source: id, target: id })).max(500),
+  edges: z
+    .array(z.object({ id, source: id, target: id, sourceHandle: side, targetHandle: side }))
+    .max(500),
   viewport: z.object({ x: coord, y: coord, zoom: z.number().finite().min(0.05).max(4) }),
 })
 

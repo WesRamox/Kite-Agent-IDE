@@ -62,6 +62,13 @@ const COLORS: Record<
     dot: 'bg-merged',
   },
 }
+// Os quatro lados ligam e recebem ligação (ConnectionMode.Loose no quadro).
+const SIDES = [
+  ['right', Position.Right],
+  ['left', Position.Left],
+  ['top', Position.Top],
+  ['bottom', Position.Bottom],
+] as const
 const COLOR_ORDER: CanvasNodeColor[] = ['accent', 'info', 'success', 'warning', 'danger', 'merged']
 
 interface Props {
@@ -79,7 +86,7 @@ interface Props {
   children: ReactNode
 }
 
-// Moldura comum dos blocos: entrada à esquerda, saída à direita (como no n8n), cabeçalho que
+// Moldura comum dos blocos: pontos de ligação nos quatro lados, cabeçalho que
 // arrasta (duplo clique no nome renomeia), cantos para redimensionar quando selecionado e menu
 // no botão direito.
 export function NodeFrame({
@@ -146,9 +153,7 @@ export function NodeFrame({
       }}
       className={`kite-node flex h-full w-full flex-col rounded-[10px] border font-geist text-fg ${
         color?.bg ?? 'bg-surface-1'
-      } ${
-        selected ? 'kite-node--selected border-accent' : (color?.border ?? 'border-border')
-      }`}
+      } ${selected ? 'kite-node--selected border-accent' : (color?.border ?? 'border-border')}`}
     >
       <NodeResizer
         isVisible={selected}
@@ -157,12 +162,9 @@ export function NodeFrame({
         lineClassName="kite-resize-line"
         handleClassName="kite-resize-handle"
       />
-      <Handle type="target" position={Position.Top} className="kite-handle kite-handle--in" />
-      <Handle type="target" position={Position.Bottom} className="kite-handle kite-handle--in" />
-      <Handle type="target" position={Position.Left} className="kite-handle kite-handle--in" />
-      <Handle type="source" position={Position.Top} className="kite-handle kite-handle--out" />
-      <Handle type="source" position={Position.Bottom} className="kite-handle kite-handle--out" />
-      <Handle type="source" position={Position.Right} className="kite-handle kite-handle--out" />
+      {SIDES.map(([id, position]) => (
+        <Handle key={id} id={id} type="source" position={position} className="kite-handle" />
+      ))}
       <header
         className={`flex h-9 shrink-0 cursor-grab items-center gap-2 rounded-t-[10px] border-b border-border px-2.5 active:cursor-grabbing ${
           color?.header ?? 'bg-surface-2/70'

@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import type { CanvasState } from '@shared/types'
-import { fromFlow, newNode, NODE_SIZE, toFlowEdges, toFlowNodes } from './canvas'
+import { edgeId, fromFlow, newNode, NODE_SIZE, toFlowEdges, toFlowNodes } from './canvas'
 
 const state: CanvasState = {
   nodes: [
@@ -14,13 +14,43 @@ const state: CanvasState = {
       data: { kind: 'browser', url: 'http://localhost:3001/' },
     },
   ],
-  edges: [{ id: 'e1', source: 'n1', target: 'n2' }],
+  edges: [{ id: 'e1', source: 'n1', target: 'n2', sourceHandle: 'bottom', targetHandle: 'top' }],
   viewport: { x: -50, y: 30, zoom: 0.9 },
 }
 
 describe('canvas', () => {
-  it('ida e volta entre o quadro salvo e o React Flow não perde nada', () => {
+  it('ida e volta entre o quadro salvo e o React Flow não perde nada, nem o lado da ligação', () => {
     expect(fromFlow(toFlowNodes(state), toFlowEdges(state), state.viewport)).toEqual(state)
+  })
+
+  it('ligação de quadro antigo (sem lado) sai pela direita e entra pela esquerda', () => {
+    const legacy: CanvasState = { ...state, edges: [{ id: 'e1', source: 'n1', target: 'n2' }] }
+    expect(toFlowEdges(legacy)[0]).toMatchObject({ sourceHandle: 'right', targetHandle: 'left' })
+  })
+
+  it('lado desconhecido não vai para o disco', () => {
+    const [edge] = toFlowEdges(state)
+    if (!edge) throw new Error('sem ligação')
+    const out = fromFlow(
+      [],
+      [{ ...edge, sourceHandle: 'meio', targetHandle: null }],
+      state.viewport,
+    )
+    expect(out.edges[0]).toEqual({
+      id: 'e1',
+      source: 'n1',
+      target: 'n2',
+      sourceHandle: undefined,
+      targetHandle: undefined,
+    })
+  })
+
+  it('o mesmo par de blocos pode se ligar por lados diferentes, com ids diferentes', () => {
+    const base = { source: 'a', target: 'b' }
+    expect(edgeId({ ...base, sourceHandle: 'right', targetHandle: 'left' })).not.toBe(
+      edgeId({ ...base, sourceHandle: 'bottom', targetHandle: 'top' }),
+    )
+    expect(edgeId(base)).toBe(edgeId({ ...base, sourceHandle: 'right', targetHandle: 'left' }))
   })
 
   it('arredonda e limita o que vai para o disco', () => {

@@ -83,10 +83,13 @@ export async function runCanvasTool(call: CanvasToolCall): Promise<CanvasToolRes
     case 'write': {
       const value = call.args.text ?? ''
       if (d.kind === 'note') {
+        // O agente escreve texto simples: a versão formatada deixa de valer.
         patchNode(node.id, (cur) =>
           cur.kind === 'note'
             ? {
-                ...cur,
+                kind: 'note',
+                label: cur.label,
+                color: cur.color,
                 text: (call.args.mode === 'append' ? `${cur.text}${value}` : value).slice(
                   0,
                   20_000,

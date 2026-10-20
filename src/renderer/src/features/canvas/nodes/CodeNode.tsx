@@ -13,6 +13,7 @@ import { monaco, useMonacoTheme } from '../../editor/use-monaco'
 import type { FlowNodeOf } from '../canvas'
 import { pickCodeFile, patchNode, saveCodeFile } from '../canvas.actions'
 import { codeHandles } from '../canvas.registry'
+import { changedLines } from '../line-diff'
 import { useCodeFile } from '../use-code-file'
 import { NodeFrame } from './NodeFrame'
 
@@ -50,12 +51,21 @@ export function CodeNode({ id, data, selected }: NodeProps<FlowNodeOf<'code'>>) 
   const saved = useRef<string | null>(null)
   const [dirty, setDirty] = useState(false)
 
-  // Arquivo mudou no disco: entra no editor, a menos que a pessoa tenha alterações não salvas.
+  // Arquivo mudou no disco (o agente editando): entra no editor, a menos que a pessoa tenha
+  // alterações não salvas. A vista não sai do lugar, exceto para acompanhar o trecho que mudou
+  // (sem marcar nada no código).
   useEffect(() => {
     const editor = editorRef.current
+    const model = editor?.getModel()
     const content = file.data?.content
-    if (!editor || content === undefined || content === saved.current) return
-    if (saved.current === null || editor.getValue() === saved.current) editor.setValue(content)
+    if (!editor || !model || content === undefined || content === saved.current) return
+    if (saved.current === null || editor.getValue() === saved.current) {
+      const range = saved.current === null ? null : changedLines(editor.getValue(), content)
+      const view = editor.saveViewState()
+      editor.executeEdits('disk', [{ range: model.getFullModelRange(), text: content }])
+      editor.restoreViewState(view)
+      if (range) editor.revealLineInCenterIfOutsideViewport(range.start)
+    }
     saved.current = content
     setDirty(editor.getValue() !== content)
   }, [file.data])

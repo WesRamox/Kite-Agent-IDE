@@ -4,8 +4,8 @@ import { copyText } from '../../../lib/clipboard'
 import { useT } from '../../../lib/i18n'
 import type { FlowNodeOf } from '../canvas'
 import { patchNode } from '../canvas.actions'
-import { NoteEditor } from './NoteEditor'
 import { NodeFrame } from './NodeFrame'
+import { NoteEditor } from './NoteEditor'
 
 export function NoteNode({ id, data, selected }: NodeProps<FlowNodeOf<'note'>>) {
   const t = useT()
@@ -19,11 +19,11 @@ export function NoteNode({ id, data, selected }: NodeProps<FlowNodeOf<'note'>>) 
       menu={[{ label: t('canvas.menu.copyText'), onSelect: () => copyText(data.text) }]}
     >
       <NoteEditor
-        value={data.text}
-        placeholder={t('canvas.notePlaceholder')}
-        onChange={(text) =>
+        text={data.text}
+        html={data.html}
+        onChange={({ text, html }) =>
           patchNode(id, (d) =>
-            d.kind === 'note' ? { ...d, text: text.slice(0, 20_000) } : d,
+            d.kind === 'note' ? { ...d, text: text.slice(0, 20_000), html } : d,
           )
         }
       />
