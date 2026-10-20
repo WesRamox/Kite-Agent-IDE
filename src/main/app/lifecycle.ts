@@ -11,6 +11,9 @@ export function startBackground(services: Services, log: Logger): () => void {
     log.warn('não foi possível ler o spool de agentes', { error: errorMessage(err) })
   })
   void services.agentService.init()
+  services.canvasBridge.start().catch((err: unknown) => {
+    log.warn('ferramentas do quadro indisponíveis', { error: errorMessage(err) })
+  })
   const agentTicker = setInterval(() => services.agentService.tick(), 500)
   return () => clearInterval(agentTicker)
 }
@@ -23,4 +26,5 @@ export function disposeServices(services: Services): void {
   services.ptyService.killAll()
   void services.watchService.unwatchAll()
   void services.gitWatchService.unwatchAll()
+  void services.canvasBridge.stop()
 }

@@ -7,6 +7,7 @@ import { Toasts } from '../components/Toasts'
 import { useAgentsSync } from '../features/agents/agents.actions'
 import { useSessionsSync } from '../features/agents/sessions.actions'
 import { useTasksSync } from '../features/tasks/tasks.actions'
+import { useCanvasTools } from '../features/canvas/use-canvas-tools'
 import { useGitSync } from '../features/git/git-sync.actions'
 import { QuickOpen } from '../features/quick-open/QuickOpen'
 import { TaskSwitcher } from '../features/tasks/TaskSwitcher'
@@ -29,6 +30,7 @@ export function App() {
   useAgentsSync()
   useSessionsSync()
   useTasksSync()
+  useCanvasTools()
   useSettingsSync()
   useEffect(() => {
     void useWorkspaceStore.getState().loadRecent()

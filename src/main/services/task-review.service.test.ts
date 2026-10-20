@@ -16,6 +16,8 @@ const task: Task = {
   ],
   hidden: false,
   notes: '',
+  summary: [],
+  rule: [],
 }
 
 const status = (files: number, branch: string | null = 'PAY'): GitStatus => ({

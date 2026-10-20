@@ -16,6 +16,7 @@ files:
 # asar junto com os chunks que ele importa.
 asarUnpack:
   - out/main/kite-hook.js
+  - out/main/kite-mcp.js
   - out/main/chunks/**
   - resources/**
 npmRebuild: true

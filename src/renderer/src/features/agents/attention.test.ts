@@ -95,6 +95,8 @@ describe('attention', () => {
       ],
       hidden: false,
       notes: '',
+      summary: [],
+      rule: [],
     }
     const agent = task({ id: 'ag', status: 'waiting', wsTaskId: ws.id })
     const items = attentionItems([], [agent], 0, [ws])

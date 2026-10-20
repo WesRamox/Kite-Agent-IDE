@@ -1,10 +1,10 @@
 import type { IDockviewPanelHeaderProps } from 'dockview-react'
-import { X } from 'lucide-react'
 import { FileIcon } from '../../components/FileIcon'
 import { useActiveTask, worktreeOf } from '../tasks/tasks.store'
 import { closeFile } from './editor.actions'
 import { useEditorStore } from './editor.store'
 import { useT } from '../../lib/i18n'
+import { TabCloseButton } from '../../components/TabCloseButton'
 
 export function EditorTab({ api, params }: IDockviewPanelHeaderProps<{ path: string }>) {
   const path = params.path
@@ -23,7 +23,7 @@ export function EditorTab({ api, params }: IDockviewPanelHeaderProps<{ path: str
           void closeFile(path)
         }
       }}
-      className="group flex h-full items-center gap-1.5 px-3"
+      className="group flex h-full w-full items-center gap-2 px-3"
     >
       {repo && (
         <span className="rounded bg-surface-3 px-[5px] py-px font-geist-mono text-[10px] text-fg-muted">
@@ -31,19 +31,31 @@ export function EditorTab({ api, params }: IDockviewPanelHeaderProps<{ path: str
         </span>
       )}
       <FileIcon name={api.title ?? ''} kind="file" />
-      <span className={dirty ? 'italic' : ''}>{api.title}</span>
-      <button
-        type="button"
-        aria-label={dirty ? t('editor.closeDirty') : t('editor.close')}
-        onClick={(e) => {
-          e.stopPropagation()
-          void closeFile(path)
-        }}
-        className="relative flex size-4 items-center justify-center rounded hover:bg-surface-3"
-      >
-        {dirty && <span className="size-2 rounded-full bg-fg/80 group-hover:hidden" />}
-        <X size={12} className={dirty ? 'hidden group-hover:block' : ''} />
-      </button>
+      <span className={`${dirty ? 'italic' : ''} text-sm`}>{api.title}</span>
+      {dirty && <span className="size-2 rounded-full bg-fg/80 group-hover:hidden" />}
+      {!dirty && (
+        <TabCloseButton
+          label={t('editor.close')}
+          onClick={(e) => {
+            e.stopPropagation()
+            void closeFile(path)
+          }}
+        />
+      )}
+      {dirty && (
+        <button
+          type="button"
+          aria-label={t('editor.closeDirty')}
+          onClick={(e) => {
+            e.stopPropagation()
+            void closeFile(path)
+          }}
+          className="nodrag ml-auto flex size-6 items-center justify-center rounded-md text-fg-muted opacity-0 transition-all hover:bg-surface-3 hover:text-fg group-hover:opacity-100"
+          title={t('editor.closeDirty')}
+        >
+          <span className="size-2 rounded-full bg-fg/80" />
+        </button>
+      )}
     </div>
   )
 }

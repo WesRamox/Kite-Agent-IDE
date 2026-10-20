@@ -1,7 +1,8 @@
 import type { IDockviewPanelHeaderProps } from 'dockview-react'
-import { SquareTerminal, X } from 'lucide-react'
+import { SquareTerminal } from 'lucide-react'
 import { closeTerminal } from './terminal.actions'
 import { useT } from '../../lib/i18n'
+import { TabCloseButton } from '../../components/TabCloseButton'
 
 export function TerminalTab({ api }: IDockviewPanelHeaderProps) {
   const t = useT()
@@ -13,21 +14,17 @@ export function TerminalTab({ api }: IDockviewPanelHeaderProps) {
           closeTerminal(api.id)
         }
       }}
-      className="group flex h-full items-center gap-1.5 px-3"
+      className="group flex h-full w-full items-center gap-2 px-3"
     >
       <SquareTerminal size={14} className="shrink-0 text-fg-muted" />
-      <span>{api.title}</span>
-      <button
-        type="button"
-        aria-label={t('terminal.close')}
+      <span className="text-sm">{api.title}</span>
+      <TabCloseButton
+        label={t('terminal.close')}
         onClick={(e) => {
           e.stopPropagation()
           closeTerminal(api.id)
         }}
-        className="flex size-4 items-center justify-center rounded hover:bg-surface-3"
-      >
-        <X size={12} />
-      </button>
+      />
     </div>
   )
 }

@@ -3,7 +3,7 @@ import path from 'node:path'
 import { AppException } from './errors'
 import type { GitRunner } from './git-exec'
 import { parseWorktrees } from './git-parse'
-import { normalizePattern, parseTaskMeta, type RepoWorktrees } from './task-grouping'
+import { normalizePattern, parseTaskMeta, type RepoWorktrees, type TaskMeta } from './task-grouping'
 
 export function exists(p: string): Promise<boolean> {
   return stat(p).then(
@@ -95,8 +95,8 @@ const META_FILES: [string, 'json' | 'md'][] = [
   ['TASK.md', 'md'],
 ]
 
-// Título da tarefa no primeiro .kite-task.json ou TASK.md encontrado nas pastas dadas.
-export async function readTaskMeta(dirs: (string | null)[]): Promise<{ title: string | null }> {
+// Título (e resumo) da tarefa no primeiro .kite-task.json ou TASK.md encontrado nas pastas dadas.
+export async function readTaskMeta(dirs: (string | null)[]): Promise<TaskMeta> {
   for (const dir of dirs) {
     if (!dir) continue
     for (const [name, kind] of META_FILES) {
@@ -106,5 +106,5 @@ export async function readTaskMeta(dirs: (string | null)[]): Promise<{ title: st
       if (meta.title) return meta
     }
   }
-  return { title: null }
+  return { title: null, summary: [], rule: [] }
 }

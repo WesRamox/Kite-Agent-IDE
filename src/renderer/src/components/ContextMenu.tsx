@@ -1,5 +1,5 @@
 import { createPortal } from 'react-dom'
-import { useEffect, useRef } from 'react'
+import { useEffect, useRef, type ReactNode } from 'react'
 
 export interface MenuItem {
   label: string
@@ -12,9 +12,11 @@ interface Props {
   y: number
   items: MenuItem[]
   onClose: () => void
+  // Faixa acima dos itens (ex.: as cores de um bloco do quadro).
+  header?: ReactNode
 }
 
-export function ContextMenu({ x, y, items, onClose }: Props) {
+export function ContextMenu({ x, y, items, onClose, header }: Props) {
   const ref = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
@@ -44,6 +46,7 @@ export function ContextMenu({ x, y, items, onClose }: Props) {
       style={{ left, top }}
       className="fixed z-50 min-w-48 rounded-md border border-border bg-surface-2 py-1 shadow-xl"
     >
+      {header}
       {items.map((item) => (
         <button
           key={item.label}

@@ -32,7 +32,7 @@ test('configurações: fonte do editor e do terminal, notificações, idioma e p
       .click()
     const settings = page.getByRole('heading', { name: 'Configurações', level: 1 })
     await expect(settings).toBeVisible()
-    await expect(page.getByRole('radiogroup', { name: 'Tema' }).getByRole('radio')).toHaveCount(6)
+    await expect(page.getByRole('radiogroup', { name: 'Tema' }).getByRole('radio')).toHaveCount(7)
 
     // Idioma: o do sistema (os testes rodam com --lang=pt-BR); inglês disponível.
     const language = page.getByRole('radiogroup', { name: 'Idioma da interface' })

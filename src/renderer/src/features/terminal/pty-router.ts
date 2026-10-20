@@ -1,14 +1,15 @@
 import type { PtyDataEvent, PtyExitEvent } from '@shared/types'
 
-// Encaminha os eventos de PTY (um único listener IPC) para a sessão dona de cada id.
-// Saída que chega antes do registro da sessão fica guardada até ela se registrar.
+// Encaminha os eventos de PTY (um único listener IPC) para as sessões de cada id: o terminal de um
+// agente pode estar numa aba e no quadro ao mesmo tempo. Saída que chega antes do registro da
+// primeira sessão fica guardada até ela se registrar.
 
 interface Handlers {
   data: (event: PtyDataEvent) => void
   exit: (event: PtyExitEvent) => void
 }
 
-const handlers = new Map<string, Handlers>()
+const handlers = new Map<string, Set<Handlers>>()
 const early = new Map<string, PtyDataEvent[]>()
 let installed = false
 
@@ -16,24 +17,27 @@ function install(): void {
   if (installed) return
   installed = true
   window.api.pty.onData((event) => {
-    const h = handlers.get(event.id)
-    if (h) h.data(event)
+    const hs = handlers.get(event.id)
+    if (hs) for (const h of hs) h.data(event)
     else early.set(event.id, [...(early.get(event.id) ?? []), event])
   })
   window.api.pty.onExit((event) => {
     early.delete(event.id)
-    handlers.get(event.id)?.exit(event)
+    for (const h of handlers.get(event.id) ?? []) h.exit(event)
     handlers.delete(event.id)
   })
 }
 
 export function routePty(id: string, h: Handlers): () => void {
   install()
-  handlers.set(id, h)
+  const set = handlers.get(id) ?? new Set<Handlers>()
+  set.add(h)
+  handlers.set(id, set)
   for (const chunk of early.get(id) ?? []) h.data(chunk)
   early.delete(id)
   return () => {
-    handlers.delete(id)
+    set.delete(h)
+    if (set.size === 0 && handlers.get(id) === set) handlers.delete(id)
   }
 }
 

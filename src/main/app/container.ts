@@ -6,11 +6,12 @@ import { app, dialog, safeStorage, shell } from 'electron'
 import { spawn as spawnPty } from 'node-pty'
 import { z } from 'zod'
 import { languageFor } from '@shared/i18n'
-import type { AgentCli, AppSettings } from '@shared/types'
+import type { AgentCli, AgentPreset, AppSettings } from '@shared/types'
 import { agentStateSchema } from '../lib/agent-schemas'
 import { HOOK_TARGETS, wrapperScript } from '../lib/claude-settings'
 import { createGitRunner } from '../lib/git-runner'
 import { setLanguage } from '../lib/i18n'
+import { canvasStoreSchema, type CanvasStore } from '../lib/canvas-schema'
 import { JsonStore } from '../lib/json-store'
 import { logger } from '../lib/logger'
 import { DEFAULT_SETTINGS, settingsSchemaWith } from '../lib/settings-schema'
@@ -22,6 +23,8 @@ import { installMenu } from '../menu'
 import { AgentEventService } from '../services/agent-events.service'
 import { AgentService, type AgentState } from '../services/agent.service'
 import { AppService } from '../services/app.service'
+import { CanvasBridgeService, canvasSocketPath } from '../services/canvas-bridge.service'
+import { CanvasService } from '../services/canvas.service'
 import { FsService } from '../services/fs.service'
 import { GitWatchService } from '../services/git-watch.service'
 import { GitReviewService } from '../services/git-review.service'
@@ -155,6 +158,14 @@ export function createServices(deps: ContainerDeps) {
     pickFolder,
     log: log.child('tasks'),
   })
+  const canvasService = new CanvasService({
+    guard,
+    store: new JsonStore<CanvasStore>(
+      join(app.getPath('userData'), 'canvas.json'),
+      canvasStoreSchema,
+      { workspaces: {} },
+    ),
+  })
   const workspaceService = new WorkspaceService({
     guard,
     store: new JsonStore<WorkspaceState>(
@@ -212,6 +223,16 @@ export function createServices(deps: ContainerDeps) {
     guard,
     join(app.getPath('userData'), 'terminal-sessions'),
   )
+  const hook = hookBundle(log)
+  const canvasBridge = new CanvasBridgeService({
+    socketPath: canvasSocketPath(app.getPath('userData'), process.platform),
+    configDir: join(app.getPath('userData'), 'mcp'),
+    server: { exec: hook.exec, script: hook.mcp },
+    platform: process.platform,
+    presets: async (): Promise<AgentPreset[]> => agents?.presets() ?? [],
+    emit: (call) => window.emit('canvas:toolCall', call),
+    log: log.child('canvas-tools'),
+  })
   agents = new AgentService({
     git: gitService,
     review: gitReview,
@@ -228,6 +249,17 @@ export function createServices(deps: ContainerDeps) {
     ),
     emit: (task) => window.emit('agent:status', task),
     notify: (task) => notifier.agent(task),
+    // Sem a configuração, o agente só não ganha as ferramentas do quadro: nada de travar o início.
+    kiteTools: (id): string | null => {
+      try {
+        return canvasBridge.configFile(`agent:${id}`)
+      } catch (err) {
+        log.warn('não foi possível preparar as ferramentas do quadro', {
+          error: err instanceof Error ? err.message : String(err),
+        })
+        return null
+      }
+    },
   })
   const agentService = agents
   // Hooks do Claude Code (Fase 6). KITE_CLAUDE_SETTINGS isola o settings.json nos testes.
@@ -235,7 +267,6 @@ export function createServices(deps: ContainerDeps) {
   // Um serviço por CLI (Claude Code, Codex, Gemini), todos com o mesmo kite-hook.sh.
   // KITE_CLAUDE_SETTINGS / KITE_CODEX_HOOKS / KITE_GEMINI_SETTINGS isolam os arquivos nos testes.
   const wrapperPath = join(app.getPath('userData'), 'kite-hook.sh')
-  const hook = hookBundle(log)
   const wrapperContent = wrapperScript(hook.exec, hook.script, spoolDir)
   const overrides: Record<AgentCli, string | undefined> = {
     claude: process.env['KITE_CLAUDE_SETTINGS'],
@@ -281,6 +312,8 @@ export function createServices(deps: ContainerDeps) {
     log: log.child('review'),
   })
   return {
+    canvasService,
+    canvasBridge,
     reviewService,
     sessionReview,
     taskService,

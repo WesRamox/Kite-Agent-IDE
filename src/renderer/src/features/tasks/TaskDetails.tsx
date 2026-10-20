@@ -6,6 +6,7 @@ import { useSessionsStore } from '../agents/sessions.store'
 import { linkSessions } from '../../lib/task-links'
 import { setTaskNotes } from './tasks.actions'
 import { useActiveTask, useTasksStore, NO_LINKS } from './tasks.store'
+import { TaskRule, TaskSummary } from './TaskSummary'
 import { t as tr, currentLang, useT } from '../../lib/i18n'
 
 // Painel da direita da tarefa (canvas, tela 2: Task.dc.html, "Detalhes da tarefa").
@@ -50,6 +51,20 @@ export function TaskDetails() {
         <span className={LABEL}>{t('details.task')}</span>
         <span className="text-[15px] font-semibold">{task.name}</span>
       </div>
+
+      {(task.summary.length > 0 || task.folder) && (
+        <div className="flex flex-col gap-2">
+          <span className={LABEL}>{t('details.summary')}</span>
+          <TaskSummary task={task} />
+        </div>
+      )}
+
+      {(task.rule.length > 0 || task.folder) && (
+        <div className="flex flex-col gap-2">
+          <span className={LABEL}>{t('details.rule')}</span>
+          <TaskRule task={task} />
+        </div>
+      )}
 
       <div className="flex flex-col gap-2">
         <span className={LABEL}>{t('details.repos')}</span>

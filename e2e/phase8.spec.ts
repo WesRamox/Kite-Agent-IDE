@@ -87,6 +87,15 @@ test('tarefas multi-repo: descobrir, abrir, editar dois repos, trocar e ligar se
     const details = page.getByRole('complementary', { name: 'Detalhes da tarefa' })
     await expect(details).toContainText('api')
     await expect(details).toContainText('web')
+    // Resumo: sem texto abaixo do título, o pedido pronto; quando o agente escreve, vira o card.
+    await expect(details).toContainText('Sem resumo ainda.')
+    await writeFile(
+      path.join(root, '.worktrees/PAY-412/TASK.md'),
+      '# Checkout com Pix\n\nAceitar Pix no checkout. O pedido muda para pago sozinho.\n',
+    )
+    await expect(details.getByRole('region', { name: 'Resumo' })).toContainText(
+      'Aceitar Pix no checkout.',
+    )
     const apiRoot = path.join(root, '.worktrees/PAY-412/api')
     const webRoot = path.join(root, '.worktrees/PAY-412/web')
     // Abre em "Alterados": por repo, só o que mudou contra a base (nada, por enquanto).

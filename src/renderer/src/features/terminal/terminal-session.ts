@@ -24,6 +24,9 @@ export interface SessionOptions {
     | { kind: 'agent'; taskId: string }
   onExit: (event: PtyExitEvent) => void
   onOpenSearch: () => void
+  // Visualização extra de um agente (no quadro): só impõe o tamanho ao PTY quando tem o foco,
+  // para não desarrumar a aba do mesmo agente aberta ao lado.
+  mirror?: boolean
 }
 
 // Um terminal: instância do xterm + addons + o PTY no main.
@@ -178,8 +181,17 @@ export class TerminalSession {
     this.ptyId = id
     this.term.onData((data) => void window.api.pty.write(id, data))
     this.term.onBinary((data) => void window.api.pty.write(id, data))
-    this.term.onResize(({ cols, rows }) => this.syncSize(cols, rows))
-    this.syncSize(this.term.cols, this.term.rows)
+    this.term.onResize(({ cols, rows }) => {
+      if (!this.options.mirror || this.hasFocus()) this.syncSize(cols, rows)
+    })
+    if (!this.options.mirror) this.syncSize(this.term.cols, this.term.rows)
+    // O mesmo agente pode aparecer numa aba e no quadro, com tamanhos diferentes: quem recebe o
+    // foco impõe o seu ao PTY, e o agente redesenha a tela para ele.
+    this.term.textarea?.addEventListener('focus', () => {
+      this.fit()
+      this.lastSize = { cols: 0, rows: 0 }
+      this.syncSize(this.term.cols, this.term.rows)
+    })
   }
 
   // Ajusta ao tamanho do contêiner (ignora quando o painel está oculto).
@@ -221,6 +233,29 @@ export class TerminalSession {
 
   write(text: string): void {
     this.term.write(text)
+  }
+
+  // Digita no shell como se fosse a pessoa (ex.: iniciar um agente no terminal do quadro).
+  type(text: string): void {
+    if (this.ptyId) void window.api.pty.write(this.ptyId, text)
+  }
+
+  clear(): void {
+    this.term.clear()
+  }
+
+  // Fim do que está na tela (texto puro), para um agente ler a saída deste terminal.
+  snapshot(lines = 200): string {
+    const buffer = this.term.buffer.active
+    const out: string[] = []
+    for (let i = Math.max(0, buffer.length - lines); i < buffer.length; i++) {
+      out.push(buffer.getLine(i)?.translateToString(true) ?? '')
+    }
+    return out.join('\n').replace(/\n+$/, '')
+  }
+
+  private hasFocus(): boolean {
+    return this.term.textarea !== undefined && document.activeElement === this.term.textarea
   }
 
   isRunning(): boolean {

@@ -54,6 +54,25 @@
   --color-merged: #a78bfa;
 }
 
+/* Preto vivo: quase preto, com as cores saturadas do Bearded Theme Vivid Black. */
+[data-theme='vivid'] {
+  color-scheme: dark;
+  --color-surface-0: #0e0e11;
+  --color-surface-1: #121215;
+  --color-surface-2: #1a1a1f;
+  --color-surface-3: #24242b;
+  --color-border: #2a2a32;
+  --color-fg: #e4e4e8;
+  --color-fg-muted: #8c8c98;
+  --color-accent: #28a9ff;
+  --color-accent-fg: #04121c;
+  --color-success: #42dd76;
+  --color-warning: #ffb638;
+  --color-danger: #ff4d5e;
+  --color-info: #14e5d4;
+  --color-merged: #a95eff;
+}
+
 [data-theme='midnight'] {
   color-scheme: dark;
   --color-surface-0: #0f1115;
@@ -187,4 +206,196 @@ body.kite-resizing {
 }
 body.kite-resizing *:not([role='separator']) {
   pointer-events: none;
+}
+
+/* Quadro (React Flow) nas cores do tema. As variáveis do React Flow ficam ligadas aos tokens, e
+   as ligações seguem o desenho do n8n: curva discreta, entrada em barrinha e saída redonda. */
+.kite-canvas .react-flow {
+  --xy-background-color: var(--color-surface-0);
+  --xy-background-pattern-color: color-mix(in srgb, var(--color-fg-muted) 28%, transparent);
+  --xy-node-border-radius: 10px;
+  --xy-minimap-background-color: var(--color-surface-1);
+  --xy-minimap-mask-background-color: color-mix(in srgb, var(--color-surface-0) 70%, transparent);
+  --xy-minimap-mask-stroke-color: var(--color-border);
+  --xy-minimap-node-background-color: var(--color-surface-3);
+  --xy-minimap-node-stroke-color: var(--color-border);
+  --xy-controls-button-background-color: var(--color-surface-2);
+  --xy-controls-button-background-color-hover: var(--color-surface-3);
+  --xy-controls-button-color: var(--color-fg-muted);
+  --xy-controls-button-color-hover: var(--color-fg);
+  --xy-controls-button-border-color: var(--color-border);
+  --xy-controls-box-shadow: 0 8px 24px rgb(0 0 0 / 0.25);
+  --xy-selection-background-color: color-mix(in srgb, var(--color-accent) 10%, transparent);
+  --xy-selection-border: 1px dashed var(--color-accent);
+  --xy-resize-background-color: var(--color-accent);
+  --xy-handle-background-color: var(--color-fg-muted);
+  --xy-handle-border-color: var(--color-surface-1);
+}
+
+.kite-canvas .react-flow__controls {
+  overflow: hidden;
+  border: 1px solid var(--color-border);
+  border-radius: 8px;
+}
+.kite-canvas .react-flow__minimap {
+  overflow: hidden;
+  border: 1px solid var(--color-border);
+  border-radius: 8px;
+}
+
+.kite-node {
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.12);
+  transition:
+    border-color 0.15s ease-out,
+    box-shadow 0.15s ease-out;
+}
+.kite-node:hover {
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.16);
+}
+.kite-node--selected {
+  box-shadow:
+    0 0 0 2px var(--color-surface-0),
+    0 0 0 3px color-mix(in srgb, var(--color-accent) 70%, transparent),
+    0 4px 12px rgba(0, 0, 0, 0.16);
+}
+
+/* Um ponto em cada lado do bloco. Discreto em repouso; forte quando o mouse está no bloco, o bloco
+   está selecionado ou há uma ligação sendo arrastada. `scale` (e não `transform`) para não
+   brigar com o posicionamento de cada lado. */
+.kite-canvas .react-flow__handle.kite-handle {
+  width: 12px;
+  height: 12px;
+  border: 2px solid var(--color-surface-1);
+  border-radius: 9999px;
+  background: var(--color-fg-muted);
+  opacity: 0;
+  transition:
+    opacity 0.15s ease-out,
+    background 0.15s ease-out,
+    scale 0.15s ease-out;
+}
+.kite-canvas .react-flow__node:hover .kite-handle,
+.kite-canvas .react-flow__node.selected .kite-handle,
+.kite-canvas.kite-connecting .kite-handle {
+  opacity: 1;
+}
+.kite-canvas .react-flow__handle.kite-handle:hover,
+.kite-canvas .react-flow__handle.kite-handle.connectingto,
+.kite-canvas .react-flow__handle.kite-handle.valid {
+  background: var(--color-accent);
+  scale: 1.35;
+}
+
+/* Nota com formatação: a dica some assim que há qualquer conteúdo; listas voltam a ter marcador
+   (o reset do Tailwind tira). */
+.kite-note-editor:empty::before {
+  content: attr(data-placeholder);
+  color: color-mix(in srgb, var(--color-fg-muted) 60%, transparent);
+  pointer-events: none;
+}
+.kite-note-editor ul {
+  list-style: disc;
+  padding-left: 1.25rem;
+}
+.kite-note-editor ol {
+  list-style: decimal;
+  padding-left: 1.25rem;
+}
+
+.kite-canvas .kite-resize-line {
+  border-color: transparent;
+}
+.kite-canvas .kite-resize-handle {
+  width: 9px;
+  height: 9px;
+  border: 2px solid var(--color-surface-1);
+  border-radius: 3px;
+  background: var(--color-accent);
+}
+
+.kite-edge-hit {
+  fill: none;
+  stroke: transparent;
+  stroke-width: 24;
+  pointer-events: stroke;
+}
+.kite-edge {
+  fill: none;
+  stroke: color-mix(in srgb, var(--color-fg-muted) 40%, transparent);
+  stroke-width: 1.5;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  transition:
+    stroke 0.2s cubic-bezier(0.4, 0, 0.2, 1),
+    stroke-width 0.2s cubic-bezier(0.4, 0, 0.2, 1),
+    filter 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  pointer-events: none;
+  filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.1));
+}
+.kite-edge:hover {
+  stroke: color-mix(in srgb, var(--color-fg-muted) 70%, transparent);
+  stroke-width: 2;
+  filter: drop-shadow(0 3px 8px rgba(0, 0, 0, 0.15));
+}
+.kite-edge--active {
+  stroke: var(--color-accent);
+  stroke-width: 2;
+  filter: drop-shadow(0 0 8px color-mix(in srgb, var(--color-accent) 40%, transparent));
+}
+/* O fluxo: animação suave que corre da saída para a entrada. */
+.kite-edge-flow {
+  fill: none;
+  stroke: var(--color-accent);
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-dasharray: 4 10;
+  animation: kite-edge-flow 1s linear infinite;
+  pointer-events: none;
+  filter: drop-shadow(0 0 6px color-mix(in srgb, var(--color-accent) 30%, transparent));
+}
+.kite-edge-drag {
+  fill: none;
+  stroke: var(--color-accent);
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-dasharray: 6 8;
+  animation: kite-edge-flow 0.6s linear infinite;
+  filter: drop-shadow(0 0 6px color-mix(in srgb, var(--color-accent) 30%, transparent));
+}
+.kite-edge-drag-end {
+  fill: var(--color-surface-1);
+  stroke: var(--color-accent);
+  stroke-width: 2;
+  filter: drop-shadow(0 2px 6px rgba(0, 0, 0, 0.2));
+}
+.kite-edge-button {
+  animation: kite-pop 0.14s ease-out;
+}
+.kite-empty-add {
+  animation: kite-breathe 2.4s ease-in-out infinite;
+}
+
+@keyframes kite-edge-flow {
+  to {
+    stroke-dashoffset: -14;
+  }
+}
+@keyframes kite-pop {
+  from {
+    opacity: 0;
+    transform: translate(-50%, -50%) scale(0.6);
+  }
+}
+@keyframes kite-breathe {
+  50% {
+    border-color: color-mix(in srgb, var(--color-accent) 55%, transparent);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .kite-edge-flow,
+  .kite-edge-drag,
+  .kite-empty-add {
+    animation: none;
+  }
 }

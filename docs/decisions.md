@@ -728,3 +728,63 @@ Decisões fáceis de desfazer, não cobertas pelo `AGENTS.md`. Mais recente no f
   contêiner cria um `GitReviewService` e passa a eles.
 - **Meta de cobertura do renderer em 18%**, com testes das ações do painel Git (stage, commit,
   worktrees) e de tarefas (store e `loadTasks`).
+
+## Resumo da tarefa e tema Preto vivo
+
+- **Resumo nos detalhes da tarefa** (desvio do canvas, pedido do usuário): o texto logo abaixo
+  do título no `TASK.md` vira um card só, na cor de destaque do tema. A primeira versão, um card
+  por seção `## ...` em cores diferentes, foi recusada: picotava demais. O Kite não gera o texto:
+  o agente escreve no arquivo (o botão "Copiar pedido para o agente" traz o pedido pronto) e o
+  painel relê sozinho quando o `TASK.md` muda.
+- **Tema Preto vivo**, inspirado no Bearded Theme Vivid Black: quase preto e cores saturadas no
+  código e no terminal. A paleta de sintaxe ganhou `italic` (lista de papéis em itálico, no lugar
+  de `italicComments`) e `identifier` opcional; nos outros temas nada muda.
+
+## Quadro (estilo n8n) e workflows
+
+- **Aba, não barra lateral.** O quadro abre como aba do contexto atual (botão na barra de
+  atividades), para ficar lado a lado com o código num split do dockview. É um só: aberto em
+  outra tarefa, ele vem para a atual.
+- **React Flow (`@xyflow/react`)**, aprovado pelo usuário: arrastar, zoom, alças e curvas prontos,
+  da mesma família do Vue Flow que o n8n usa. As cores vêm dos tokens do tema por variáveis CSS.
+- **Blocos:** terminal de agente, navegador, nota e resumo da tarefa. Ligações só desenham
+  relação (não executam nada). A linha corre enquanto o agente de origem está trabalhando.
+- **Terminal no quadro** é uma visualização a mais do PTY do agente (o `pty-router` aceita várias
+  sessões por PTY). Ela só impõe o tamanho ao PTY quando recebe o foco, para não desarrumar a aba
+  do mesmo agente.
+- **Navegador com a web toda** (o usuário começou pedindo só telas locais e depois pediu a
+  internet). É um `<webview>` (`webviewTag`), não iframe: num iframe o login das telas não
+  guardaria cookie (terceiro). Travas no main: só http(s), sem preload, sem Node, sandbox,
+  sessão própria (`persist:kite-browser`) e câmera, microfone, localização e afins negados. O que
+  não é endereço vira pesquisa no Google.
+- **Bloco de código**: arquivo da tarefa (escolhido pela busca de arquivos, salvo com Ctrl+S) ou
+  rascunho guardado no quadro. Tem modelo próprio do Monaco, separado da aba do mesmo arquivo, e
+  relê o arquivo quando ele muda no disco, se não houver alteração por salvar.
+- **Cor e nome por bloco** (botão direito e dois cliques no nome), guardados no quadro.
+- **Ferramentas do quadro para os agentes** (MCP): o `kite-mcp`, rodado com o binário do Kite em
+  modo Node, conversa com o Kite por um socket na pasta de perfil e o renderer executa o pedido
+  nos blocos vivos. O agente só alcança os blocos ligados ao bloco dele: ligar é dar acesso.
+  Não mexe na configuração global do Claude Code: o Kite passa `--mcp-config` (um arquivo por
+  agente ou bloco, que diz quem chama) só aos agentes que ele mesmo abre, no fim da linha de
+  comando (o `--mcp-config` aceita vários valores e engoliria o prompt).
+- **Regra de negócio na aba da tarefa**: a seção `## Regra de negócio` do `TASK.md`, num card
+  colorido pelo veredito da skill do usuário (✅ verde, ❌ vermelho, ⚠️ amarelo).
+- **Terminal comum no quadro** (sem agente), na pasta da tarefa aberta (ou na pasta aberta). O
+  shell é do bloco e fecha com ele. Pelo botão direito, "Iniciar <agente> aqui" digita o comando do
+  agente configurado: é o jeito de abrir um subagente ao lado do principal.
+- **Botão direito** em cada bloco (itens do tipo + duplicar, desligar e remover), no fundo (cria o
+  bloco onde clicou) e na ligação (remover).
+- **Workflows com nome:** cada pasta guarda vários quadros (`userData/canvas.json`), salvos sozinhos
+  pouco depois de cada mudança, com o estado ("Salvo") no canto. Apagar pede confirmação.
+- **Ícones sem fundo colorido**: os quadradinhos coloridos atrás dos ícones foram recusados por
+  "cara de IA".
+
+## Correções encontradas no caminho
+
+- **"Cannot have two HTML5 backends at the same time"** (já acontecia no 0.1.6): cada árvore de
+  arquivos criava o próprio react-dnd e, ao trocar de contexto, a do workspace e a da tarefa se
+  cruzavam. Agora há um só `DndProvider` na raiz e as árvores recebem o mesmo `dndManager`.
+- **Descobertas de tarefas em fila** no `TaskService`: a do watcher de worktrees e a pedida pelo
+  renderer (TASK.md mudou) se cruzavam, e a mais antiga chegava por último, apagando o resumo.
+- Limite conhecido: se a pasta `.worktrees` é criada com o Kite aberto, o watcher não vê o que muda
+  dentro dela até reabrir a pasta (o inotify perde as subpastas criadas de uma vez).

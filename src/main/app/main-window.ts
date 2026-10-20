@@ -1,6 +1,8 @@
 import { join } from 'node:path'
-import { app, BrowserWindow, shell } from 'electron'
+import { app, BrowserWindow, session, shell } from 'electron'
 import type { EventChannel, EventChannels } from '@shared/ipc-contract'
+import { BROWSER_PARTITION } from '@shared/browser'
+import { isWebUrl } from '@shared/web-url'
 import type { Logger } from '../lib/logger'
 
 // A janela principal do momento (fecha e reabre no macOS) e o envio de eventos para ela.
@@ -45,6 +47,8 @@ export function createMainWindow(background: string, log: Logger): BrowserWindow
       nodeIntegration: false,
       sandbox: true,
       webSecurity: true,
+      // Navegador do quadro. Travado abaixo: só http(s), sem preload e sem Node.
+      webviewTag: true,
       // DevTools desligado; só em dev, com KITE_DEVTOOLS=1, para depurar o renderer.
       devTools: !app.isPackaged && process.env['KITE_DEVTOOLS'] === '1',
     },
@@ -67,6 +71,8 @@ export function createMainWindow(background: string, log: Logger): BrowserWindow
     if (devUrl && url.startsWith(devUrl)) return
     event.preventDefault()
   })
+
+  lockBrowserNodes(win)
 
   // Erros da interface vão para o log (e o arquivo de log) também no app instalado; o resto do
   // console só em desenvolvimento.
@@ -92,4 +98,40 @@ export function createMainWindow(background: string, log: Logger): BrowserWindow
   }
 
   return win
+}
+
+// O navegador do quadro (<webview>) roda numa sessão própria, sem preload e sem Node, e só abre
+// http e https. Janela nova vira navegação no próprio bloco. Câmera, microfone, localização e
+// afins ficam negados: são sites de fora, dentro do Kite.
+function lockBrowserNodes(win: BrowserWindow): void {
+  const browser = session.fromPartition(BROWSER_PARTITION)
+  const allowed = new Set(['fullscreen', 'clipboard-sanitized-write'])
+  browser.setPermissionRequestHandler((_wc, permission, callback) =>
+    callback(allowed.has(permission)),
+  )
+  browser.setPermissionCheckHandler((_wc, permission) => allowed.has(permission))
+
+  win.webContents.on('will-attach-webview', (event, prefs, params) => {
+    delete prefs.preload
+    prefs.nodeIntegration = false
+    prefs.nodeIntegrationInSubFrames = false
+    prefs.contextIsolation = true
+    prefs.sandbox = true
+    prefs.webSecurity = true
+    if (!isWebUrl(params.src ?? '') || params.partition !== BROWSER_PARTITION) {
+      event.preventDefault()
+    }
+  })
+  win.webContents.on('did-attach-webview', (_event, guest) => {
+    guest.setWindowOpenHandler(({ url }) => {
+      if (isWebUrl(url)) void guest.loadURL(url)
+      return { action: 'deny' }
+    })
+    guest.on('will-navigate', (event, url) => {
+      if (!isWebUrl(url)) event.preventDefault()
+    })
+    guest.on('will-redirect', (event, url) => {
+      if (!isWebUrl(url)) event.preventDefault()
+    })
+  })
 }

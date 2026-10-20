@@ -104,6 +104,14 @@ export default messages(
     'details.notes': 'Notas',
     'details.notesLabel': 'Notas da tarefa',
     'details.notesPlaceholder': 'Anotações sobre a tarefa (ficam só no Kite).',
+    'details.summary': 'Resumo',
+    'details.summaryEmpty': 'Sem resumo ainda. O agente pode escrever um no TASK.md da tarefa.',
+    'details.summaryCopy': 'Copiar pedido para o agente',
+    'details.summaryCopied': 'Pedido copiado. Cole no terminal do agente.',
+    'details.rule': 'Regra de negócio',
+    'details.ruleEmpty': 'Sem regra de negócio ainda.',
+    'details.summaryPrompt': ({ file }: { file: string }) =>
+      `Escreva no arquivo ${file}, logo abaixo do título, um resumo do que está sendo feito nesta tarefa: um parágrafo de até 300 caracteres, frases curtas e linguagem simples, sem nome de arquivo, função ou código. Depois, numa seção "## Regra de negócio", diga em até 300 caracteres a regra de negócio da empresa que a tarefa toca: comece com ✅ se a tarefa respeita a regra, ❌ se diverge ou ⚠️ se há dúvida, e diga a regra numa frase de gente. Não mexa no título. Se o plano mudar, atualize os dois.`,
     'details.noPR': 'sem PR',
     'details.pr': ({ number, state }: { number: number; state: string }) =>
       `PR #${number} ${state}`,
@@ -283,6 +291,14 @@ export default messages(
     'details.notes': 'Notes',
     'details.notesLabel': 'Task notes',
     'details.notesPlaceholder': 'Notes about the task (kept only in Kite).',
+    'details.summary': 'Summary',
+    'details.summaryEmpty': "No summary yet. The agent can write one in the task's TASK.md.",
+    'details.summaryCopy': 'Copy request for the agent',
+    'details.summaryCopied': 'Request copied. Paste it in the agent terminal.',
+    'details.rule': 'Business rule',
+    'details.ruleEmpty': 'No business rule yet.',
+    'details.summaryPrompt': ({ file }: { file: string }) =>
+      `In ${file}, right below the title, write a summary of what is being done in this task: one paragraph of at most 300 characters, short sentences in plain language, no file, function or code names. Then, in a "## Regra de negócio" section, state in at most 300 characters the company business rule the task touches: start with ✅ if the task follows the rule, ❌ if it diverges or ⚠️ if unsure, and state the rule in one plain sentence. Keep the title. If the plan changes, update both.`,
     'details.noPR': 'no PR',
     'details.pr': ({ number, state }: { number: number; state: string }) =>
       `PR #${number} ${state}`,

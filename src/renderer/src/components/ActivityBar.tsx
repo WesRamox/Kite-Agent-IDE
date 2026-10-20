@@ -2,7 +2,8 @@ import { useAttentionGroups } from '../features/agents/use-attention'
 import { VIEWS } from '../lib/views'
 import { useLayoutStore } from '../stores/layout.store'
 import { KiteLogo } from './KiteLogo'
-import { Settings } from 'lucide-react'
+import { Settings, Workflow } from 'lucide-react'
+import { openCanvas } from '../features/canvas/canvas.actions'
 import { openSettings } from '../features/settings/settings.actions'
 import { useT } from '../lib/i18n'
 
@@ -45,6 +46,16 @@ export function ActivityBar() {
           </button>
         )
       })}
+      {/* Quadro: abre como aba, ao lado do que já estiver aberto (não é uma barra lateral). */}
+      <button
+        type="button"
+        title={t('activity.canvas')}
+        aria-label={t('activity.canvas')}
+        onClick={openCanvas}
+        className="flex size-9 items-center justify-center rounded-lg text-fg-muted transition-colors hover:bg-surface-2 hover:text-fg"
+      >
+        <Workflow size={18} strokeWidth={1.8} />
+      </button>
       <button
         type="button"
         title={t('activity.settings')}

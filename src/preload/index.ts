@@ -95,6 +95,14 @@ const api: Api = {
     create: invoke('task:create'),
     onChanged: subscribe('task:changed'),
   },
+  canvas: {
+    load: invoke('canvas:load'),
+    save: invoke('canvas:save'),
+    toolReply: invoke('canvas:toolReply'),
+    launchCommand: invoke('canvas:launchCommand'),
+    capture: invoke('canvas:capture'),
+    onToolCall: subscribe('canvas:toolCall'),
+  },
   review: {
     task: invoke('review:task'),
     changes: invoke('review:changes'),
