@@ -10,6 +10,7 @@ import { useExplorerStore } from '../explorer/explorer.store'
 import { useQuickOpenStore } from '../quick-open/quick-open.store'
 import { openAgentTerminal } from '../agents/agents.actions'
 import { useAgentsStore } from '../agents/agents.store'
+import { pendingTaskWith, unannounced } from './new-tasks'
 import { taskContext, useTasksStore } from './tasks.store'
 import { closeModal } from '../../stores/modal.store'
 import { t } from '../../lib/i18n'
@@ -45,6 +46,7 @@ export async function loadTasks(dir: string, opts: { fromOpen?: boolean } = {}):
 async function applyWorkspace(ws: WorkspaceTasks): Promise<void> {
   const before = store().workspace
   store().set({ workspace: ws })
+  scheduleAnnounce()
   // Tarefa aberta ganhou uma worktree (criada por fora): libera e carrega a nova raiz.
   const active = store().activeTaskId
   const task = ws.tasks.find((t) => t.id === active)
@@ -223,6 +225,42 @@ export async function importTasks(imported: string[], dismissed: string[]): Prom
   if (!ws) return
   closeDiscover()
   toast.info(t('tasks.imported', { n: imported.length }))
+}
+
+// Aviso de tarefa nova (worktrees criadas por uma skill ou à mão com o Kite aberto). Espera o
+// agrupamento assentar: a skill cria uma worktree por vez.
+const ANNOUNCE_DELAY_MS = 1500
+const announced = new Set<string>()
+let announceTimer: ReturnType<typeof setTimeout> | undefined
+
+function scheduleAnnounce(): void {
+  clearTimeout(announceTimer)
+  announceTimer = setTimeout(announceNewTasks, ANNOUNCE_DELAY_MS)
+}
+
+function announceNewTasks(): void {
+  const ws = store().workspace
+  if (!ws) return
+  const fresh = unannounced(ws, announced)
+  for (const task of fresh) for (const w of task.worktrees) announced.add(w.path)
+  // Com a descoberta aberta, a tarefa já está à vista.
+  if (fresh.length === 0 || getDockApi()?.getPanel(DISCOVER_PANEL_ID)) return
+  const [first] = fresh
+  if (fresh.length === 1 && first?.worktrees[0]) {
+    const anchor = first.worktrees[0].path
+    toast.action(t('tasks.newDetected', { name: first.name }), {
+      label: t('tasks.importNow'),
+      run: () => {
+        const task = pendingTaskWith(store().workspace, anchor)
+        if (task) void importTasks([task.id], [])
+      },
+    })
+    return
+  }
+  toast.action(t('tasks.newDetectedMany', { n: fresh.length }), {
+    label: t('tasks.reviewNew'),
+    run: openDiscover,
+  })
 }
 
 // "Nova tarefa" (Fase 10): cria as worktrees, abre a tarefa e, se pedido, o agente na pasta dela.

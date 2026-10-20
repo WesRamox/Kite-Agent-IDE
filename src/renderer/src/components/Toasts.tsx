@@ -22,6 +22,18 @@ export function Toasts() {
           className={`pointer-events-auto flex items-start gap-2 rounded-md border-l-4 bg-surface-3 px-3 py-2 text-fg shadow-lg ${KIND_CLASS[t.kind]}`}
         >
           <span className="flex-1 select-text">{t.message}</span>
+          {t.action && (
+            <button
+              type="button"
+              onClick={() => {
+                t.action?.run()
+                dismiss(t.id)
+              }}
+              className="shrink-0 rounded px-1.5 text-xs font-semibold text-accent hover:bg-surface-2"
+            >
+              {t.action.label}
+            </button>
+          )}
           <button
             type="button"
             aria-label={tr('toast.close')}

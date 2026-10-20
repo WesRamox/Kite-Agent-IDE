@@ -2,6 +2,7 @@
 import type { WorkspaceTasks } from '@shared/types'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { deferred, installApi, ok } from '../../test/fake-api'
+import { useToastStore } from '../../stores/toast.store'
 import { useWorkspaceStore } from '../../stores/workspace.store'
 import { useTasksStore } from './tasks.store'
 
@@ -66,5 +67,64 @@ describe('loadTasks', () => {
     await loading
     expect(useTasksStore.getState().workspace).toBeNull()
     expect(watch).not.toHaveBeenCalled()
+  })
+})
+
+describe('aviso de tarefa nova', () => {
+  const tech = {
+    id: 'folder:/ws/.worktrees/TECH-1183',
+    key: 'TECH-1183',
+    name: 'TECH-1183',
+    source: 'folder' as const,
+    why: '',
+    folder: '/ws/.worktrees/TECH-1183',
+    worktrees: [
+      {
+        repo: '/ws/fe',
+        repoName: 'fe',
+        path: '/ws/.worktrees/TECH-1183/fe',
+        branch: 'x',
+        head: 'a',
+      },
+    ],
+    hidden: false,
+    pending: true,
+    notes: '',
+    summary: [],
+    rule: [],
+  }
+
+  beforeEach(() => {
+    vi.useFakeTimers()
+    useTasksStore.getState().reset()
+    useToastStore.setState({ toasts: [] })
+    useWorkspaceStore.setState({ root: '/ws' })
+  })
+  afterEach(() => {
+    vi.useRealTimers()
+    vi.unstubAllGlobals()
+  })
+
+  it('avisa uma vez, e o botão importa a tarefa', async () => {
+    const imported = workspace({ imported: true, tasks: [{ ...tech, pending: false }] })
+    const importFn = vi.fn(async () => ok(imported))
+    installApi({
+      task: {
+        discover: vi.fn(async () => ok(workspace({ imported: true, tasks: [tech] }))),
+        watch: vi.fn(async () => ok(undefined)),
+        import: importFn,
+      },
+    })
+    await loadTasks('/ws')
+    await vi.advanceTimersByTimeAsync(1500)
+    const [toast] = useToastStore.getState().toasts
+    expect(toast?.message).toContain('TECH-1183')
+    // Nova descoberta da mesma tarefa: sem segundo aviso.
+    await loadTasks('/ws')
+    await vi.advanceTimersByTimeAsync(1500)
+    expect(useToastStore.getState().toasts).toHaveLength(1)
+    toast?.action?.run()
+    await vi.advanceTimersByTimeAsync(0)
+    expect(importFn).toHaveBeenCalledWith('/ws', [tech.id], [])
   })
 })

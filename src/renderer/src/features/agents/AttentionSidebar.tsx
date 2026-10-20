@@ -111,6 +111,9 @@ export function AttentionSidebar() {
   const groups = groupItems(items)
   const setMode = (m: typeof mode) => useAttentionStore.getState().set({ mode: m })
   const empty = GROUP_ORDER.every((g) => groups[g].length === 0)
+  const newTasks = useTasksStore((s) =>
+    s.workspace?.imported ? s.workspace.tasks.filter((t) => t.pending).length : 0,
+  )
   const tr = useT()
 
   return (
@@ -129,6 +132,18 @@ export function AttentionSidebar() {
                 className="h-[26px] rounded-md border border-border bg-transparent px-2.5 text-xs text-fg-muted hover:bg-surface-2 hover:text-fg"
               >
                 {tr('sidebar.discover')}
+                {newTasks > 0 && (
+                  <>
+                    <span
+                      aria-hidden="true"
+                      title={tr('sidebar.newTasks', { n: newTasks })}
+                      className="ml-1.5 rounded-full bg-accent px-1.5 text-[10px] font-semibold text-accent-fg"
+                    >
+                      {newTasks}
+                    </span>
+                    <span className="sr-only">{tr('sidebar.newTasks', { n: newTasks })}</span>
+                  </>
+                )}
               </button>
             )}
             <button

@@ -807,3 +807,8 @@ importa a tarefa e liga o agente a ela.
   com o usuário. "Já vista" é guardado por worktree (`seenWorktrees`), não pelo id da tarefa, porque
   o id muda quando a heurística reagrupa (a primeira worktree vira tarefa "branch", e com a
   segunda passa a ser "pasta"). Perfis antigos: o que já existe conta como importado.
+- **Aviso de tarefa nova.** Quando aparece uma tarefa nova com o Kite aberto (depois da primeira
+  importação), um aviso com botão "Importar" (ou "Ver", se forem várias) e um contador no botão
+  "Descobrir" da Central. O aviso espera 1,5 s para o agrupamento assentar e não se repete para a
+  mesma worktree; o botão procura a tarefa pela worktree na hora do clique (o id pode ter mudado).
+  Avisos com botão ficam 15 s na tela.
