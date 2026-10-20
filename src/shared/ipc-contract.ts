@@ -20,6 +20,9 @@ import type {
   GitWorktree,
   CreatePullInput,
   AgentAttach,
+  WorkspaceCanvas,
+  CanvasToolCall,
+  CanvasToolResult,
   AgentCli,
   AgentPreset,
   AgentReview,
@@ -174,6 +177,14 @@ export interface InvokeChannels {
     args: [root: string, taskId: string, presetId: string, prompt: string]
     result: AgentTask
   }
+  // Quadro estilo n8n, um por pasta aberta.
+  'canvas:load': { args: [root: string]; result: WorkspaceCanvas }
+  'canvas:save': { args: [root: string, canvas: WorkspaceCanvas]; result: void }
+  // Ferramentas do quadro para os agentes: a resposta do renderer a um pedido, o comando que
+  // inicia um agente num terminal do quadro (já com as ferramentas) e o print de um navegador.
+  'canvas:toolReply': { args: [requestId: string, result: CanvasToolResult]; result: void }
+  'canvas:launchCommand': { args: [presetId: string, nodeId: string]; result: string }
+  'canvas:capture': { args: [webContentsId: number]; result: string }
   // Revisão e entrega da tarefa (Fase 9). `bases`: branch base escolhida por worktree.
   'review:task': {
     args: [root: string, taskId: string, bases: Record<string, string>]
@@ -209,6 +220,7 @@ export interface EventChannels {
   'agent:status': AgentTask & { removed?: boolean }
   // Clique na notificação de um agente.
   'agent:focus': { id: string }
+  'canvas:toolCall': CanvasToolCall
   'agentSession:changed': AgentSession
   // Clique na notificação de uma sessão.
   'agentSession:focus': { id: string }
@@ -294,6 +306,14 @@ export interface Api {
     addRepo: Fn<'task:addRepo'>
     create: Fn<'task:create'>
     onChanged: (listener: (tasks: WorkspaceTasks) => void) => Unsubscribe
+  }
+  canvas: {
+    load: Fn<'canvas:load'>
+    save: Fn<'canvas:save'>
+    toolReply: Fn<'canvas:toolReply'>
+    launchCommand: Fn<'canvas:launchCommand'>
+    capture: Fn<'canvas:capture'>
+    onToolCall: (listener: (call: CanvasToolCall) => void) => Unsubscribe
   }
   review: {
     task: Fn<'review:task'>

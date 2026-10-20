@@ -32,6 +32,7 @@ export default messages(
     'activity.label': 'Atividades',
     'activity.waiting': ({ label, n }: { label: string; n: number }) => `${label}, ${n} esperando`,
     'activity.settings': 'Configurações',
+    'activity.canvas': 'Quadro',
 
     'status.waiting': 'esperando você',
     'status.running': 'trabalhando',
@@ -118,6 +119,7 @@ export default messages(
     'crash.copy': 'Copiar erro',
     'theme.kite': 'Kite (padrão)',
     'theme.dark': 'Escuro',
+    'theme.vivid': 'Preto vivo',
     'theme.midnight': 'Meia-noite',
     'theme.dimmed': 'Meio-termo',
     'theme.light': 'Claro',
@@ -153,6 +155,7 @@ export default messages(
     'activity.label': 'Activities',
     'activity.waiting': ({ label, n }: { label: string; n: number }) => `${label}, ${n} waiting`,
     'activity.settings': 'Settings',
+    'activity.canvas': 'Canvas',
 
     'status.waiting': 'waiting for you',
     'status.running': 'working',
@@ -239,6 +242,7 @@ export default messages(
     'crash.copy': 'Copy error',
     'theme.kite': 'Kite (default)',
     'theme.dark': 'Dark',
+    'theme.vivid': 'Vivid black',
     'theme.midnight': 'Midnight',
     'theme.dimmed': 'Dimmed',
     'theme.light': 'Light',

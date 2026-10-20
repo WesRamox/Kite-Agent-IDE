@@ -1,7 +1,8 @@
-import { clipboard, dialog } from 'electron'
+import { clipboard, dialog, webContents } from 'electron'
 import { registerAgentIpc } from '../ipc/agent.ipc'
 import { registerAgentSessionIpc } from '../ipc/agent-session.ipc'
 import { registerAppIpc } from '../ipc/app.ipc'
+import { registerCanvasIpc } from '../ipc/canvas.ipc'
 import { registerDialogIpc } from '../ipc/dialog.ipc'
 import { registerFsIpc } from '../ipc/fs.ipc'
 import { registerGitIpc } from '../ipc/git.ipc'
@@ -12,6 +13,8 @@ import { registerSystemIpc } from '../ipc/system.ipc'
 import { registerTaskIpc } from '../ipc/task.ipc'
 import { registerTerminalIpc } from '../ipc/terminal.ipc'
 import { registerWorkspaceIpc } from '../ipc/workspace.ipc'
+import { AppException } from '../lib/errors'
+import { t } from '../lib/i18n'
 import type { Logger } from '../lib/logger'
 import type { Services } from './container'
 import type { MainWindowRef } from './main-window'
@@ -50,6 +53,23 @@ export function registerAllIpc({ services, window, confirmClose, log }: IpcDeps)
   registerAgentSessionIpc(services.agentEvents, services.sessionReview, services.hooksServices, log)
   registerTaskIpc(services.taskService, log)
   registerReviewIpc(services.reviewService, log)
+  registerCanvasIpc(
+    services.canvasService,
+    services.canvasBridge,
+    async (id) => {
+      const guest = webContents.fromId(id)
+      // Só os navegadores do quadro desta janela; nunca a própria interface do Kite.
+      if (
+        !guest ||
+        guest.getType() !== 'webview' ||
+        guest.hostWebContents !== window.current?.webContents
+      ) {
+        throw new AppException('NOT_FOUND', t('error.notFound'))
+      }
+      return (await guest.capturePage()).toPNG().toString('base64')
+    },
+    log,
+  )
   registerSettingsIpc(services.settingsService, log)
   registerSystemIpc(
     {

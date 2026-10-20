@@ -13,6 +13,8 @@ import { useAgentsStore } from '../agents/agents.store'
 import { taskContext, useTasksStore } from './tasks.store'
 import { closeModal } from '../../stores/modal.store'
 import { t } from '../../lib/i18n'
+import { basename } from '../../lib/paths'
+import { copyText } from '../../lib/clipboard'
 
 export const DISCOVER_COMPONENT = 'discover'
 export const DISCOVER_TAB_COMPONENT = 'discover-tab'
@@ -24,6 +26,9 @@ export function isDiscoverPanel(id: string): boolean {
 
 const store = () => useTasksStore.getState()
 const root = () => useWorkspaceStore.getState().root
+
+// De onde o main tira o título e o resumo da tarefa.
+const TASK_META_FILES = new Set(['TASK.md', '.kite-task.json'])
 
 // Descobre as tarefas da pasta aberta e passa a observar as worktrees. Na primeira vez num
 // workspace com worktrees, abre a tela de descoberta (canvas, tela 4).
@@ -58,10 +63,18 @@ export function useTasksSync(): void {
     const offGit = window.api.git.onChanged(({ root: changed }) => {
       if (changed in store().status) void refreshTaskStatus(changed)
     })
-    const offFs = window.api.fs.onChanged(({ root: changed }) => {
+    // TASK.md mudou (o agente escreveu o resumo, ou alguém trocou o título): relê as tarefas. O
+    // mesmo arquivo chega pela pasta aberta e pela worktree, daí a espera curta para juntar.
+    let metaTimer: ReturnType<typeof setTimeout> | undefined
+    const offFs = window.api.fs.onChanged(({ root: changed, events }) => {
       if (changed in store().status) void refreshTaskStatus(changed)
+      if (events.some((e) => TASK_META_FILES.has(basename(e.path)))) {
+        clearTimeout(metaTimer)
+        metaTimer = setTimeout(() => void refreshTasks(), 300)
+      }
     })
     return () => {
+      clearTimeout(metaTimer)
       offTasks()
       offGit()
       offFs()
@@ -75,6 +88,20 @@ async function loadPRs(id: string): Promise<void> {
   if (!dir) return
   const res = await window.api.review.prs(dir, id)
   if (res.ok) store().setPRs(res.data)
+}
+
+// Pedido pronto para colar no agente: escrever o resumo da tarefa no TASK.md dela.
+export function copySummaryRequest(file: string): void {
+  copyText(t('details.summaryPrompt', { file }))
+  toast.info(t('details.summaryCopied'))
+}
+
+// Releitura em segundo plano: sem aviso de erro, a próxima mudança no arquivo tenta de novo.
+async function refreshTasks(): Promise<void> {
+  const dir = root()
+  if (!dir) return
+  const res = await window.api.task.discover(dir)
+  if (res.ok && root() === dir) await applyWorkspace(res.data)
 }
 
 export async function refreshTaskStatus(path: string): Promise<void> {

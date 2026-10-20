@@ -20,7 +20,10 @@ interface QuickOpenState {
   open: boolean
   files: QuickOpenFile[] | null
   loading: boolean
+  // Quem pediu um arquivo (ex.: o bloco de código do quadro). Sem isso, o escolhido abre no editor.
+  pick: ((path: string) => void) | null
   show: () => void
+  showPicker: (pick: (path: string) => void) => void
   hide: () => void
   invalidate: () => void
   ensureFiles: (roots: QuickOpenRoot[]) => Promise<void>
@@ -32,8 +35,10 @@ export const useQuickOpenStore = create<QuickOpenState>((set, get) => ({
   open: false,
   files: null,
   loading: false,
-  show: () => set({ open: true }),
-  hide: () => set({ open: false }),
+  pick: null,
+  show: () => set({ open: true, pick: null }),
+  showPicker: (pick) => set({ open: true, pick }),
+  hide: () => set({ open: false, pick: null }),
   invalidate: () => set({ files: null }),
   ensureFiles: (roots) => {
     if (get().files) return Promise.resolve()

@@ -128,10 +128,55 @@ describe('groupWorktrees', () => {
   it('lê o título da tarefa', () => {
     expect(parseTaskMeta('json', '{"title":"Checkout com Pix","url":"https://x"}')).toEqual({
       title: 'Checkout com Pix',
+      summary: [],
+      rule: [],
     })
-    expect(parseTaskMeta('json', 'quebrado')).toEqual({ title: null })
-    expect(parseTaskMeta('md', '# PAY-412 Checkout\n\nhttps://linear.app/x/PAY-412\n')).toEqual({
+    expect(parseTaskMeta('json', 'quebrado')).toEqual({ title: null, summary: [], rule: [] })
+    expect(parseTaskMeta('md', '# PAY-412 Checkout\n')).toEqual({
       title: 'PAY-412 Checkout',
+      summary: [],
+      rule: [],
     })
+  })
+
+  it('o resumo é o texto logo abaixo do título, em texto puro, até o próximo título', () => {
+    const md = [
+      'antes do título não conta',
+      '# Checkout com Pix',
+      'Aceitar **Pix** no `checkout`.',
+      '',
+      '- gerar o QR',
+      '  * confirmar pelo webhook',
+      '```ts',
+      '## Detalhes',
+      'fica de fora',
+    ].join('\r\n')
+    expect(parseTaskMeta('md', md).summary).toEqual([
+      'Aceitar Pix no checkout.',
+      '• gerar o QR',
+      '• confirmar pelo webhook',
+    ])
+  })
+
+  it('lê a regra de negócio da seção "## Regra de negócio", sem misturar com o resumo', () => {
+    const md = [
+      '# Checkout com Pix',
+      'Aceitar Pix no checkout.',
+      '## Regra de negócio',
+      '✅ Pedido pago por Pix só vira **emitido** depois do webhook.',
+      '## Notas',
+      'fica de fora',
+    ].join('\n')
+    const meta = parseTaskMeta('md', md)
+    expect(meta.summary).toEqual(['Aceitar Pix no checkout.'])
+    expect(meta.rule).toEqual(['✅ Pedido pago por Pix só vira emitido depois do webhook.'])
+    expect(parseTaskMeta('md', '# T\n## Regras de negocio\n⚠️ dúvida').rule).toEqual(['⚠️ dúvida'])
+  })
+
+  it('limita o resumo para um TASK.md enorme não tomar o painel', () => {
+    const md = `# T\n${'x'.repeat(900)}\n${'linha\n'.repeat(30)}`
+    const summary = parseTaskMeta('md', md).summary
+    expect(summary).toHaveLength(20)
+    expect(summary[0]).toHaveLength(500)
   })
 })

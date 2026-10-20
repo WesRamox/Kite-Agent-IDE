@@ -42,11 +42,21 @@ export class TaskService {
   private watched: { root: string; subs: Subscription[] } | null = null
   private timer: ReturnType<typeof setTimeout> | null = null
   private last = new Map<string, string>()
+  // Descobertas em fila: a do watcher e a pedida pelo renderer (ex.: TASK.md mudou) podem se
+  // cruzar, e a que começou antes, com o disco antigo, não pode chegar por último.
+  private discovering: Promise<unknown> = Promise.resolve()
 
   constructor(private readonly deps: TaskServiceDeps) {}
 
   async discover(root: string): Promise<WorkspaceTasks> {
     this.checkRoot(root)
+    const run = () => this.discoverNow(root)
+    const next = this.discovering.then(run, run)
+    this.discovering = next.catch(() => {})
+    return next
+  }
+
+  private async discoverNow(root: string): Promise<WorkspaceTasks> {
     const cfg = await this.config(root)
     const repos = await this.repos(root, cfg)
     const extra = new Set(cfg.extraRepos)
@@ -76,6 +86,8 @@ export class TaskService {
           worktrees: t.worktrees,
           hidden: cfg.overrides.hidden.includes(t.id),
           notes: cfg.notes[t.id] ?? '',
+          summary: meta.summary,
+          rule: meta.rule,
         }
       }),
     )

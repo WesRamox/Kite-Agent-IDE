@@ -6,6 +6,9 @@ import { toast } from '../../stores/toast.store'
 import { useWorkspaceStore } from '../../stores/workspace.store'
 import { taskBaseDir } from '../tasks/tasks.store'
 import { disposeSession, getSession, panelByPty, sessionIds } from './terminals'
+
+// Terminais de fora das abas (os blocos do quadro) usam o mesmo registro de sessões.
+export { disposeSession, getOrCreateSession, getSession } from './terminals'
 import { isAgentPanel, isTerminalPanel, TERMINAL_PREFIX } from '../../lib/panels'
 import { closeModal } from '../../stores/modal.store'
 import { t } from '../../lib/i18n'

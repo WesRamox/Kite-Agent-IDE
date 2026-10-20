@@ -1,6 +1,8 @@
 import { useEffect } from 'react'
 import { jumpToNextWaiting } from '../features/agents/attention.actions'
 import { closeActive, saveActive } from '../features/editor/editor.actions'
+import { isCanvasPanel, saveCanvasNow, saveFocusedCode } from '../features/canvas/canvas.actions'
+import { getDockApi } from '../lib/dock'
 import { useTaskSwitcherStore } from '../features/tasks/task-switcher.store'
 import { useTasksStore } from '../features/tasks/tasks.store'
 import { useQuickOpenStore } from '../features/quick-open/quick-open.store'
@@ -28,8 +30,13 @@ export function useKeybindings(): void {
       if (e.code === 'Backquote') {
         if (e.shiftKey) openTerminal()
         else focusOrCreateTerminal()
-      } else if (key === 's' && !e.shiftKey && !shellOwns) void saveActive()
-      else if (key === 'p' && !e.shiftKey) {
+      } else if (key === 's' && !e.shiftKey && !shellOwns) {
+        // No quadro: o bloco de código com o foco salva o arquivo dele; fora dele, o workflow.
+        if (saveFocusedCode(e.target)) {
+          // salvo pelo bloco
+        } else if (isCanvasPanel(getDockApi()?.activePanel?.id ?? '')) void saveCanvasNow()
+        else void saveActive()
+      } else if (key === 'p' && !e.shiftKey) {
         if (useWorkspaceStore.getState().root) useQuickOpenStore.getState().show()
       } else if (key === 'w' && !e.shiftKey && !shellOwns) void closeActive()
       // Ctrl+J no terminal é quebra de linha (inclusive no prompt do Claude Code): lá dentro,

@@ -36,6 +36,12 @@ export interface Task {
   // Desmarcada na descoberta: não aparece na Central.
   hidden: boolean
   notes: string
+  // Resumo: o texto logo abaixo do título no TASK.md (escrito pelo agente ou à mão), já sem
+  // marcação; itens de lista começam com "• ". Vazio quando não há.
+  summary: string[]
+  // Regra de negócio que a tarefa toca: a seção "## Regra de negócio" do TASK.md. Começa com ✅
+  // (respeita), ❌ (diverge) ou ⚠️ (dúvida), no formato da skill de regra de negócio.
+  rule: string[]
 }
 
 export interface WorkspaceTasks {

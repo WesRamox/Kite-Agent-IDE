@@ -21,6 +21,23 @@ export function agentCommandLine(preset: AgentPreset, prompt: string, windows: b
   return flag ? `${command} ${flag} ${quoted}` : `${command} ${quoted}`
 }
 
+// O comando do preset é o Claude Code (o único que hoje recebe as ferramentas do quadro).
+export function isClaudeCommand(command: string): boolean {
+  return /^(\S*[\\/])?claude(\.exe|\.cmd)?(\s|$)/i.test(command.trim())
+}
+
+// Claude Code: aponta o servidor de ferramentas do quadro do Kite. Vai no fim da linha: o
+// --mcp-config aceita vários valores e engoliria o prompt se viesse antes dele.
+export function withKiteTools(
+  line: string,
+  preset: AgentPreset,
+  configPath: string | null,
+  windows: boolean,
+): string {
+  if (!configPath || !isClaudeCommand(preset.command)) return line
+  return `${line} --mcp-config ${windows ? psQuote(configPath) : shQuote(configPath)}`
+}
+
 // Roda a linha de comando no shell do usuário. No Unix, interativo + login (-ilc) para valer o
 // PATH do .bashrc/.zshrc (CLIs instalados via nvm, por exemplo).
 export function agentProcess(shell: ShellSpec, commandLine: string, platform: string): ShellSpec {

@@ -11,7 +11,7 @@ import type {
   PtyExitEvent,
   StartAgentInput,
 } from '@shared/types'
-import { agentCommandLine, agentProcess, taskSlug } from '../lib/agent-command'
+import { agentCommandLine, agentProcess, taskSlug, withKiteTools } from '../lib/agent-command'
 import { DEFAULT_PRESETS, mergePresets, restoreAgentState } from '../lib/agent-state'
 import { StatusDetector } from '../lib/agent-status'
 import { AppException } from '../lib/errors'
@@ -44,6 +44,8 @@ export interface AgentServiceDeps {
   idleMs?: number
   // Quanto da saída guardar para reconectar o terminal.
   historyChars?: number
+  // Arquivo do --mcp-config com as ferramentas do quadro para este agente (null: sem elas).
+  kiteTools?: (agentId: string) => string | null
 }
 
 interface Runtime {
@@ -310,7 +312,12 @@ export class AgentService {
 
   private spawn(task: AgentTask, preset: AgentPreset, prompt: string): void {
     const windows = this.deps.platform === 'win32'
-    const line = agentCommandLine(preset, prompt, windows)
+    const line = withKiteTools(
+      agentCommandLine(preset, prompt, windows),
+      preset,
+      this.deps.kiteTools?.(task.id) ?? null,
+      windows,
+    )
     const proc = agentProcess(this.deps.shell, line, this.deps.platform)
     const { id } = this.deps.pty.spawnAt({
       cwd: task.worktreePath,

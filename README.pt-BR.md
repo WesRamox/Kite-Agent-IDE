@@ -107,7 +107,7 @@ deduzido pela saída do terminal.
 - Git: status na árvore de arquivos, stage e commit, diff lado a lado, branches e worktrees.
 - GitHub: login por Device Flow, PRs e issues com o status dos checks, "Abrir em worktree" a partir
   de um PR e criação de PRs.
-- Seis temas, do padrão âmbar sobre grafite aos claros, aplicados ao editor, aos terminais e aos
+- Sete temas, do padrão âmbar sobre grafite aos claros, aplicados ao editor, aos terminais e aos
   diálogos nativos.
 - Página de configurações (`Ctrl/Cmd+,`): tema, idioma, tamanho das fontes, restaurar terminais,
   notificações, agrupamento das tarefas e conta do GitHub.

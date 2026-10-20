@@ -3,6 +3,9 @@
 // dos tokens, que não existem no resto da interface.
 import type { ThemeId } from '@shared/themes'
 
+// Papéis da paleta: cada regra do Monaco pinta um token com a cor de um papel.
+export type SyntaxRole = Exclude<keyof SyntaxPalette, 'source' | 'brackets' | 'italic'>
+
 export interface SyntaxPalette {
   // Tema do VS Code em que a paleta se baseia.
   source: string
@@ -23,8 +26,11 @@ export interface SyntaxPalette {
   variable: string
   // Decorators, diretivas e meta-tags.
   meta: string
+  // Identificadores comuns (variáveis, funções). Sem cor própria, ficam na cor do texto.
+  identifier?: string
   brackets: [string, string, string]
-  italicComments: boolean
+  // Papéis escritos em itálico.
+  italic: SyntaxRole[]
 }
 
 export const SYNTAX: Record<ThemeId, SyntaxPalette> = {
@@ -44,7 +50,7 @@ export const SYNTAX: Record<ThemeId, SyntaxPalette> = {
     variable: '#39bae6',
     meta: '#e6b673',
     brackets: ['#ffb224', '#d2a6ff', '#59c2ff'],
-    italicComments: true,
+    italic: ['comment'],
   },
   dark: {
     source: 'One Dark Pro',
@@ -62,7 +68,28 @@ export const SYNTAX: Record<ThemeId, SyntaxPalette> = {
     variable: '#e06c75',
     meta: '#61afef',
     brackets: ['#d19a66', '#c678dd', '#56b6c2'],
-    italicComments: true,
+    italic: ['comment'],
+  },
+  vivid: {
+    source: 'Bearded Theme Vivid Black',
+    comment: '#757582',
+    keyword: '#ffb638',
+    string: '#42dd76',
+    escape: '#14e5d4',
+    number: '#a95eff',
+    // O Monaco marca como tipo todo nome em PascalCase (classes, tipos, componentes).
+    type: '#ff478d',
+    tag: '#28a9ff',
+    attribute: '#14e5d4',
+    delimiter: '#7d7d8a',
+    operator: '#ffb638',
+    key: '#ffb638',
+    variable: '#ff7135',
+    meta: '#e66dff',
+    identifier: '#28a9ff',
+    brackets: ['#ffb638', '#e66dff', '#28a9ff'],
+    // Mais itálico que o original, como pedido: palavras-chave, tipos, atributos e decorators.
+    italic: ['comment', 'keyword', 'type', 'attribute', 'meta'],
   },
   midnight: {
     source: 'Tokyo Night',
@@ -80,7 +107,7 @@ export const SYNTAX: Record<ThemeId, SyntaxPalette> = {
     variable: '#7aa2f7',
     meta: '#e0af68',
     brackets: ['#698cd6', '#68b3de', '#9a7ecc'],
-    italicComments: true,
+    italic: ['comment'],
   },
   dimmed: {
     source: 'GitHub Dark Dimmed',
@@ -98,7 +125,7 @@ export const SYNTAX: Record<ThemeId, SyntaxPalette> = {
     variable: '#f69d50',
     meta: '#dcbdfb',
     brackets: ['#6cb6ff', '#8ddb8c', '#dcbdfb'],
-    italicComments: false,
+    italic: [],
   },
   light: {
     source: 'GitHub Light',
@@ -116,7 +143,7 @@ export const SYNTAX: Record<ThemeId, SyntaxPalette> = {
     variable: '#953800',
     meta: '#8250df',
     brackets: ['#0969da', '#1a7f37', '#9a6700'],
-    italicComments: false,
+    italic: [],
   },
   paper: {
     source: 'Gruvbox Light',
@@ -135,7 +162,7 @@ export const SYNTAX: Record<ThemeId, SyntaxPalette> = {
     variable: '#076678',
     meta: '#8f3f71',
     brackets: ['#af3a03', '#076678', '#8f3f71'],
-    italicComments: true,
+    italic: ['comment'],
   },
 }
 
@@ -148,35 +175,41 @@ export interface TokenRule {
 // Regras do Monaco (Monarch). Um token casa com a regra de nome mais longo que for prefixo dele:
 // `number` cobre `number.hex`, `string.key.json` vence `string`.
 export function syntaxRules(s: SyntaxPalette): TokenRule[] {
-  const fg = (hex: string) => hex.slice(1)
+  const italic = new Set(s.italic)
+  const rule = (token: string, role: SyntaxRole): TokenRule[] => {
+    const color = s[role]
+    if (!color) return []
+    return [{ token, foreground: color.slice(1), fontStyle: italic.has(role) ? 'italic' : '' }]
+  }
   return [
-    { token: 'comment', foreground: fg(s.comment), fontStyle: s.italicComments ? 'italic' : '' },
-    { token: 'keyword', foreground: fg(s.keyword) },
-    { token: 'storage', foreground: fg(s.keyword) },
-    { token: 'string', foreground: fg(s.string) },
-    { token: 'string.escape', foreground: fg(s.escape) },
-    { token: 'regexp', foreground: fg(s.escape) },
-    { token: 'number', foreground: fg(s.number) },
-    { token: 'constant', foreground: fg(s.number) },
-    { token: 'type', foreground: fg(s.type) },
-    { token: 'predefined', foreground: fg(s.type) },
-    { token: 'tag', foreground: fg(s.tag) },
-    { token: 'metatag', foreground: fg(s.meta) },
-    { token: 'annotation', foreground: fg(s.meta) },
-    { token: 'attribute.name', foreground: fg(s.attribute) },
-    { token: 'attribute.value', foreground: fg(s.string) },
-    { token: 'attribute.value.number', foreground: fg(s.number) },
-    { token: 'attribute.value.unit', foreground: fg(s.number) },
-    { token: 'delimiter', foreground: fg(s.delimiter) },
-    { token: 'operator', foreground: fg(s.operator) },
-    { token: 'key', foreground: fg(s.key) },
-    { token: 'string.key.json', foreground: fg(s.key) },
-    { token: 'string.value.json', foreground: fg(s.string) },
-    { token: 'variable', foreground: fg(s.variable) },
+    ...rule('comment', 'comment'),
+    ...rule('keyword', 'keyword'),
+    ...rule('storage', 'keyword'),
+    ...rule('string', 'string'),
+    ...rule('string.escape', 'escape'),
+    ...rule('regexp', 'escape'),
+    ...rule('number', 'number'),
+    ...rule('constant', 'number'),
+    ...rule('type', 'type'),
+    ...rule('predefined', 'type'),
+    ...rule('tag', 'tag'),
+    ...rule('metatag', 'meta'),
+    ...rule('annotation', 'meta'),
+    ...rule('attribute.name', 'attribute'),
+    ...rule('attribute.value', 'string'),
+    ...rule('attribute.value.number', 'number'),
+    ...rule('attribute.value.unit', 'number'),
+    ...rule('delimiter', 'delimiter'),
+    ...rule('operator', 'operator'),
+    ...rule('key', 'key'),
+    ...rule('string.key.json', 'key'),
+    ...rule('string.value.json', 'string'),
+    ...rule('variable', 'variable'),
+    ...rule('identifier', 'identifier'),
     // Markdown.
     { token: 'strong', fontStyle: 'bold' },
     { token: 'emphasis', fontStyle: 'italic' },
-    { token: 'string.link', foreground: fg(s.tag) },
+    ...rule('string.link', 'tag'),
   ]
 }
 

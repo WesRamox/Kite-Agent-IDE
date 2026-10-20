@@ -17,6 +17,13 @@ import { useEditorStore } from '../features/editor/editor.store'
 import { EditorPanel } from '../features/editor/EditorPanel'
 import { EditorTab } from '../features/editor/EditorTab'
 import { disposeModel } from '../features/editor/models'
+import { CanvasPanel } from '../features/canvas/CanvasPanel'
+import { CanvasTab } from '../features/canvas/CanvasTab'
+import {
+  CANVAS_COMPONENT,
+  CANVAS_TAB_COMPONENT,
+  isCanvasPanel,
+} from '../features/canvas/canvas.actions'
 import { DiffPanel } from '../features/git/DiffPanel'
 import { DiffTab } from '../features/git/DiffTab'
 import { DIFF_COMPONENT, isDiffPanel } from '../features/git/git.actions'
@@ -68,6 +75,7 @@ const components = {
   [REVIEW_COMPONENT]: ReviewPanel,
   [DISCOVER_COMPONENT]: DiscoverPanel,
   [TASK_REVIEW_COMPONENT]: TaskReviewPanel,
+  [CANVAS_COMPONENT]: CanvasPanel,
 }
 const tabComponents = {
   [EDITOR_COMPONENT]: EditorTab,
@@ -78,6 +86,7 @@ const tabComponents = {
   [REVIEW_TAB_COMPONENT]: ReviewTab,
   [DISCOVER_TAB_COMPONENT]: DiscoverTab,
   [TASK_REVIEW_TAB_COMPONENT]: TaskReviewTab,
+  [CANVAS_TAB_COMPONENT]: CanvasTab,
 }
 
 // Painéis de editor são identificados pelo caminho do arquivo; os demais têm prefixo.
@@ -90,6 +99,7 @@ function isEditorPanel(id: string): boolean {
     isReviewPanel,
     isDiscoverPanel,
     isTaskReviewPanel,
+    isCanvasPanel,
   ].some((is) => is(id))
 }
 

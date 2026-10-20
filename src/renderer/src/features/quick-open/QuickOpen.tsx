@@ -55,11 +55,18 @@ function QuickOpenDialog({ roots }: { roots: QuickOpenRoot[] }) {
     listRef.current?.children[selected]?.scrollIntoView({ block: 'nearest' })
   }, [selected])
 
+  // Abre no editor ou entrega a quem pediu o arquivo (showPicker).
+  const deliver = (path: string) => {
+    const pick = useQuickOpenStore.getState().pick
+    hide()
+    if (pick) pick(path)
+    else void openFile(path)
+  }
+
   const choose = (index: number) => {
     const item = items[index]
     if (!item) return
-    hide()
-    void openFile(item.item.path)
+    deliver(item.item.path)
   }
 
   // Enter antes da lista carregar: espera a lista e abre o melhor resultado.
@@ -69,8 +76,7 @@ function QuickOpenDialog({ roots }: { roots: QuickOpenRoot[] }) {
     const loaded = useQuickOpenStore.getState().files ?? []
     const first = fuzzyFilter(query, loaded, (f) => f.rel, 1)[0]
     if (!first || !useQuickOpenStore.getState().open) return
-    hide()
-    void openFile(first.item.path)
+    deliver(first.item.path)
   }
 
   return (

@@ -107,7 +107,7 @@ terminal output.
 - Git: status in the file tree, stage and commit, side-by-side diffs, branches and worktrees.
 - GitHub: Device Flow login, PRs and issues with check status, "Open in worktree" for a PR, and
   opening PRs.
-- Six themes, from the default amber-on-graphite to light and paper ones, applied to the editor,
+- Seven themes, from the default amber-on-graphite to light and paper ones, applied to the editor,
   the terminals and native dialogs.
 - A settings page (`Ctrl/Cmd+,`) for the theme, language, font sizes, terminal restore,
   notifications, task grouping and the GitHub account.

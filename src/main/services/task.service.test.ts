@@ -128,6 +128,48 @@ describe('TaskService', () => {
     expect(ws.imported).toBe(false)
   })
 
+  it('descobertas em fila: a que começou depois nunca é passada para trás pela anterior', async () => {
+    // A primeira descoberta (ex.: a do watcher de worktrees) demora; no meio, o agente escreve o
+    // resumo e uma segunda descoberta é pedida. A ordem de chegada tem de ser a de início.
+    const real = createGitRunner(ENV)
+    let release: () => void = () => {}
+    const gate = new Promise<void>((r) => (release = r))
+    let slowFirst = true
+    const slow = new TaskService({
+      ...deps(),
+      run: async (cwd, args, env) => {
+        if (slowFirst) {
+          slowFirst = false
+          await gate
+        }
+        return real(cwd, args, env)
+      },
+    })
+    const order: string[] = []
+    const first = slow.discover(root).then((ws) => (order.push('primeira'), ws))
+    await writeFile(
+      path.join(root, '.worktrees/PAY-412/TASK.md'),
+      '# Checkout com Pix\n\nAceitar Pix no checkout.\n',
+    )
+    const second = slow.discover(root).then((ws) => (order.push('segunda'), ws))
+    setTimeout(release, 50)
+    const [, latest] = await Promise.all([first, second])
+    expect(order).toEqual(['primeira', 'segunda'])
+    expect(latest.tasks.find((t) => t.key === 'PAY-412')?.summary).toEqual([
+      'Aceitar Pix no checkout.',
+    ])
+  })
+
+  it('traz o resumo escrito no TASK.md da tarefa', async () => {
+    await writeFile(
+      path.join(root, '.worktrees/PAY-412/TASK.md'),
+      '# Checkout com Pix\n\nAceitar Pix no checkout.\n',
+    )
+    const ws = await svc.discover(root)
+    expect(ws.tasks.find((t) => t.key === 'PAY-412')?.summary).toEqual(['Aceitar Pix no checkout.'])
+    expect(ws.tasks.find((t) => t.key === 'SEO-4')?.summary).toEqual([])
+  })
+
   it('ajustes persistem: renomear, importar escondendo uma, notas e vínculo de sessão', async () => {
     const ws = await svc.discover(root)
     const pay = ws.tasks.find((t) => t.key === 'PAY-412')?.id ?? ''

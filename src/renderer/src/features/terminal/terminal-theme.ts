@@ -21,6 +21,20 @@ const DARK_ANSI = {
   brightWhite: '#ffffff',
 }
 
+// Preto vivo: as cores saturadas do tema também na saída dos CLIs.
+const VIVID_ANSI = {
+  ...DARK_ANSI,
+  red: '#ff4d5e',
+  green: '#42dd76',
+  yellow: '#ffb638',
+  blue: '#28a9ff',
+  magenta: '#e66dff',
+  cyan: '#14e5d4',
+  brightRed: '#ff478d',
+  brightYellow: '#ff7135',
+  brightMagenta: '#a95eff',
+}
+
 const LIGHT_ANSI = {
   black: '#24292f',
   red: '#cf222e',
@@ -49,6 +63,10 @@ export function terminalTheme(theme: ThemeId): ITheme {
     cursor: p.fg,
     cursorAccent: p['surface-0'],
     selectionBackground: withAlpha(p.accent, 0.33),
-    ...(themeInfo(theme).kind === 'light' ? LIGHT_ANSI : DARK_ANSI),
+    ...(theme === 'vivid'
+      ? VIVID_ANSI
+      : themeInfo(theme).kind === 'light'
+        ? LIGHT_ANSI
+        : DARK_ANSI),
   }
 }

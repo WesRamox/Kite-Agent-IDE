@@ -201,18 +201,62 @@ function explain(t: GroupedTask, root: string): string {
   return tr('grouping.pattern')
 }
 
+export interface TaskMeta {
+  title: string | null
+  summary: string[]
+  rule: string[]
+}
+
 // Título da tarefa a partir de um arquivo de metadados na pasta dela:
-// .kite-task.json ({ "title" }) ou TASK.md (primeiro título "# ...").
-export function parseTaskMeta(file: 'json' | 'md', content: string): { title: string | null } {
+// .kite-task.json ({ "title" }) ou TASK.md: o primeiro título "# ...", o texto logo abaixo dele
+// (o resumo) e a seção "## Regra de negócio", que aparecem nos detalhes da tarefa.
+export function parseTaskMeta(file: 'json' | 'md', content: string): TaskMeta {
   if (file === 'json') {
     try {
       const data = JSON.parse(content) as { title?: unknown }
       return {
         title: typeof data.title === 'string' && data.title.trim() ? data.title.trim() : null,
+        summary: [],
+        rule: [],
       }
     } catch {
-      return { title: null }
+      return { title: null, summary: [], rule: [] }
     }
   }
-  return { title: /^#\s+(.+)$/m.exec(content)?.[1]?.trim() ?? null }
+  return {
+    title: /^#\s+(.+)$/m.exec(content)?.[1]?.trim() ?? null,
+    summary: sectionText(content, (heading) => /^#\s/.test(heading)),
+    rule: sectionText(content, (heading) => /^##\s+regras?\s+de\s+neg[oó]cio\s*$/i.test(heading)),
+  }
+}
+
+// O arquivo é escrito por agentes: limites para um TASK.md enorme não tomar o painel.
+const MAX_LINES = 20
+const MAX_CHARS = 500
+
+// O texto entre o título escolhido e o próximo título, em texto puro.
+function sectionText(md: string, starts: (heading: string) => boolean): string[] {
+  const lines: string[] = []
+  let inside = false
+  for (const raw of md.split(/\r?\n/)) {
+    if (/^#{1,6}\s/.test(raw)) {
+      if (inside) break
+      inside = starts(raw.trim())
+      continue
+    }
+    if (!inside || /^\s*```/.test(raw)) continue
+    const item = /^\s*[-*]\s+(.+)$/.exec(raw)?.[1]
+    const line = plainText(item ?? raw)
+    if (line) lines.push(item === undefined ? line : `• ${line}`)
+    if (lines.length >= MAX_LINES) break
+  }
+  return lines
+}
+
+// O painel mostra texto puro: sai a marcação de negrito e código que os agentes costumam usar.
+function plainText(s: string): string {
+  return s
+    .replace(/\*\*|__|`/g, '')
+    .trim()
+    .slice(0, MAX_CHARS)
 }

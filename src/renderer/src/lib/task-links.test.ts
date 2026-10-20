@@ -18,6 +18,8 @@ const task = (id: string, folder: string | null, paths: string[]): Task => ({
   })),
   hidden: false,
   notes: '',
+  summary: [],
+  rule: [],
 })
 
 const session = (id: string, cwd: string, touched: string[] = []): AgentSession => ({

@@ -30,6 +30,8 @@ export default defineConfig({
         input: {
           index: resolve(__dirname, 'src/main/index.ts'),
           'kite-hook': resolve(__dirname, 'src/main/hook/kite-hook.ts'),
+          // kite-mcp: ferramentas do quadro para os agentes (o Claude Code abre como servidor MCP).
+          'kite-mcp': resolve(__dirname, 'src/main/hook/kite-mcp.ts'),
         },
       },
     },

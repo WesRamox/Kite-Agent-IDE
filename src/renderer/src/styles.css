@@ -54,6 +54,25 @@
   --color-merged: #a78bfa;
 }
 
+/* Preto vivo: quase preto, com as cores saturadas do Bearded Theme Vivid Black. */
+[data-theme='vivid'] {
+  color-scheme: dark;
+  --color-surface-0: #0e0e11;
+  --color-surface-1: #121215;
+  --color-surface-2: #1a1a1f;
+  --color-surface-3: #24242b;
+  --color-border: #2a2a32;
+  --color-fg: #e4e4e8;
+  --color-fg-muted: #8c8c98;
+  --color-accent: #28a9ff;
+  --color-accent-fg: #04121c;
+  --color-success: #42dd76;
+  --color-warning: #ffb638;
+  --color-danger: #ff4d5e;
+  --color-info: #14e5d4;
+  --color-merged: #a95eff;
+}
+
 [data-theme='midnight'] {
   color-scheme: dark;
   --color-surface-0: #0f1115;
@@ -187,4 +206,164 @@ body.kite-resizing {
 }
 body.kite-resizing *:not([role='separator']) {
   pointer-events: none;
+}
+
+/* Quadro (React Flow) nas cores do tema. As variáveis do React Flow ficam ligadas aos tokens, e
+   as ligações seguem o desenho do n8n: curva discreta, entrada em barrinha e saída redonda. */
+.kite-canvas .react-flow {
+  --xy-background-color: var(--color-surface-0);
+  --xy-background-pattern-color: color-mix(in srgb, var(--color-fg-muted) 28%, transparent);
+  --xy-node-border-radius: 10px;
+  --xy-minimap-background-color: var(--color-surface-1);
+  --xy-minimap-mask-background-color: color-mix(in srgb, var(--color-surface-0) 70%, transparent);
+  --xy-minimap-mask-stroke-color: var(--color-border);
+  --xy-minimap-node-background-color: var(--color-surface-3);
+  --xy-minimap-node-stroke-color: var(--color-border);
+  --xy-controls-button-background-color: var(--color-surface-2);
+  --xy-controls-button-background-color-hover: var(--color-surface-3);
+  --xy-controls-button-color: var(--color-fg-muted);
+  --xy-controls-button-color-hover: var(--color-fg);
+  --xy-controls-button-border-color: var(--color-border);
+  --xy-controls-box-shadow: 0 8px 24px rgb(0 0 0 / 0.25);
+  --xy-selection-background-color: color-mix(in srgb, var(--color-accent) 10%, transparent);
+  --xy-selection-border: 1px dashed var(--color-accent);
+  --xy-resize-background-color: var(--color-accent);
+  --xy-handle-background-color: var(--color-fg-muted);
+  --xy-handle-border-color: var(--color-surface-1);
+}
+
+.kite-canvas .react-flow__controls {
+  overflow: hidden;
+  border: 1px solid var(--color-border);
+  border-radius: 8px;
+}
+.kite-canvas .react-flow__minimap {
+  overflow: hidden;
+  border: 1px solid var(--color-border);
+  border-radius: 8px;
+}
+
+.kite-node {
+  box-shadow: 0 10px 30px rgb(0 0 0 / 0.22);
+  transition:
+    border-color 0.15s,
+    box-shadow 0.15s;
+}
+.kite-node--selected {
+  box-shadow:
+    0 0 0 3px color-mix(in srgb, var(--color-accent) 22%, transparent),
+    0 14px 36px rgb(0 0 0 / 0.3);
+}
+
+.kite-canvas .react-flow__handle.kite-handle {
+  border: 2px solid var(--color-surface-1);
+  background: var(--color-fg-muted);
+  transition:
+    background 0.15s,
+    transform 0.15s;
+}
+.kite-canvas .react-flow__handle.kite-handle--in {
+  width: 8px;
+  height: 22px;
+  border-radius: 3px;
+}
+.kite-canvas .react-flow__handle.kite-handle--out {
+  width: 14px;
+  height: 14px;
+  border-radius: 9999px;
+}
+.kite-canvas .react-flow__handle.kite-handle:hover,
+.kite-canvas .react-flow__handle.kite-handle.connectingto,
+.kite-canvas .react-flow__handle.kite-handle.valid {
+  background: var(--color-accent);
+  transform: translate(-50%, -50%) scale(1.25);
+}
+.kite-canvas .react-flow__handle.kite-handle--out:hover {
+  transform: translate(50%, -50%) scale(1.25);
+}
+
+.kite-canvas .kite-resize-line {
+  border-color: transparent;
+}
+.kite-canvas .kite-resize-handle {
+  width: 9px;
+  height: 9px;
+  border: 2px solid var(--color-surface-1);
+  border-radius: 3px;
+  background: var(--color-accent);
+}
+
+.kite-edge-hit {
+  fill: none;
+  stroke: transparent;
+  stroke-width: 22;
+  pointer-events: stroke;
+}
+.kite-edge {
+  fill: none;
+  stroke: color-mix(in srgb, var(--color-fg-muted) 60%, transparent);
+  stroke-width: 2;
+  stroke-linecap: round;
+  transition:
+    stroke 0.15s,
+    stroke-width 0.15s;
+  pointer-events: none;
+}
+.kite-edge--active {
+  stroke: var(--color-accent);
+  stroke-width: 2.5;
+}
+/* O fluxo: pontinhos que correm da saída para a entrada. */
+.kite-edge-flow {
+  fill: none;
+  stroke: var(--color-accent);
+  stroke-width: 2.5;
+  stroke-linecap: round;
+  stroke-dasharray: 2 12;
+  animation: kite-edge-flow 0.8s linear infinite;
+  pointer-events: none;
+}
+.kite-edge-drag {
+  fill: none;
+  stroke: var(--color-accent);
+  stroke-width: 2.5;
+  stroke-linecap: round;
+  stroke-dasharray: 6 8;
+  animation: kite-edge-flow 0.6s linear infinite;
+}
+.kite-edge-drag-end {
+  fill: var(--color-surface-1);
+  stroke: var(--color-accent);
+  stroke-width: 2;
+}
+.kite-edge-button {
+  animation: kite-pop 0.14s ease-out;
+}
+.kite-empty-add {
+  animation: kite-breathe 2.4s ease-in-out infinite;
+}
+
+@keyframes kite-edge-flow {
+  to {
+    stroke-dashoffset: -14;
+  }
+}
+@keyframes kite-pop {
+  from {
+    opacity: 0;
+    transform: translate(-50%, -50%) scale(0.6);
+  }
+}
+@keyframes kite-breathe {
+  50% {
+    border-color: color-mix(in srgb, var(--color-accent) 55%, transparent);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .kite-edge-flow,
+  .kite-edge-drag,
+  .kite-empty-add {
+    animation: none;
+  }
 }

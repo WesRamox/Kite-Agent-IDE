@@ -1,5 +1,6 @@
 import { useCallback, useMemo, useState } from 'react'
 import { Tree, type NodeApi, type TreeApi } from 'react-arborist'
+import { useDragDropManager } from 'react-dnd'
 import { ContextMenu, type MenuItem } from '../../components/ContextMenu'
 import { useElementSize } from '../../lib/use-element-size'
 import { openFile } from '../editor/editor.actions'
@@ -38,6 +39,8 @@ export function FileTree({ root, treeRef, forest, rootMenu }: Props) {
   const load = useExplorerStore((s) => s.load)
   const startRename = useExplorerStore((s) => s.startRename)
   const [containerRef, size] = useElementSize<HTMLDivElement>()
+  // O da raiz do app (main.tsx), compartilhado por todas as árvores.
+  const dndManager = useDragDropManager()
   const [menu, setMenu] = useState<MenuState | null>(null)
 
   const data = useMemo(
@@ -108,6 +111,7 @@ export function FileTree({ root, treeRef, forest, rootMenu }: Props) {
       {size.height > 0 && (
         <Tree<TreeNodeData>
           ref={treeRef}
+          dndManager={dndManager}
           data={data}
           width={size.width}
           height={size.height}

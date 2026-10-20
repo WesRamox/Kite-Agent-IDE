@@ -19,6 +19,8 @@ const task = (folder: string | null, paths: string[]): Task => ({
   worktrees: paths.map(wt),
   hidden: false,
   notes: '',
+  summary: [],
+  rule: [],
 })
 const status = (root: string, files: string[]): GitStatus => ({
   isRepo: true,
