@@ -30,15 +30,15 @@ describe('scanRepos', () => {
 
   it('acha repositórios dentro de outro repositório', async () => {
     const dir = await tree({
-      'SGE/.git/': '',
-      'SGE/speedsaas-backend/.git/': '',
-      'SGE/speedsaas-frontend/.git/': '',
+      'plataforma/.git/': '',
+      'plataforma/api-core/.git/': '',
+      'plataforma/web-app/.git/': '',
     })
     const { repos } = await scanRepos(dir)
     expect(repos.map((r) => path.relative(dir, r))).toEqual([
-      'SGE',
-      path.join('SGE', 'speedsaas-backend'),
-      path.join('SGE', 'speedsaas-frontend'),
+      'plataforma',
+      path.join('plataforma', 'api-core'),
+      path.join('plataforma', 'web-app'),
     ])
   })
 
@@ -46,14 +46,14 @@ describe('scanRepos', () => {
     const dir = await tree({
       'api/.git/': '',
       'api/lib/.git': 'gitdir: ../.git/modules/lib\n',
-      '.worktrees/TECH-1183/sge-fe/.git': 'gitdir: /x/.git/worktrees/sge-fe\n',
-      '.worktrees/TECH-1183/TASK.md': '# t\n',
+      '.worktrees/PAY-77/web/.git': 'gitdir: /x/.git/worktrees/web\n',
+      '.worktrees/PAY-77/TASK.md': '# t\n',
       '.worktrees/solta/.git': 'gitdir: /x/.git/worktrees/solta\n',
     })
     const { repos, linked } = await scanRepos(dir)
     expect(repos.map((r) => path.relative(dir, r))).toEqual(['api'])
     expect(linked.map((r) => path.relative(dir, r))).toEqual([
-      path.join('.worktrees', 'TECH-1183', 'sge-fe'),
+      path.join('.worktrees', 'PAY-77', 'web'),
       path.join('.worktrees', 'solta'),
       path.join('api', 'lib'),
     ])

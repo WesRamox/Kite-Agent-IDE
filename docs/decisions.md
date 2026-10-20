@@ -791,12 +791,12 @@ Decisões fáceis de desfazer, não cobertas pelo `AGENTS.md`. Mais recente no f
 
 ## Fluxo com skill externa (2026-10-20)
 
-Uso real: a skill do agente (ex.: `init-card`) cria as worktrees e prepara o ambiente; o Kite só
-importa a tarefa e liga o agente a ela.
+Fluxo comum: um agente (por uma skill, script ou à mão) cria as worktrees e prepara o ambiente; o
+Kite só importa a tarefa e liga o agente a ela.
 
 - **Varredura acha repos aninhados e o dono das worktrees.** A varredura descia até 2 níveis mas
   parava no primeiro repositório e pulava `.worktrees`: repos dentro de outro repo (ex.:
-  `SGE/speedsaas-backend`) e worktrees cujo clone está em outra pasta não apareciam. Agora ela
+  `plataforma/api-core`) e worktrees cujo clone está em outra pasta não apareciam. Agora ela
   desce dentro de repos (ainda até 2 níveis), lista as pastas com `.git` arquivo (worktrees e
   submódulos), inclusive em `.worktrees/<tarefa>/<repo>`, e pergunta ao git (`worktree list`) o
   repositório principal de cada uma.
@@ -814,7 +814,7 @@ importa a tarefa e liga o agente a ela.
   Avisos com botão ficam 15 s na tela.
 - **Agente que criou as worktrees fica ligado à tarefa.** O hook já guarda o comando de shell
   (`toolDetail`, até 500 caracteres) no `PreToolUse`; o reducer da sessão procura `git worktree
-  add` nele (acompanhando `cd`, `git -C`, aspas e o `/c/` do Git Bash) e guarda as pastas criadas
+add` nele (acompanhando `cd`, `git -C`, aspas e o `/c/` do Git Bash) e guarda as pastas criadas
   (`createdWorktrees`, só caminhos). Na ligação sessão → tarefa, depois do vínculo manual e do cwd,
   vale a tarefa da worktree criada mais recente (antes dos arquivos editados, para a sessão que
   monta uma tarefa nova não ficar presa na anterior). Limite: skill que cria as worktrees por um

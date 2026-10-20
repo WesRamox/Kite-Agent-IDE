@@ -72,17 +72,17 @@ describe('loadTasks', () => {
 
 describe('aviso de tarefa nova', () => {
   const tech = {
-    id: 'folder:/ws/.worktrees/TECH-1183',
-    key: 'TECH-1183',
-    name: 'TECH-1183',
+    id: 'folder:/ws/.worktrees/PAY-77',
+    key: 'PAY-77',
+    name: 'PAY-77',
     source: 'folder' as const,
     why: '',
-    folder: '/ws/.worktrees/TECH-1183',
+    folder: '/ws/.worktrees/PAY-77',
     worktrees: [
       {
         repo: '/ws/fe',
         repoName: 'fe',
-        path: '/ws/.worktrees/TECH-1183/fe',
+        path: '/ws/.worktrees/PAY-77/fe',
         branch: 'x',
         head: 'a',
       },
@@ -118,7 +118,7 @@ describe('aviso de tarefa nova', () => {
     await loadTasks('/ws')
     await vi.advanceTimersByTimeAsync(1500)
     const [toast] = useToastStore.getState().toasts
-    expect(toast?.message).toContain('TECH-1183')
+    expect(toast?.message).toContain('PAY-77')
     // Nova descoberta da mesma tarefa: sem segundo aviso.
     await loadTasks('/ws')
     await vi.advanceTimersByTimeAsync(1500)

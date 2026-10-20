@@ -90,9 +90,9 @@ describe('linkSessions', () => {
 describe('sessão que criou as worktrees', () => {
   const tasks = [
     task('PAY-1', null, ['/ws/.worktrees/PAY-1/api']),
-    task('TECH-1183', '/ws/.worktrees/TECH-1183', [
-      '/ws/.worktrees/TECH-1183/sge-fe',
-      '/ws/.worktrees/TECH-1183/sge-be',
+    task('PAY-77', '/ws/.worktrees/PAY-77', [
+      '/ws/.worktrees/PAY-77/web',
+      '/ws/.worktrees/PAY-77/api',
     ]),
   ]
 
@@ -101,24 +101,24 @@ describe('sessão que criou as worktrees', () => {
       's1',
       '/ws',
       ['/ws/.worktrees/PAY-1/api/a.ts', '/ws/.worktrees/PAY-1/api/b.ts'],
-      ['/ws/.worktrees/TECH-1183/sge-be', '/ws/.worktrees/PAY-1/api'],
+      ['/ws/.worktrees/PAY-77/api', '/ws/.worktrees/PAY-1/api'],
     )
-    expect(linkSessions([s], tasks, {}).get('s1')).toBe('TECH-1183')
+    expect(linkSessions([s], tasks, {}).get('s1')).toBe('PAY-77')
   })
 
   it('compara caminhos do Windows sem ligar para barra e caixa', () => {
-    const win = [task('T', null, ['C:\\Users\\israe\\speed\\.worktrees\\T\\fe'])]
+    const win = [task('T', null, ['C:\\Users\\ana\\projetos\\.worktrees\\T\\fe'])]
     const s = session(
       's1',
-      'C:\\Users\\israe\\speed',
+      'C:\\Users\\ana\\projetos',
       [],
-      ['c:/Users/israe/speed/.worktrees/T/fe/'],
+      ['c:/Users/ana/projetos/.worktrees/T/fe/'],
     )
     expect(linkSessions([s], win, {}).get('s1')).toBe('T')
   })
 
   it('vínculo manual ainda vence', () => {
-    const s = session('s1', '/ws', [], ['/ws/.worktrees/TECH-1183/sge-fe'])
+    const s = session('s1', '/ws', [], ['/ws/.worktrees/PAY-77/web'])
     expect(linkSessions([s], tasks, { s1: 'PAY-1' }).get('s1')).toBe('PAY-1')
   })
 })

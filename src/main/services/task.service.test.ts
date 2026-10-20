@@ -129,51 +129,38 @@ describe('TaskService', () => {
   })
 
   it('acha as worktrees de .worktrees cujo clone está fora da pasta aberta', async () => {
-    // Clone em outra pasta (ou num nível que a varredura não alcança); a skill põe as worktrees
+    // Clone em outra pasta (ou num nível que a varredura não alcança); a ferramenta que as cria põe as worktrees
     // em <workspace>/.worktrees/<tarefa>/<repo>.
-    const clone = path.join(base, 'fora/SGE/speedsaas-frontend')
+    const clone = path.join(base, 'fora/plataforma/web-app')
     await mkdir(clone, { recursive: true })
     await writeFile(path.join(clone, 'a.txt'), 'f')
     git(clone, 'init', '-q', '-b', 'main')
     git(clone, 'add', '.')
     git(clone, 'commit', '-q', '-m', 'i')
-    git(
-      clone,
-      'worktree',
-      'add',
-      '-q',
-      '-b',
-      'TECH-1183',
-      path.join(root, '.worktrees/TECH-1183/sge-fe'),
-    )
+    git(clone, 'worktree', 'add', '-q', '-b', 'PAY-77', path.join(root, '.worktrees/PAY-77/web'))
     git(
       path.join(root, 'api'),
       'worktree',
       'add',
       '-q',
       '-b',
-      'TECH-1183',
-      path.join(root, '.worktrees/TECH-1183/sge-be-run'),
+      'PAY-77',
+      path.join(root, '.worktrees/PAY-77/api'),
     )
     const ws = await svc.discover(root)
-    expect(ws.repos.map((r) => r.name).sort()).toEqual([
-      'api',
-      'infra',
-      'speedsaas-frontend',
-      'web',
-    ])
-    const task = ws.tasks.find((t) => t.key === 'TECH-1183')
-    expect(task?.worktrees.map((w) => w.repoName)).toEqual(['api', 'speedsaas-frontend'])
+    expect(ws.repos.map((r) => r.name).sort()).toEqual(['api', 'infra', 'web', 'web-app'])
+    const task = ws.tasks.find((t) => t.key === 'PAY-77')
+    expect(task?.worktrees.map((w) => w.repoName)).toEqual(['api', 'web-app'])
   })
 
   it('acha repositórios dentro de outro repositório', async () => {
-    const sge = path.join(root, 'SGE')
-    await mkdir(path.join(sge, 'speedsaas-backend'), { recursive: true })
-    await writeFile(path.join(sge, 'speedsaas-backend/a.txt'), 'b')
-    git(sge, 'init', '-q', '-b', 'main')
-    git(path.join(sge, 'speedsaas-backend'), 'init', '-q', '-b', 'main')
+    const plataforma = path.join(root, 'plataforma')
+    await mkdir(path.join(plataforma, 'api-core'), { recursive: true })
+    await writeFile(path.join(plataforma, 'api-core/a.txt'), 'b')
+    git(plataforma, 'init', '-q', '-b', 'main')
+    git(path.join(plataforma, 'api-core'), 'init', '-q', '-b', 'main')
     const ws = await svc.discover(root)
-    expect(ws.repos.map((r) => r.name)).toContain('speedsaas-backend')
+    expect(ws.repos.map((r) => r.name)).toContain('api-core')
   })
 
   it('descobertas em fila: a que começou depois nunca é passada para trás pela anterior', async () => {

@@ -8,7 +8,7 @@ describe('worktreeAddTargets', () => {
   it('acha a pasta do worktree add, relativa ao cwd e ao -C', () => {
     expect(
       worktreeAddTargets(
-        'git -C SGE/fe worktree add -b TECH-1 ../../.worktrees/TECH-1/fe dev',
+        'git -C plataforma/web worktree add -b TECH-1 ../../.worktrees/TECH-1/fe dev',
         '/ws',
         p,
       ),
@@ -20,7 +20,7 @@ describe('worktreeAddTargets', () => {
 
   it('acompanha cd e vários comandos encadeados', () => {
     const cmd =
-      'cd SGE/be && git fetch origin dev && git worktree add ../../.worktrees/T/be -b T origin/dev; cd ../fe && git worktree add ../../.worktrees/T/fe -b T'
+      'cd plataforma/api && git fetch origin dev && git worktree add ../../.worktrees/T/be -b T origin/dev; cd ../fe && git worktree add ../../.worktrees/T/fe -b T'
     expect(worktreeAddTargets(cmd, '/ws', p)).toEqual([
       '/ws/.worktrees/T/be',
       '/ws/.worktrees/T/fe',
@@ -37,13 +37,13 @@ describe('worktreeAddTargets', () => {
     const w = path.win32
     expect(
       worktreeAddTargets(
-        'git -C "C:\\Users\\israe\\speed\\SGE\\fe" worktree add ..\\..\\.worktrees\\T\\fe',
+        'git -C "C:\\Users\\ana\\projetos\\plataforma\\fe" worktree add ..\\..\\.worktrees\\T\\fe',
         'C:\\x',
         w,
       ),
-    ).toEqual([w.resolve('C:\\Users\\israe\\speed\\.worktrees\\T\\fe')])
-    expect(worktreeAddTargets('git worktree add /c/Users/israe/wt', 'C:\\x', w)).toEqual([
-      'C:\\Users\\israe\\wt',
+    ).toEqual([w.resolve('C:\\Users\\ana\\projetos\\.worktrees\\T\\fe')])
+    expect(worktreeAddTargets('git worktree add /c/Users/ana/wt', 'C:\\x', w)).toEqual([
+      'C:\\Users\\ana\\wt',
     ])
   })
 })

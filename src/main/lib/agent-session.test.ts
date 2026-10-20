@@ -26,11 +26,11 @@ describe('reduceSession', () => {
     const s = run(
       rec('PreToolUse', {
         tool: 'Bash',
-        toolDetail: 'cd SGE/be && git worktree add ../../.worktrees/T/be -b T origin/dev',
+        toolDetail: 'cd plataforma/api && git worktree add ../../.worktrees/T/be -b T origin/dev',
       }),
       rec('PreToolUse', {
         tool: 'Bash',
-        toolDetail: 'git -C SGE/fe worktree add ../../.worktrees/T/fe',
+        toolDetail: 'git -C plataforma/web worktree add ../../.worktrees/T/fe',
       }),
       rec('PreToolUse', { tool: 'Bash', toolDetail: 'git status' }),
     )
