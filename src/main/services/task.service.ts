@@ -18,6 +18,7 @@ import {
   commonBranch,
   exists,
   listTaskWorktrees,
+  mainWorktree,
   newTaskWorktreeDir,
   readTaskMeta,
 } from '../lib/task-worktrees'
@@ -390,7 +391,13 @@ export class TaskService {
 
   private async repos(root: string, cfg: WorkspaceTaskConfig): Promise<string[]> {
     const ignored = new Set(cfg.ignoredRepos ?? [])
-    const scanned = (await scanRepos(root)).filter((r) => !ignored.has(r))
+    const scan = await scanRepos(root)
+    // Worktrees achadas na pasta aberta trazem o repositório delas, mesmo que o clone esteja
+    // em outra pasta ou num nível que a varredura não alcança.
+    const owners = await Promise.all(scan.linked.map((d) => mainWorktree(this.deps.run, d)))
+    const scanned = [...new Set([...scan.repos, ...owners.filter((r) => r !== null)])]
+      .filter((r) => !ignored.has(r))
+      .sort()
     const extra: string[] = []
     for (const r of cfg.extraRepos) if (await exists(path.join(r, '.git'))) extra.push(r)
     return [...new Set([...scanned, ...extra])]

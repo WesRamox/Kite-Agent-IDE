@@ -128,6 +128,54 @@ describe('TaskService', () => {
     expect(ws.imported).toBe(false)
   })
 
+  it('acha as worktrees de .worktrees cujo clone está fora da pasta aberta', async () => {
+    // Clone em outra pasta (ou num nível que a varredura não alcança); a skill põe as worktrees
+    // em <workspace>/.worktrees/<tarefa>/<repo>.
+    const clone = path.join(base, 'fora/SGE/speedsaas-frontend')
+    await mkdir(clone, { recursive: true })
+    await writeFile(path.join(clone, 'a.txt'), 'f')
+    git(clone, 'init', '-q', '-b', 'main')
+    git(clone, 'add', '.')
+    git(clone, 'commit', '-q', '-m', 'i')
+    git(
+      clone,
+      'worktree',
+      'add',
+      '-q',
+      '-b',
+      'TECH-1183',
+      path.join(root, '.worktrees/TECH-1183/sge-fe'),
+    )
+    git(
+      path.join(root, 'api'),
+      'worktree',
+      'add',
+      '-q',
+      '-b',
+      'TECH-1183',
+      path.join(root, '.worktrees/TECH-1183/sge-be-run'),
+    )
+    const ws = await svc.discover(root)
+    expect(ws.repos.map((r) => r.name).sort()).toEqual([
+      'api',
+      'infra',
+      'speedsaas-frontend',
+      'web',
+    ])
+    const task = ws.tasks.find((t) => t.key === 'TECH-1183')
+    expect(task?.worktrees.map((w) => w.repoName)).toEqual(['api', 'speedsaas-frontend'])
+  })
+
+  it('acha repositórios dentro de outro repositório', async () => {
+    const sge = path.join(root, 'SGE')
+    await mkdir(path.join(sge, 'speedsaas-backend'), { recursive: true })
+    await writeFile(path.join(sge, 'speedsaas-backend/a.txt'), 'b')
+    git(sge, 'init', '-q', '-b', 'main')
+    git(path.join(sge, 'speedsaas-backend'), 'init', '-q', '-b', 'main')
+    const ws = await svc.discover(root)
+    expect(ws.repos.map((r) => r.name)).toContain('speedsaas-backend')
+  })
+
   it('descobertas em fila: a que começou depois nunca é passada para trás pela anterior', async () => {
     // A primeira descoberta (ex.: a do watcher de worktrees) demora; no meio, o agente escreve o
     // resumo e uma segunda descoberta é pedida. A ordem de chegada tem de ser a de início.
