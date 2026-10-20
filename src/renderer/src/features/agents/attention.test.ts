@@ -94,6 +94,7 @@ describe('attention', () => {
         { repo: '/w/web', repoName: 'web', path: '/w/PAY/web', branch: 'PAY-415', head: '' },
       ],
       hidden: false,
+      pending: false,
       notes: '',
       summary: [],
       rule: [],

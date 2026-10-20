@@ -30,6 +30,7 @@ const task = (patch: Partial<Task>): Task => ({
   folder: null,
   worktrees: [],
   hidden: false,
+  pending: false,
   notes: '',
   summary: [],
   rule: [],

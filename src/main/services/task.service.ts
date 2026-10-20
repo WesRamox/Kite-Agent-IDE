@@ -59,6 +59,7 @@ export class TaskService {
 
   private async discoverNow(root: string): Promise<WorkspaceTasks> {
     const cfg = await this.config(root)
+    const legacy = cfg.imported && !cfg.seenWorktrees
     const repos = await this.repos(root, cfg)
     const extra = new Set(cfg.extraRepos)
     const listed: RepoWorktrees[] = await Promise.all(
@@ -86,6 +87,7 @@ export class TaskService {
           folder: t.folder,
           worktrees: t.worktrees,
           hidden: cfg.overrides.hidden.includes(t.id),
+          pending: cfgOps.isPending(cfg, t),
           notes: cfg.notes[t.id] ?? '',
           summary: meta.summary,
           rule: meta.rule,
@@ -102,6 +104,9 @@ export class TaskService {
       imported: cfg.imported,
       sessionLinks: cfg.sessionLinks,
     }
+    // Perfil de antes da lista de worktrees vistas: o que já existe conta como importado, e só
+    // o que aparecer depois espera na descoberta.
+    if (legacy) await this.persist(root, (c) => cfgOps.markSeen(c, tasksPaths(full)))
     this.last.set(root, JSON.stringify(result))
     return result
   }
@@ -176,8 +181,15 @@ export class TaskService {
     return this.update(root, (c) => cfgOps.ignoreWorktree(c, worktree))
   }
 
-  importTasks(root: string, hidden: string[]): Promise<WorkspaceTasks> {
-    return this.update(root, (c) => cfgOps.importTasks(c, hidden))
+  // `imported` vão para a Central; `dismissed` ficam escondidas. As demais tarefas novas
+  // continuam esperando na descoberta.
+  async importTasks(
+    root: string,
+    imported: string[],
+    dismissed: string[],
+  ): Promise<WorkspaceTasks> {
+    const ws = await this.discover(root)
+    return this.update(root, (c) => cfgOps.importTasks(c, ws.tasks, imported, dismissed))
   }
 
   setHidden(root: string, taskId: string, hidden: boolean): Promise<WorkspaceTasks> {
@@ -311,7 +323,7 @@ export class TaskService {
       const file = path.join(folder, 'TASK.md')
       if (!(await exists(file))) await writeFile(file, `# ${name}\n`)
     }
-    let ws2 = await this.update(root, (c) => ({ ...c, imported: true }))
+    let ws2 = await this.update(root, (c) => cfgOps.markSeen(c, created))
     let task = ws2.tasks.find((t) => t.worktrees.some((w) => created.includes(w.path)))
     // Agrupamento manual (ou algo que não juntou as worktrees): monta a tarefa à mão.
     if (!task || !created.every((p) => task?.worktrees.some((w) => w.path === p))) {
@@ -383,10 +395,17 @@ export class TaskService {
     fn: (c: WorkspaceTaskConfig) => WorkspaceTaskConfig,
   ): Promise<WorkspaceTasks> {
     this.checkRoot(root)
+    await this.persist(root, fn)
+    return this.discover(root)
+  }
+
+  private async persist(
+    root: string,
+    fn: (c: WorkspaceTaskConfig) => WorkspaceTaskConfig,
+  ): Promise<void> {
     const state = await this.deps.store.read()
     const next = fn(state.workspaces[root] ?? DEFAULT_CONFIG)
     await this.deps.store.write({ workspaces: { ...state.workspaces, [root]: next } })
-    return this.discover(root)
   }
 
   private async repos(root: string, cfg: WorkspaceTaskConfig): Promise<string[]> {
@@ -402,4 +421,8 @@ export class TaskService {
     for (const r of cfg.extraRepos) if (await exists(path.join(r, '.git'))) extra.push(r)
     return [...new Set([...scanned, ...extra])]
   }
+}
+
+function tasksPaths(tasks: Task[]): string[] {
+  return tasks.flatMap((t) => t.worktrees.map((w) => w.path))
 }

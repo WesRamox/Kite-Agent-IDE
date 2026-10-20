@@ -34,8 +34,8 @@ export function registerTaskIpc(tasks: TaskService, log: Logger): void {
   registerHandler('task:ignore', z.tuple([absPath, absPath]), (r, wt) => tasks.ignore(r, wt), log)
   registerHandler(
     'task:import',
-    z.tuple([absPath, z.array(taskId).max(500)]),
-    (r, hidden) => tasks.importTasks(r, hidden),
+    z.tuple([absPath, z.array(taskId).max(500), z.array(taskId).max(500)]),
+    (r, imported, dismissed) => tasks.importTasks(r, imported, dismissed),
     log,
   )
   registerHandler(

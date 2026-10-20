@@ -5,6 +5,8 @@ import {
   assignWorktree,
   DEFAULT_CONFIG,
   importTasks,
+  isPending,
+  markSeen,
   linkSession,
   removeManualTask,
   removeRepo,
@@ -45,10 +47,46 @@ describe('setHidden e importTasks', () => {
     expect(setHidden(hidden, 't1', false).overrides.hidden).toEqual([])
   })
 
-  it('importar marca a descoberta como concluída', () => {
-    const c = importTasks(base, ['t1', 't1'])
+  const t1 = { id: 't1', worktrees: [{ path: '/wt/a' }] }
+  const t3 = { id: 't3', worktrees: [{ path: '/wt/d' }] }
+  const tasks = [t1, { id: 't2', worktrees: [{ path: '/wt/b' }, { path: '/wt/c' }] }, t3]
+
+  it('importar marca a descoberta como concluída e esconde as descartadas', () => {
+    const c = importTasks(base, tasks, ['t2'], ['t1', 't1'])
     expect(c.imported).toBe(true)
     expect(c.overrides.hidden).toEqual(['t1'])
+    expect(c.seenWorktrees).toEqual(['/wt/a', '/wt/b', '/wt/c'])
+  })
+
+  it('antes da primeira importação tudo é novo; depois, só tarefa com worktrees nunca vistas', () => {
+    expect(tasks.every((t) => isPending(base, t))).toBe(true)
+    const c = importTasks(base, tasks, ['t1', 't2'], [])
+    expect(tasks.map((t) => isPending(c, t))).toEqual([false, false, true])
+  })
+
+  it('tarefa reagrupada com outro id continua importada se já tinha worktree vista', () => {
+    const c = importTasks(base, tasks, ['t1'], [])
+    expect(isPending(c, { id: 'outro', worktrees: [{ path: '/wt/a' }, { path: '/wt/z' }] })).toBe(
+      false,
+    )
+  })
+
+  it('reimportar uma descartada a mostra de novo; worktrees que sumiram saem da lista', () => {
+    const c = importTasks(base, tasks, [], ['t1'])
+    const d = importTasks(c, tasks.slice(1), ['t1'], [])
+    expect(d.overrides.hidden).toEqual([])
+    expect(d.seenWorktrees).toEqual([])
+  })
+
+  it('perfil antigo (sem a lista) já importado: nada é novo', () => {
+    expect(isPending({ ...base, imported: true }, t3)).toBe(false)
+  })
+
+  it('tarefa criada pelo Kite já nasce vista', () => {
+    const c = markSeen(base, ['/wt/d', '/wt/d'])
+    expect(c.imported).toBe(true)
+    expect(isPending(c, t3)).toBe(false)
+    expect(isPending(c, t1)).toBe(true)
   })
 })
 

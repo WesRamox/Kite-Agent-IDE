@@ -214,12 +214,15 @@ export async function addRepoToTask(id: string, repo: string): Promise<void> {
   if (ws) toast.info(t('tasks.worktreeCreated'))
 }
 
-export async function importTasks(hidden: string[]): Promise<void> {
-  const ws = await change((d) => window.api.task.import(d, hidden), t('tasks.importError'))
+// `imported` vão para a Central; `dismissed` ficam escondidas e não voltam à descoberta.
+export async function importTasks(imported: string[], dismissed: string[]): Promise<void> {
+  const ws = await change(
+    (d) => window.api.task.import(d, imported, dismissed),
+    t('tasks.importError'),
+  )
   if (!ws) return
   closeDiscover()
-  const shown = ws.tasks.filter((t) => !t.hidden).length
-  toast.info(t('tasks.imported', { n: shown }))
+  toast.info(t('tasks.imported', { n: imported.length }))
 }
 
 // "Nova tarefa" (Fase 10): cria as worktrees, abre a tarefa e, se pedido, o agente na pasta dela.

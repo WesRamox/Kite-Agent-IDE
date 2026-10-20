@@ -154,7 +154,10 @@ export interface InvokeChannels {
   'task:rename': { args: [root: string, taskId: string, name: string]; result: WorkspaceTasks }
   'task:move': { args: [root: string, worktree: string, target: string]; result: WorkspaceTasks }
   'task:ignore': { args: [root: string, worktree: string]; result: WorkspaceTasks }
-  'task:import': { args: [root: string, hidden: string[]]; result: WorkspaceTasks }
+  'task:import': {
+    args: [root: string, imported: string[], dismissed: string[]]
+    result: WorkspaceTasks
+  }
   'task:setHidden': {
     args: [root: string, taskId: string, hidden: boolean]
     result: WorkspaceTasks

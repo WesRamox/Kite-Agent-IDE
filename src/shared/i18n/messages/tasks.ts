@@ -42,6 +42,12 @@ export default messages(
       'O Kite continua observando o workspace: quando a sua skill criar uma worktree nova, ela entra na tarefa certa sozinha.',
     'discover.found.label': 'Tarefas encontradas',
     'discover.none': 'Nenhuma tarefa com este agrupamento.',
+    'discover.noneNew':
+      'Nenhuma tarefa nova. Worktrees criadas depois aparecem aqui até você importar.',
+    'discover.decidedExpand': ({ n }: N) =>
+      `Ver ${n} ${n === 1 ? 'tarefa já importada ou descartada' : 'tarefas já importadas ou descartadas'}`,
+    'discover.decidedCollapse': ({ n }: N) =>
+      `Ocultar ${n} ${n === 1 ? 'tarefa já importada ou descartada' : 'tarefas já importadas ou descartadas'}`,
     'discover.loose': 'Sem tarefa',
     'discover.importTask': ({ name }: Name) => `Importar ${name}`,
     'discover.taskName': 'Nome da tarefa',
@@ -230,6 +236,11 @@ export default messages(
       'Kite keeps watching the workspace: when your skill creates a new worktree, it joins the right task on its own.',
     'discover.found.label': 'Tasks found',
     'discover.none': 'No tasks with this grouping.',
+    'discover.noneNew': 'No new tasks. Worktrees created later show up here until you import them.',
+    'discover.decidedExpand': ({ n }: N) =>
+      `Show ${n} ${n === 1 ? 'task already imported or dismissed' : 'tasks already imported or dismissed'}`,
+    'discover.decidedCollapse': ({ n }: N) =>
+      `Hide ${n} ${n === 1 ? 'task already imported or dismissed' : 'tasks already imported or dismissed'}`,
     'discover.loose': 'No task',
     'discover.importTask': ({ name }: Name) => `Import ${name}`,
     'discover.taskName': 'Task name',

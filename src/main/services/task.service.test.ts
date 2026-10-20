@@ -225,7 +225,7 @@ describe('TaskService', () => {
     await svc.rename(root, pay, 'Pix no checkout')
     await svc.setNotes(root, pay, 'usar túnel de staging')
     await svc.linkSession(root, 'sess-1', pay)
-    const after = await svc.importTasks(root, [seo])
+    const after = await svc.importTasks(root, [pay], [seo])
     expect(after.imported).toBe(true)
     expect(after.tasks.find((t) => t.id === pay)).toMatchObject({
       name: 'Pix no checkout',
@@ -234,6 +234,53 @@ describe('TaskService', () => {
     })
     expect(after.tasks.find((t) => t.id === seo)?.hidden).toBe(true)
     expect(after.sessionLinks).toEqual({ 'sess-1': pay })
+  })
+
+  it('depois de importar, só a tarefa que aparece depois espera na descoberta', async () => {
+    const ws = await svc.discover(root)
+    expect(ws.tasks.every((t) => t.pending)).toBe(true)
+    const ids = ws.tasks.map((t) => t.id)
+    const after = await svc.importTasks(root, ids, [])
+    expect(after.tasks.some((t) => t.pending)).toBe(false)
+    git(
+      path.join(root, 'api'),
+      'worktree',
+      'add',
+      '-q',
+      '-b',
+      'TECH-9',
+      path.join(root, '.worktrees/TECH-9/api'),
+    )
+    git(
+      path.join(root, 'web'),
+      'worktree',
+      'add',
+      '-q',
+      '-b',
+      'TECH-9',
+      path.join(root, '.worktrees/TECH-9/web'),
+    )
+    const next = await svc.discover(root)
+    expect(next.tasks.filter((t) => t.pending).map((t) => t.key)).toEqual(['TECH-9'])
+    const tech = next.tasks.find((t) => t.key === 'TECH-9')?.id ?? ''
+    const done = await svc.importTasks(root, [], [tech])
+    expect(done.tasks.find((t) => t.id === tech)).toMatchObject({ pending: false, hidden: true })
+  })
+
+  it('perfil antigo já importado: o que existe conta como importado', async () => {
+    const store = new JsonStore<TaskState>(path.join(base, 'tasks.json'), taskStateSchema, {
+      workspaces: {},
+    })
+    const old = new TaskService({ ...deps(), store })
+    await old.importTasks(root, [], [])
+    const state = await store.read()
+    const cfg = state.workspaces[root]
+    if (!cfg) throw new Error('sem config')
+    delete cfg.seenWorktrees
+    await store.write(state)
+    const ws = await old.discover(root)
+    expect(ws.tasks.some((t) => t.pending)).toBe(false)
+    expect((await store.read()).workspaces[root]?.seenWorktrees?.length).toBeGreaterThan(0)
   })
 
   it('separa e desfaz tarefas manuais; tarefa sem worktrees some', async () => {

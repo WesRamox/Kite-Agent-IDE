@@ -18,6 +18,7 @@ const task = (folder: string | null, paths: string[]): Task => ({
   folder,
   worktrees: paths.map(wt),
   hidden: false,
+  pending: false,
   notes: '',
   summary: [],
   rule: [],

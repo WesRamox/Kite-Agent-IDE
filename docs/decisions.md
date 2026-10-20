@@ -788,3 +788,22 @@ Decisões fáceis de desfazer, não cobertas pelo `AGENTS.md`. Mais recente no f
   renderer (TASK.md mudou) se cruzavam, e a mais antiga chegava por último, apagando o resumo.
 - Limite conhecido: se a pasta `.worktrees` é criada com o Kite aberto, o watcher não vê o que muda
   dentro dela até reabrir a pasta (o inotify perde as subpastas criadas de uma vez).
+
+## Fluxo com skill externa (2026-10-20)
+
+Uso real: a skill do agente (ex.: `init-card`) cria as worktrees e prepara o ambiente; o Kite só
+importa a tarefa e liga o agente a ela.
+
+- **Varredura acha repos aninhados e o dono das worktrees.** A varredura descia até 2 níveis mas
+  parava no primeiro repositório e pulava `.worktrees`: repos dentro de outro repo (ex.:
+  `SGE/speedsaas-backend`) e worktrees cujo clone está em outra pasta não apareciam. Agora ela
+  desce dentro de repos (ainda até 2 níveis), lista as pastas com `.git` arquivo (worktrees e
+  submódulos), inclusive em `.worktrees/<tarefa>/<repo>`, e pergunta ao git (`worktree list`) o
+  repositório principal de cada uma.
+- **Descobrir é uma caixa de entrada.** Antes, importar só escondia as desmarcadas e a tela
+  continuava mostrando tudo; tarefa criada depois ia direto para a Central. Agora tarefa nova
+  (`pending`) espera na descoberta até ser importada ou descartada, e as já decididas ficam
+  recolhidas ("Ver N tarefas já importadas ou descartadas"). Desvio do canvas (tela 4), combinado
+  com o usuário. "Já vista" é guardado por worktree (`seenWorktrees`), não pelo id da tarefa, porque
+  o id muda quando a heurística reagrupa (a primeira worktree vira tarefa "branch", e com a
+  segunda passa a ser "pasta"). Perfis antigos: o que já existe conta como importado.
