@@ -20,11 +20,22 @@ export function BrowserNode({ id, data, selected }: NodeProps<FlowNodeOf<'browse
   const [src] = useState(data.url)
   const [draft, setDraft] = useState(data.url)
   const [invalid, setInvalid] = useState(false)
+  // O webview só aceita loadURL depois do primeiro dom-ready; antes disso a chamada falha e o
+  // endereço digitado logo após criar o bloco se perdia. Fica guardado até ele ficar pronto.
+  const ready = useRef(false)
+  const pending = useRef<string | null>(null)
   const t = useT()
 
   useEffect(() => {
     const view = ref.current
     if (!view) return
+    const onReady = () => {
+      ready.current = true
+      const url = pending.current
+      pending.current = null
+      if (url) void view.loadURL(url)
+    }
+    view.addEventListener('dom-ready', onReady)
     const onNavigate = (event: Event) => {
       const url = (event as NavigateEvent).url
       setDraft(url)
@@ -37,6 +48,7 @@ export function BrowserNode({ id, data, selected }: NodeProps<FlowNodeOf<'browse
     webviews.set(id, view)
     return () => {
       webviews.delete(id)
+      view.removeEventListener('dom-ready', onReady)
       view.removeEventListener('did-navigate', onNavigate)
       view.removeEventListener('did-navigate-in-page', onNavigate)
     }
@@ -45,7 +57,9 @@ export function BrowserNode({ id, data, selected }: NodeProps<FlowNodeOf<'browse
   const go = () => {
     const url = toBrowserUrl(draft)
     setInvalid(url === null)
-    if (url) void ref.current?.loadURL(url)
+    if (!url) return
+    if (ready.current) void ref.current?.loadURL(url)
+    else pending.current = url
   }
 
   return (
