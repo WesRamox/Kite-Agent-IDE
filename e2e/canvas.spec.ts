@@ -89,6 +89,23 @@ async function link(page: Page, from: Locator, to: Locator): Promise<void> {
   }
 }
 
+// Ponto do fundo do quadro sem nenhum bloco em cima, para o botão direito abrir o menu do quadro.
+// Coordenada fixa quebra quando um bloco muda de tamanho (a nota ganhou barra de formatação).
+async function emptySpot(page: Page): Promise<{ x: number; y: number }> {
+  const spot = await page.evaluate(() => {
+    const pane = document.querySelector('.react-flow__pane')?.getBoundingClientRect()
+    if (!pane) return null
+    for (let y = pane.top + 40; y < pane.bottom - 40; y += 30) {
+      for (let x = pane.left + 40; x < pane.right - 40; x += 30) {
+        if (document.elementFromPoint(x, y)?.classList.contains('react-flow__pane')) return { x, y }
+      }
+    }
+    return null
+  })
+  if (!spot) throw new Error('sem espaço livre no quadro')
+  return spot
+}
+
 const guestUrls = (app: import('@playwright/test').ElectronApplication) =>
   app.evaluate(({ webContents }) =>
     webContents
@@ -305,7 +322,8 @@ test('quadro: blocos de nota, navegador local e agente, ligados e salvos', async
     }
 
     // Bloco de código: rascunho escrito ali mesmo, guardado no quadro.
-    await page.mouse.click(pane.x + pane.width / 2 - 120, pane.y + 70, { button: 'right' })
+    const free = await emptySpot(page)
+    await page.mouse.click(free.x, free.y, { button: 'right' })
     await page.getByRole('menuitem', { name: 'Novo código aqui' }).click()
     const code = page.locator('.react-flow__node-code')
     await code.locator('.monaco-editor .view-lines').click()
