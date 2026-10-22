@@ -1,14 +1,17 @@
 import type { AgentSession, Task } from '@shared/types'
 
-function inside(dir: string, target: string): boolean {
-  const base = dir.endsWith('/') || dir.endsWith('\\') ? dir : `${dir}/`
-  return target === dir || target.startsWith(base)
-}
-
-// Caminho para comparar com o que veio do comando do agente (barras e caixa do Windows, Git
-// Bash): sem barra no fim, só "/", minúsculas.
+// Caminho para comparar com o que veio do agente (barras e caixa do Windows, Git Bash): sem barra
+// no fim, só "/", minúsculas.
 function norm(p: string): string {
   return p.replace(/\\/g, '/').replace(/\/+$/, '').toLowerCase()
+}
+
+// No Windows o cwd e os arquivos do hook chegam com '\'; comparar com `${dir}/` só acertava o
+// caminho idêntico ao da worktree.
+function inside(dir: string, target: string): boolean {
+  const d = norm(dir)
+  const t = norm(target)
+  return t === d || t.startsWith(`${d}/`)
 }
 
 function dirsOf(task: Task): string[] {
