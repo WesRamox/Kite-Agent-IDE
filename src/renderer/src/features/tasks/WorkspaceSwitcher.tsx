@@ -2,7 +2,7 @@ import { isMac } from '../../lib/platform'
 import { basename } from '../../lib/paths'
 import { useT } from '../../lib/i18n'
 import { useTaskSwitcherStore } from './task-switcher.store'
-import { useTasksStore } from './tasks.store'
+import { isShownTask, useTasksStore } from './tasks.store'
 
 // Topo do explorer do workspace (sem tarefa aberta): o mesmo seletor do explorer da tarefa, para
 // escolher uma tarefa sem ir ao menu. Só aparece num workspace com tarefas importadas.
@@ -10,7 +10,7 @@ export function WorkspaceSwitcher() {
   const tr = useT()
   const root = useTasksStore((s) => s.workspace?.root ?? null)
   const count = useTasksStore((s) =>
-    s.workspace?.imported ? s.workspace.tasks.filter((t) => !t.hidden).length : 0,
+    s.workspace?.imported ? s.workspace.tasks.filter(isShownTask).length : 0,
   )
   if (!root || count === 0) return null
   const mod = isMac ? '⌘' : 'Ctrl+'

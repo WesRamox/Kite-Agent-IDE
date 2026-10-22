@@ -14,7 +14,7 @@ import type { LucideIcon } from 'lucide-react'
 import { useEffect, useRef, useState } from 'react'
 import { useT } from '../../lib/i18n'
 import { useAgentsStore } from '../agents/agents.store'
-import { useTasksStore } from '../tasks/tasks.store'
+import { isShownTask, useTasksStore } from '../tasks/tasks.store'
 import { DEFAULT_BROWSER_URL, NODE_SIZE } from './canvas'
 import { addNode, terminalCwd } from './canvas.actions'
 import { useCanvasStore } from './canvas.store'
@@ -100,7 +100,7 @@ export function AddNodeMenu({
     else setStep(kind)
   }
 
-  const visibleTasks = (tasks ?? []).filter((x) => !x.hidden)
+  const visibleTasks = (tasks ?? []).filter(isShownTask)
 
   return (
     <div ref={ref} className="relative font-geist text-fg">

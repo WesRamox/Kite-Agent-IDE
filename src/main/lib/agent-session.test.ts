@@ -22,6 +22,21 @@ function run(...recs: HookRecord[]): AgentSession {
 }
 
 describe('reduceSession', () => {
+  it('guarda as worktrees que o agente criou, a mais recente primeiro', () => {
+    const s = run(
+      rec('PreToolUse', {
+        tool: 'Bash',
+        toolDetail: 'cd plataforma/api && git worktree add ../../.worktrees/T/be -b T origin/dev',
+      }),
+      rec('PreToolUse', {
+        tool: 'Bash',
+        toolDetail: 'git -C plataforma/web worktree add ../../.worktrees/T/fe',
+      }),
+      rec('PreToolUse', { tool: 'Bash', toolDetail: 'git status' }),
+    )
+    expect(s.createdWorktrees).toEqual(['/w/.worktrees/T/fe', '/w/.worktrees/T/be'])
+  })
+
   it('nova sessão começa ociosa e trabalha ao receber um pedido', () => {
     const s = run(rec('SessionStart'), rec('UserPromptSubmit', { prompt: 'faça X' }))
     expect(s).toMatchObject({ status: 'running', firstPrompt: 'faça X', waitReason: null })

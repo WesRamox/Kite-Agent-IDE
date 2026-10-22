@@ -11,13 +11,24 @@ import type { JsonStore } from '../lib/json-store'
 import type { Logger } from '../lib/logger'
 import { scanRepos } from '../lib/repo-scan'
 import * as cfgOps from '../lib/task-config'
-import { DEFAULT_CONFIG, type TaskState, type WorkspaceTaskConfig } from '../lib/task-config'
-import { groupWorktrees, type RepoWorktrees, type TaskOverrides } from '../lib/task-grouping'
+import {
+  DEFAULT_CONFIG,
+  DEFAULT_SCAN_DEPTH,
+  type TaskState,
+  type WorkspaceTaskConfig,
+} from '../lib/task-config'
+import {
+  groupWorktrees,
+  patternBase,
+  type RepoWorktrees,
+  type TaskOverrides,
+} from '../lib/task-grouping'
 import {
   addWorktree,
   commonBranch,
   exists,
   listTaskWorktrees,
+  mainWorktree,
   newTaskWorktreeDir,
   readTaskMeta,
 } from '../lib/task-worktrees'
@@ -58,6 +69,7 @@ export class TaskService {
 
   private async discoverNow(root: string): Promise<WorkspaceTasks> {
     const cfg = await this.config(root)
+    const legacy = cfg.imported && !cfg.seenWorktrees
     const repos = await this.repos(root, cfg)
     const extra = new Set(cfg.extraRepos)
     const listed: RepoWorktrees[] = await Promise.all(
@@ -85,6 +97,7 @@ export class TaskService {
           folder: t.folder,
           worktrees: t.worktrees,
           hidden: cfg.overrides.hidden.includes(t.id),
+          pending: cfgOps.isPending(cfg, t),
           notes: cfg.notes[t.id] ?? '',
           summary: meta.summary,
           rule: meta.rule,
@@ -98,9 +111,13 @@ export class TaskService {
       tasks: full,
       unassigned,
       grouping: cfg.grouping,
+      scanDepth: cfg.scanDepth ?? DEFAULT_SCAN_DEPTH,
       imported: cfg.imported,
       sessionLinks: cfg.sessionLinks,
     }
+    // Perfil de antes da lista de worktrees vistas: o que já existe conta como importado, e só
+    // o que aparecer depois espera na descoberta.
+    if (legacy) await this.persist(root, (c) => cfgOps.markSeen(c, tasksPaths(full)))
     this.last.set(root, JSON.stringify(result))
     return result
   }
@@ -175,8 +192,19 @@ export class TaskService {
     return this.update(root, (c) => cfgOps.ignoreWorktree(c, worktree))
   }
 
-  importTasks(root: string, hidden: string[]): Promise<WorkspaceTasks> {
-    return this.update(root, (c) => cfgOps.importTasks(c, hidden))
+  // `imported` vão para a Central; `dismissed` ficam escondidas. As demais tarefas novas
+  // continuam esperando na descoberta.
+  async importTasks(
+    root: string,
+    imported: string[],
+    dismissed: string[],
+  ): Promise<WorkspaceTasks> {
+    const ws = await this.discover(root)
+    return this.update(root, (c) => cfgOps.importTasks(c, ws.tasks, imported, dismissed))
+  }
+
+  setScanDepth(root: string, depth: number): Promise<WorkspaceTasks> {
+    return this.update(root, (c) => cfgOps.setScanDepth(c, depth))
   }
 
   setHidden(root: string, taskId: string, hidden: boolean): Promise<WorkspaceTasks> {
@@ -282,10 +310,7 @@ export class TaskService {
     const first = repos[0]?.path ?? root
     await assertBranchName(this.deps.run, first, branch)
     const key = worktreeDirName(branch)
-    const pattern =
-      cfg.grouping.mode === 'pattern' && cfg.grouping.pattern.includes('{repo}')
-        ? cfg.grouping.pattern
-        : DEFAULT_CONFIG.grouping.pattern
+    const pattern = cfgOps.worktreePattern(cfg)
     const single = repos.length === 1 && first === root
     const plan = repos.map((r) => {
       const repo = r as { path: string; name: string }
@@ -310,7 +335,7 @@ export class TaskService {
       const file = path.join(folder, 'TASK.md')
       if (!(await exists(file))) await writeFile(file, `# ${name}\n`)
     }
-    let ws2 = await this.update(root, (c) => ({ ...c, imported: true }))
+    let ws2 = await this.update(root, (c) => cfgOps.markSeen(c, created))
     let task = ws2.tasks.find((t) => t.worktrees.some((w) => created.includes(w.path)))
     // Agrupamento manual (ou algo que não juntou as worktrees): monta a tarefa à mão.
     if (!task || !created.every((p) => task?.worktrees.some((w) => w.path === p))) {
@@ -382,17 +407,38 @@ export class TaskService {
     fn: (c: WorkspaceTaskConfig) => WorkspaceTaskConfig,
   ): Promise<WorkspaceTasks> {
     this.checkRoot(root)
+    await this.persist(root, fn)
+    return this.discover(root)
+  }
+
+  private async persist(
+    root: string,
+    fn: (c: WorkspaceTaskConfig) => WorkspaceTaskConfig,
+  ): Promise<void> {
     const state = await this.deps.store.read()
     const next = fn(state.workspaces[root] ?? DEFAULT_CONFIG)
     await this.deps.store.write({ workspaces: { ...state.workspaces, [root]: next } })
-    return this.discover(root)
   }
 
   private async repos(root: string, cfg: WorkspaceTaskConfig): Promise<string[]> {
     const ignored = new Set(cfg.ignoredRepos ?? [])
-    const scanned = (await scanRepos(root)).filter((r) => !ignored.has(r))
+    const base = patternBase(cfgOps.worktreePattern(cfg))
+    const scan = await scanRepos(root, {
+      depth: cfg.scanDepth ?? DEFAULT_SCAN_DEPTH,
+      worktreeDirs: base ? [{ dir: path.resolve(root, base.dir), levels: base.levels }] : [],
+    })
+    // Worktrees achadas na pasta aberta trazem o repositório delas, mesmo que o clone esteja
+    // em outra pasta ou num nível que a varredura não alcança.
+    const owners = await Promise.all(scan.linked.map((d) => mainWorktree(this.deps.run, d)))
+    const scanned = [...new Set([...scan.repos, ...owners.filter((r) => r !== null)])]
+      .filter((r) => !ignored.has(r))
+      .sort()
     const extra: string[] = []
     for (const r of cfg.extraRepos) if (await exists(path.join(r, '.git'))) extra.push(r)
     return [...new Set([...scanned, ...extra])]
   }
+}
+
+function tasksPaths(tasks: Task[]): string[] {
+  return tasks.flatMap((t) => t.worktrees.map((w) => w.path))
 }

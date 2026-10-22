@@ -3,7 +3,7 @@ import { useState } from 'react'
 import { ContextMenu, type MenuItem } from '../../components/ContextMenu'
 import { linkSessions } from '../../lib/task-links'
 import { linkSession } from '../tasks/tasks.actions'
-import { useTasksStore } from '../tasks/tasks.store'
+import { isShownTask, useTasksStore } from '../tasks/tasks.store'
 import { openAgentTerminal } from './agents.actions'
 import { CLI_LABEL, CLI_SHORT, CLIS } from '../../lib/agent-cli'
 import { showAttentionView } from './attention.actions'
@@ -233,7 +233,7 @@ function SessionCard({ session }: { session: AgentSession }) {
   )
   const ws = useTasksStore((s) => s.workspace)
   const [menu, setMenu] = useState<{ x: number; y: number; items: MenuItem[] } | null>(null)
-  const visible = ws?.imported ? ws.tasks.filter((t) => !t.hidden) : []
+  const visible = ws?.imported ? ws.tasks.filter(isShownTask) : []
   const linkedId = linkSessions([session], visible, ws?.sessionLinks ?? {}).get(session.id)
   const linked = visible.find((t) => t.id === linkedId)
   const manual = ws?.sessionLinks[session.id] === linkedId

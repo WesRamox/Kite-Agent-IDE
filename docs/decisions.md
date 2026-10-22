@@ -788,3 +788,38 @@ Decisões fáceis de desfazer, não cobertas pelo `AGENTS.md`. Mais recente no f
   renderer (TASK.md mudou) se cruzavam, e a mais antiga chegava por último, apagando o resumo.
 - Limite conhecido: se a pasta `.worktrees` é criada com o Kite aberto, o watcher não vê o que muda
   dentro dela até reabrir a pasta (o inotify perde as subpastas criadas de uma vez).
+
+## Fluxo com skill externa (2026-10-20)
+
+Fluxo comum: um agente (por uma skill, script ou à mão) cria as worktrees e prepara o ambiente; o
+Kite só importa a tarefa e liga o agente a ela.
+
+- **Varredura acha repos aninhados e o dono das worktrees.** A varredura descia até 2 níveis mas
+  parava no primeiro repositório e pulava `.worktrees`: repos dentro de outro repo (ex.:
+  `plataforma/api-core`) e worktrees cujo clone está em outra pasta não apareciam. Agora ela
+  desce dentro de repos, lista as pastas com `.git` arquivo (worktrees e submódulos) e pergunta ao
+  git (`worktree list`) o repositório principal de cada uma. Nada de nome de pasta fixo: a pasta
+  de worktrees varrida (mesmo oculta) é a parte fixa do padrão que o Kite usa para tarefas novas
+  (o configurado no modo padrão, senão `.worktrees/{tarefa}/{repo}`), descendo tantos níveis
+  quantos o padrão tem. A profundidade da varredura (1 a 5, padrão 2) é escolhida por workspace
+  na tela Descobrir (`scanDepth`); o limite de pastas visitadas subiu de 2000 para 5000.
+- **Descobrir é uma caixa de entrada.** Antes, importar só escondia as desmarcadas e a tela
+  continuava mostrando tudo; tarefa criada depois ia direto para a Central. Agora tarefa nova
+  (`pending`) espera na descoberta até ser importada ou descartada, e as já decididas ficam
+  recolhidas ("Ver N tarefas já importadas ou descartadas"). Desvio do canvas (tela 4), combinado
+  com o usuário. "Já vista" é guardado por worktree (`seenWorktrees`), não pelo id da tarefa, porque
+  o id muda quando a heurística reagrupa (a primeira worktree vira tarefa "branch", e com a
+  segunda passa a ser "pasta"). Perfis antigos: o que já existe conta como importado.
+- **Aviso de tarefa nova.** Quando aparece uma tarefa nova com o Kite aberto (depois da primeira
+  importação), um aviso com botão "Importar" (ou "Ver", se forem várias) e um contador no botão
+  "Descobrir" da Central. O aviso espera 1,5 s para o agrupamento assentar e não se repete para a
+  mesma worktree; o botão procura a tarefa pela worktree na hora do clique (o id pode ter mudado).
+  Avisos com botão ficam 15 s na tela.
+- **Agente que criou as worktrees fica ligado à tarefa.** O hook já guarda o comando de shell
+  (`toolDetail`, até 500 caracteres) no `PreToolUse`; o reducer da sessão procura `git worktree
+add` nele (acompanhando `cd`, `git -C`, aspas e o `/c/` do Git Bash) e guarda as pastas criadas
+  (`createdWorktrees`, só caminhos). Na ligação sessão → tarefa, depois do vínculo manual e do cwd,
+  vale a tarefa da worktree criada mais recente (antes dos arquivos editados, para a sessão que
+  monta uma tarefa nova não ficar presa na anterior). Limite: skill que cria as worktrees por um
+  script (o comando não traz o caminho) não é detectada; aí vale o vínculo pelos arquivos
+  editados ou o manual. `PowerShell` entrou na lista de ferramentas de shell.

@@ -1,7 +1,7 @@
 import type { AgentSession, AgentTask, WorkspaceTasks } from '@shared/types'
 import { useMemo } from 'react'
 import { linkSessions } from '../../lib/task-links'
-import { useTasksStore } from '../tasks/tasks.store'
+import { isShownTask, useTasksStore } from '../tasks/tasks.store'
 import { useAgentsStore } from './agents.store'
 import {
   attentionItems,
@@ -25,7 +25,7 @@ export function buildItems(
   review?: ReviewFilter,
   tr?: TFunction,
 ): AttentionItem[] {
-  const visible = workspace?.imported ? workspace.tasks.filter((t) => !t.hidden) : []
+  const visible = workspace?.imported ? workspace.tasks.filter(isShownTask) : []
   const links = linkSessions(sessions, visible, workspace?.sessionLinks ?? {})
   return attentionItems(sessions, tasks, now, visible, links, review, tr)
 }

@@ -12,12 +12,16 @@ import {
   moveWorktree,
   removeRepo,
   restoreRepo,
+  setScanDepth,
+  setTaskHidden,
 } from './tasks.actions'
 import { useTasksStore } from './tasks.store'
 
 // Tela 4 do canvas "Kite — Tarefas multi-repo" (Discover.dc.html).
 
 const LABEL = 'text-[11px] font-semibold uppercase tracking-[0.08em] text-fg-muted'
+// Mesmos limites do main (task-config): mais fundo que isso a varredura fica lenta.
+const SCAN_DEPTHS = [1, 2, 3, 4, 5]
 
 export function DiscoverPanel() {
   const ws = useTasksStore((s) => s.workspace)
@@ -26,17 +30,23 @@ export function DiscoverPanel() {
   return <DiscoverBody key={ws.root} />
 }
 
+// A descoberta é uma caixa de entrada: só as tarefas novas (ainda não importadas nem
+// descartadas) esperam aqui. As já decididas ficam recolhidas, para rever.
 function DiscoverBody() {
   const ws = useTasksStore((s) => s.workspace)
   const [hidden, setHidden] = useState<Set<string>>(
     () => new Set(ws?.tasks.filter((t) => t.hidden).map((t) => t.id) ?? []),
   )
+  const [showDecided, setShowDecided] = useState(false)
   const [menu, setMenu] = useState<{ x: number; y: number; items: MenuItem[] } | null>(null)
   const tr = useT()
 
   if (!ws) return null
   const total = ws.tasks.reduce((n, t) => n + t.worktrees.length, 0) + ws.unassigned.length
-  const chosen = ws.tasks.filter((t) => !hidden.has(t.id)).length
+  const pending = ws.tasks.filter((t) => t.pending)
+  const decided = ws.tasks.filter((t) => !t.pending)
+  const chosen = pending.filter((t) => !hidden.has(t.id))
+  const dismissed = pending.filter((t) => hidden.has(t.id))
   const toggle = (id: string) =>
     setHidden((h) => {
       const next = new Set(h)
@@ -62,13 +72,20 @@ function DiscoverBody() {
                 {tr('discover.found', { repos: ws.repos.length, worktrees: total })}
               </p>
             </div>
-            <button
-              type="button"
-              onClick={() => void importTasks([...hidden])}
-              className="h-9 rounded-lg bg-accent px-4 font-semibold text-accent-fg hover:bg-accent/85"
-            >
-              {tr('discover.import', { n: chosen })}
-            </button>
+            {pending.length > 0 && (
+              <button
+                type="button"
+                onClick={() =>
+                  void importTasks(
+                    chosen.map((t) => t.id),
+                    dismissed.map((t) => t.id),
+                  )
+                }
+                className="h-9 rounded-lg bg-accent px-4 font-semibold text-accent-fg hover:bg-accent/85"
+              >
+                {tr('discover.import', { n: chosen.length })}
+              </button>
+            )}
           </header>
 
           <div className="flex flex-wrap items-start gap-6">
@@ -116,6 +133,20 @@ function DiscoverBody() {
                     </button>
                   </div>
                 ))}
+                <label className="mt-1 flex items-center gap-2 text-xs text-fg-muted">
+                  {tr('discover.scanDepth')}
+                  <select
+                    value={ws.scanDepth}
+                    onChange={(e) => void setScanDepth(Number(e.target.value))}
+                    className="h-6 rounded border border-border bg-surface-0 px-1 text-xs text-fg"
+                  >
+                    {SCAN_DEPTHS.map((n) => (
+                      <option key={n} value={n}>
+                        {tr('discover.scanDepthLevels', { n })}
+                      </option>
+                    ))}
+                  </select>
+                </label>
                 <button
                   type="button"
                   onClick={() => void addExternalRepo()}
@@ -132,7 +163,10 @@ function DiscoverBody() {
               className="flex min-w-0 flex-[999_1_520px] flex-col gap-3"
             >
               {ws.tasks.length === 0 && <p className="text-fg-muted">{tr('discover.none')}</p>}
-              {ws.tasks.map((t) => (
+              {ws.tasks.length > 0 && pending.length === 0 && (
+                <p className="text-fg-muted">{tr('discover.noneNew')}</p>
+              )}
+              {pending.map((t) => (
                 <TaskCard
                   key={`${t.id}:${t.name}`}
                   task={t}
@@ -144,6 +178,31 @@ function DiscoverBody() {
                   }
                 />
               ))}
+              {decided.length > 0 && (
+                <button
+                  type="button"
+                  aria-expanded={showDecided}
+                  onClick={() => setShowDecided((v) => !v)}
+                  className="self-start text-xs text-fg-muted hover:text-fg"
+                >
+                  {tr(showDecided ? 'discover.decidedCollapse' : 'discover.decidedExpand', {
+                    n: decided.length,
+                  })}
+                </button>
+              )}
+              {showDecided &&
+                decided.map((t) => (
+                  <TaskCard
+                    key={`${t.id}:${t.name}`}
+                    task={t}
+                    root={ws.root}
+                    checked={!t.hidden}
+                    onToggle={() => void setTaskHidden(t.id, !t.hidden)}
+                    onWorktreeMenu={(w, x, y) =>
+                      setMenu({ x, y, items: worktreeMenu(w, t, ws.tasks, tr) })
+                    }
+                  />
+                ))}
               {ws.unassigned.length > 0 && (
                 <div className="flex flex-col gap-2.5 rounded-[10px] border border-dashed border-fg-muted/30 px-4 py-3.5">
                   <span className={LABEL}>{tr('discover.loose')}</span>

@@ -128,6 +128,64 @@ describe('TaskService', () => {
     expect(ws.imported).toBe(false)
   })
 
+  it('acha as worktrees de .worktrees cujo clone está fora da pasta aberta', async () => {
+    // Clone em outra pasta (ou num nível que a varredura não alcança); a ferramenta que as cria põe as worktrees
+    // em <workspace>/.worktrees/<tarefa>/<repo>.
+    const clone = path.join(base, 'fora/plataforma/web-app')
+    await mkdir(clone, { recursive: true })
+    await writeFile(path.join(clone, 'a.txt'), 'f')
+    git(clone, 'init', '-q', '-b', 'main')
+    git(clone, 'add', '.')
+    git(clone, 'commit', '-q', '-m', 'i')
+    git(clone, 'worktree', 'add', '-q', '-b', 'PAY-77', path.join(root, '.worktrees/PAY-77/web'))
+    git(
+      path.join(root, 'api'),
+      'worktree',
+      'add',
+      '-q',
+      '-b',
+      'PAY-77',
+      path.join(root, '.worktrees/PAY-77/api'),
+    )
+    const ws = await svc.discover(root)
+    expect(ws.repos.map((r) => r.name).sort()).toEqual(['api', 'infra', 'web', 'web-app'])
+    const task = ws.tasks.find((t) => t.key === 'PAY-77')
+    expect(task?.worktrees.map((w) => w.repoName)).toEqual(['api', 'web-app'])
+  })
+
+  it('procura worktrees na pasta do padrão configurado e repos na profundidade escolhida', async () => {
+    const clone = path.join(base, 'fora/web-app')
+    await mkdir(clone, { recursive: true })
+    await writeFile(path.join(clone, 'a.txt'), 'f')
+    git(clone, 'init', '-q', '-b', 'main')
+    git(clone, 'add', '.')
+    git(clone, 'commit', '-q', '-m', 'i')
+    git(clone, 'worktree', 'add', '-q', '-b', 'PAY-80', path.join(root, 'tarefas/PAY-80/web-app'))
+    const deep = path.join(root, 'a/b/fundo')
+    await mkdir(deep, { recursive: true })
+    git(deep, 'init', '-q', '-b', 'main')
+    const before = await svc.discover(root)
+    expect(before.repos.map((r) => r.name)).not.toContain('web-app')
+    expect(before.scanDepth).toBe(2)
+    await svc.setGrouping(root, { mode: 'pattern', pattern: 'tarefas/{tarefa}/{repo}' })
+    const after = await svc.setScanDepth(root, 3)
+    expect(after.scanDepth).toBe(3)
+    expect(after.repos.map((r) => r.name)).toEqual(expect.arrayContaining(['web-app', 'fundo']))
+    expect(after.tasks.find((t) => t.key === 'PAY-80')?.worktrees.map((w) => w.repoName)).toEqual([
+      'web-app',
+    ])
+  })
+
+  it('acha repositórios dentro de outro repositório', async () => {
+    const plataforma = path.join(root, 'plataforma')
+    await mkdir(path.join(plataforma, 'api-core'), { recursive: true })
+    await writeFile(path.join(plataforma, 'api-core/a.txt'), 'b')
+    git(plataforma, 'init', '-q', '-b', 'main')
+    git(path.join(plataforma, 'api-core'), 'init', '-q', '-b', 'main')
+    const ws = await svc.discover(root)
+    expect(ws.repos.map((r) => r.name)).toContain('api-core')
+  })
+
   it('descobertas em fila: a que começou depois nunca é passada para trás pela anterior', async () => {
     // A primeira descoberta (ex.: a do watcher de worktrees) demora; no meio, o agente escreve o
     // resumo e uma segunda descoberta é pedida. A ordem de chegada tem de ser a de início.
@@ -177,7 +235,7 @@ describe('TaskService', () => {
     await svc.rename(root, pay, 'Pix no checkout')
     await svc.setNotes(root, pay, 'usar túnel de staging')
     await svc.linkSession(root, 'sess-1', pay)
-    const after = await svc.importTasks(root, [seo])
+    const after = await svc.importTasks(root, [pay], [seo])
     expect(after.imported).toBe(true)
     expect(after.tasks.find((t) => t.id === pay)).toMatchObject({
       name: 'Pix no checkout',
@@ -186,6 +244,53 @@ describe('TaskService', () => {
     })
     expect(after.tasks.find((t) => t.id === seo)?.hidden).toBe(true)
     expect(after.sessionLinks).toEqual({ 'sess-1': pay })
+  })
+
+  it('depois de importar, só a tarefa que aparece depois espera na descoberta', async () => {
+    const ws = await svc.discover(root)
+    expect(ws.tasks.every((t) => t.pending)).toBe(true)
+    const ids = ws.tasks.map((t) => t.id)
+    const after = await svc.importTasks(root, ids, [])
+    expect(after.tasks.some((t) => t.pending)).toBe(false)
+    git(
+      path.join(root, 'api'),
+      'worktree',
+      'add',
+      '-q',
+      '-b',
+      'TECH-9',
+      path.join(root, '.worktrees/TECH-9/api'),
+    )
+    git(
+      path.join(root, 'web'),
+      'worktree',
+      'add',
+      '-q',
+      '-b',
+      'TECH-9',
+      path.join(root, '.worktrees/TECH-9/web'),
+    )
+    const next = await svc.discover(root)
+    expect(next.tasks.filter((t) => t.pending).map((t) => t.key)).toEqual(['TECH-9'])
+    const tech = next.tasks.find((t) => t.key === 'TECH-9')?.id ?? ''
+    const done = await svc.importTasks(root, [], [tech])
+    expect(done.tasks.find((t) => t.id === tech)).toMatchObject({ pending: false, hidden: true })
+  })
+
+  it('perfil antigo já importado: o que existe conta como importado', async () => {
+    const store = new JsonStore<TaskState>(path.join(base, 'tasks.json'), taskStateSchema, {
+      workspaces: {},
+    })
+    const old = new TaskService({ ...deps(), store })
+    await old.importTasks(root, [], [])
+    const state = await store.read()
+    const cfg = state.workspaces[root]
+    if (!cfg) throw new Error('sem config')
+    delete cfg.seenWorktrees
+    await store.write(state)
+    const ws = await old.discover(root)
+    expect(ws.tasks.some((t) => t.pending)).toBe(false)
+    expect((await store.read()).workspaces[root]?.seenWorktrees?.length).toBeGreaterThan(0)
   })
 
   it('separa e desfaz tarefas manuais; tarefa sem worktrees some', async () => {

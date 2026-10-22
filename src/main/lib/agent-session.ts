@@ -2,6 +2,7 @@ import { z } from 'zod'
 import type { AgentSession, WaitReason } from '@shared/types'
 import { LIMITS, type HookRecord } from './hook-record'
 import { t } from './i18n'
+import { worktreeAddTargets } from './worktree-command'
 
 // Validação das linhas do spool (escritas pelo kite-hook, mas o arquivo pode ter sido mexido).
 export const hookRecordSchema: z.ZodType<HookRecord> = z.object({
@@ -23,6 +24,7 @@ export const hookRecordSchema: z.ZodType<HookRecord> = z.object({
 })
 
 const MAX_TOUCHED = 50
+const MAX_CREATED = 20
 const INPUT_NOTIFICATIONS = new Set([
   'elicitation_dialog',
   'elicitation_url_dialog',
@@ -44,6 +46,7 @@ function newSession(rec: HookRecord): AgentSession {
     firstPrompt: null,
     touchedPaths: [],
     touchedCount: 0,
+    createdWorktrees: [],
     agentTaskId: null,
     ptyId: null,
     startedAt: rec.ts,
@@ -83,6 +86,7 @@ export function reduceSession(prev: AgentSession | undefined, rec: HookRecord): 
     ? {
         ...prev,
         touchedPaths: [...prev.touchedPaths],
+        createdWorktrees: [...prev.createdWorktrees],
         pending: prev.pending && { ...prev.pending },
         activity: prev.activity && { ...prev.activity },
       }
@@ -108,6 +112,14 @@ export function reduceSession(prev: AgentSession | undefined, rec: HookRecord): 
     case 'PreToolUse':
       work(s, rec.ts)
       if (rec.tool) s.activity = { tool: rec.tool, detail: rec.toolDetail ?? '' }
+      // Agente (ex.: uma skill) criando as worktrees de uma tarefa: liga a sessão a ela.
+      if (rec.toolDetail) {
+        const created = worktreeAddTargets(rec.toolDetail, rec.cwd)
+        s.createdWorktrees = [
+          ...created.reverse(),
+          ...s.createdWorktrees.filter((p) => !created.includes(p)),
+        ].slice(0, MAX_CREATED)
+      }
       break
     case 'PostToolUse':
       work(s, rec.ts)

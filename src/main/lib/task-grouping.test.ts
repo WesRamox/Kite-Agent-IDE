@@ -4,6 +4,7 @@ import {
   EMPTY_OVERRIDES,
   groupWorktrees,
   parseTaskMeta,
+  patternBase,
   patternRegex,
   type RepoWorktrees,
 } from './task-grouping'
@@ -123,6 +124,13 @@ describe('groupWorktrees', () => {
     expect(patternRegex('.worktrees/{tarefa}/{repo}')?.exec('.worktrees/A-1/api')?.[1]).toBe('A-1')
     expect(patternRegex('wt/{task}/{repo}')?.exec('wt/A-2/web')?.[1]).toBe('A-2')
     expect(patternRegex('sem-marcador')).toBeNull()
+  })
+
+  it('pasta fixa do padrão e níveis depois dela', () => {
+    expect(patternBase('.worktrees/{tarefa}/{repo}')).toEqual({ dir: '.worktrees', levels: 2 })
+    expect(patternBase('./wt/tarefas/{task}-{repo}')).toEqual({ dir: 'wt/tarefas', levels: 1 })
+    expect(patternBase('wt\\{tarefa}\\{repo}')).toEqual({ dir: 'wt', levels: 2 })
+    expect(patternBase('{tarefa}/{repo}')).toBeNull()
   })
 
   it('lê o título da tarefa', () => {

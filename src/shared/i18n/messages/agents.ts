@@ -96,6 +96,8 @@ export default messages(
     'sidebar.unhideLabel': ({ name }: Name) => `Mostrar ${name} de novo`,
     'sidebar.tasks': 'Tarefas',
     'sidebar.discover': 'Descobrir',
+    'sidebar.newTasks': ({ n }: { n: number }) =>
+      `${n} ${n === 1 ? 'tarefa nova esperando' : 'tarefas novas esperando'}`,
     'sidebar.discoverHint': 'Agrupamento das worktrees e worktrees soltas',
     'sidebar.new': '+ Nova',
     'sidebar.openFolder': 'Abrir pasta',
@@ -321,6 +323,7 @@ export default messages(
     'sidebar.unhideLabel': ({ name }: Name) => `Show ${name} again`,
     'sidebar.tasks': 'Tasks',
     'sidebar.discover': 'Discover',
+    'sidebar.newTasks': ({ n }: { n: number }) => `${n} new ${n === 1 ? 'task' : 'tasks'} waiting`,
     'sidebar.discoverHint': 'Worktree grouping and loose worktrees',
     'sidebar.new': '+ New',
     'sidebar.openFolder': 'Open folder',

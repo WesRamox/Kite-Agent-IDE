@@ -151,10 +151,14 @@ export interface InvokeChannels {
   'task:discover': { args: [root: string]; result: WorkspaceTasks }
   'task:watch': { args: [root: string]; result: void }
   'task:setGrouping': { args: [root: string, grouping: TaskGrouping]; result: WorkspaceTasks }
+  'task:setScanDepth': { args: [root: string, depth: number]; result: WorkspaceTasks }
   'task:rename': { args: [root: string, taskId: string, name: string]; result: WorkspaceTasks }
   'task:move': { args: [root: string, worktree: string, target: string]; result: WorkspaceTasks }
   'task:ignore': { args: [root: string, worktree: string]; result: WorkspaceTasks }
-  'task:import': { args: [root: string, hidden: string[]]; result: WorkspaceTasks }
+  'task:import': {
+    args: [root: string, imported: string[], dismissed: string[]]
+    result: WorkspaceTasks
+  }
   'task:setHidden': {
     args: [root: string, taskId: string, hidden: boolean]
     result: WorkspaceTasks
@@ -290,6 +294,7 @@ export interface Api {
     discover: Fn<'task:discover'>
     watch: Fn<'task:watch'>
     setGrouping: Fn<'task:setGrouping'>
+    setScanDepth: Fn<'task:setScanDepth'>
     rename: Fn<'task:rename'>
     move: Fn<'task:move'>
     ignore: Fn<'task:ignore'>

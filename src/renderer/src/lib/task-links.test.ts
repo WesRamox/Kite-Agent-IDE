@@ -17,12 +17,18 @@ const task = (id: string, folder: string | null, paths: string[]): Task => ({
     head: '',
   })),
   hidden: false,
+  pending: false,
   notes: '',
   summary: [],
   rule: [],
 })
 
-const session = (id: string, cwd: string, touched: string[] = []): AgentSession => ({
+const session = (
+  id: string,
+  cwd: string,
+  touched: string[] = [],
+  created: string[] = [],
+): AgentSession => ({
   id,
   cli: 'claude',
   cwd,
@@ -36,6 +42,7 @@ const session = (id: string, cwd: string, touched: string[] = []): AgentSession 
   firstPrompt: null,
   touchedPaths: touched,
   touchedCount: touched.length,
+  createdWorktrees: created,
   agentTaskId: null,
   ptyId: null,
   startedAt: 0,
@@ -77,5 +84,41 @@ describe('linkSessions', () => {
         session('a', '/w', ['/w/.worktrees/PAY/api/a.ts', '/w/.worktrees/PAY/api/b.ts']),
       ]),
     ).toEqual({ api: 2, web: 0 })
+  })
+})
+
+describe('sessão que criou as worktrees', () => {
+  const tasks = [
+    task('PAY-1', null, ['/ws/.worktrees/PAY-1/api']),
+    task('PAY-77', '/ws/.worktrees/PAY-77', [
+      '/ws/.worktrees/PAY-77/web',
+      '/ws/.worktrees/PAY-77/api',
+    ]),
+  ]
+
+  it('fica ligada à tarefa da última worktree que criou, acima dos arquivos editados', () => {
+    const s = session(
+      's1',
+      '/ws',
+      ['/ws/.worktrees/PAY-1/api/a.ts', '/ws/.worktrees/PAY-1/api/b.ts'],
+      ['/ws/.worktrees/PAY-77/api', '/ws/.worktrees/PAY-1/api'],
+    )
+    expect(linkSessions([s], tasks, {}).get('s1')).toBe('PAY-77')
+  })
+
+  it('compara caminhos do Windows sem ligar para barra e caixa', () => {
+    const win = [task('T', null, ['C:\\Users\\ana\\projetos\\.worktrees\\T\\fe'])]
+    const s = session(
+      's1',
+      'C:\\Users\\ana\\projetos',
+      [],
+      ['c:/Users/ana/projetos/.worktrees/T/fe/'],
+    )
+    expect(linkSessions([s], win, {}).get('s1')).toBe('T')
+  })
+
+  it('vínculo manual ainda vence', () => {
+    const s = session('s1', '/ws', [], ['/ws/.worktrees/PAY-77/web'])
+    expect(linkSessions([s], tasks, { s1: 'PAY-1' }).get('s1')).toBe('PAY-1')
   })
 })

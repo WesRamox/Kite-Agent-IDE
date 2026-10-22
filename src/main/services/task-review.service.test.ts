@@ -15,6 +15,7 @@ const task: Task = {
     { repo: '/w/web', repoName: 'web', path: '/w/PAY/web', branch: 'PAY', head: 'b' },
   ],
   hidden: false,
+  pending: false,
   notes: '',
   summary: [],
   rule: [],

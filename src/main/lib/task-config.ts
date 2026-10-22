@@ -4,6 +4,10 @@ import { AppException } from './errors'
 import { t } from './i18n'
 import { EMPTY_OVERRIDES } from './task-grouping'
 
+export const DEFAULT_SCAN_DEPTH = 2
+export const MIN_SCAN_DEPTH = 1
+export const MAX_SCAN_DEPTH = 5
+
 // Ajustes do usuário por workspace (userData/tasks.json). Vencem a heurística de agrupamento.
 const configSchema = z.object({
   grouping: z.object({
@@ -21,6 +25,11 @@ const configSchema = z.object({
   // Repos achados na varredura que o usuário tirou do workspace (ausente em perfis antigos).
   ignoredRepos: z.array(z.string()).optional(),
   imported: z.boolean(),
+  // Worktrees de tarefas já importadas ou descartadas: tarefa só com worktrees fora desta lista
+  // é nova e espera na descoberta. Ausente em perfis antigos (tudo conta como visto).
+  seenWorktrees: z.array(z.string()).optional(),
+  // Até quantos níveis abaixo da pasta aberta procurar repositórios (ausente: o padrão).
+  scanDepth: z.number().int().min(MIN_SCAN_DEPTH).max(MAX_SCAN_DEPTH).optional(),
   notes: z.record(z.string(), z.string().max(20_000)),
   sessionLinks: z.record(z.string(), z.string()),
 })
@@ -44,6 +53,18 @@ type Config = WorkspaceTaskConfig
 
 export function setGrouping(c: Config, grouping: TaskGrouping): Config {
   return { ...c, grouping }
+}
+
+export function setScanDepth(c: Config, depth: number): Config {
+  return { ...c, scanDepth: Math.min(MAX_SCAN_DEPTH, Math.max(MIN_SCAN_DEPTH, Math.trunc(depth))) }
+}
+
+// Padrão das pastas das worktrees de tarefas novas: o configurado (modo padrão, com {repo}) ou o
+// do Kite. A varredura procura worktrees na pasta fixa dele.
+export function worktreePattern(c: Config): string {
+  return c.grouping.mode === 'pattern' && c.grouping.pattern.includes('{repo}')
+    ? c.grouping.pattern
+    : DEFAULT_CONFIG.grouping.pattern
 }
 
 // Nome vazio volta ao nome descoberto.
@@ -78,9 +99,51 @@ export function ignoreWorktree(c: Config, worktree: string): Config {
   }
 }
 
-// Conclui a descoberta: as tarefas desmarcadas ficam escondidas da Central.
-export function importTasks(c: Config, hidden: string[]): Config {
-  return { ...c, imported: true, overrides: { ...c.overrides, hidden: [...new Set(hidden)] } }
+interface TaskWorktrees {
+  id: string
+  worktrees: { path: string }[]
+}
+
+// Tarefa nova: ainda não passou pela descoberta (nenhuma worktree dela foi vista). Pelas
+// worktrees e não pelo id porque o id muda quando a heuristica reagrupa (ex.: a skill cria a
+// segunda worktree da tarefa e ela passa de "branch" para "pasta").
+export function isPending(c: Config, task: TaskWorktrees): boolean {
+  if (!c.imported) return true
+  if (c.overrides.hidden.includes(task.id) || !c.seenWorktrees) return false
+  const seen = new Set(c.seenWorktrees)
+  return task.worktrees.every((w) => !seen.has(w.path))
+}
+
+// Marca worktrees como vistas (tarefa criada pelo próprio Kite já nasce importada).
+export function markSeen(c: Config, paths: string[]): Config {
+  return {
+    ...c,
+    imported: true,
+    seenWorktrees: [...new Set([...(c.seenWorktrees ?? []), ...paths])],
+  }
+}
+
+// Conclui a descoberta das tarefas `imported` (vão para a Central) e `dismissed` (ficam
+// escondidas). As outras não mudam. Worktrees que não existem mais saem da lista de vistas.
+export function importTasks(
+  c: Config,
+  tasks: TaskWorktrees[],
+  imported: string[],
+  dismissed: string[],
+): Config {
+  const current = new Set(tasks.flatMap((t) => t.worktrees.map((w) => w.path)))
+  const seen = new Set((c.seenWorktrees ?? []).filter((p) => current.has(p)))
+  const decided = new Set([...imported, ...dismissed])
+  for (const t of tasks) if (decided.has(t.id)) for (const w of t.worktrees) seen.add(w.path)
+  const hidden = new Set(c.overrides.hidden)
+  for (const id of dismissed) hidden.add(id)
+  for (const id of imported) hidden.delete(id)
+  return {
+    ...c,
+    imported: true,
+    seenWorktrees: [...seen],
+    overrides: { ...c.overrides, hidden: [...hidden] },
+  }
 }
 
 export function setHidden(c: Config, taskId: string, hidden: boolean): Config {

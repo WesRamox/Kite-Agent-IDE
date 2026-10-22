@@ -41,6 +41,20 @@ export async function listTaskWorktrees(
   )
 }
 
+// Repositório principal de uma worktree (ou o próprio submódulo): a primeira entrada de
+// `git worktree list`. Pasta que o git não reconhece: null.
+export async function mainWorktree(run: GitRunner, dir: string): Promise<string | null> {
+  let out: string
+  try {
+    out = await run(dir, ['worktree', 'list', '--porcelain'])
+  } catch {
+    return null
+  }
+  const main = parseWorktrees(out, dir)[0]
+  if (!main?.path) return null
+  return realpath(main.path).catch(() => null)
+}
+
 // Cria a worktree em `dir`, reaproveitando a branch se ela já existe. `label` prefixa a
 // mensagem de erro (nome do repo quando são vários).
 export async function addWorktree(

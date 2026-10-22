@@ -35,6 +35,8 @@ export interface Task {
   worktrees: TaskWorktree[]
   // Desmarcada na descoberta: não aparece na Central.
   hidden: boolean
+  // Apareceu depois da última importação: espera na descoberta e ainda não vai para a Central.
+  pending: boolean
   notes: string
   // Resumo: o texto logo abaixo do título no TASK.md (escrito pelo agente ou à mão), já sem
   // marcação; itens de lista começam com "• ". Vazio quando não há.
@@ -53,6 +55,8 @@ export interface WorkspaceTasks {
   tasks: Task[]
   unassigned: TaskWorktree[]
   grouping: TaskGrouping
+  // Até quantos níveis abaixo da pasta aberta a varredura procura repositórios.
+  scanDepth: number
   // O usuário já passou pela tela de descoberta.
   imported: boolean
   // Vínculos manuais sessão → tarefa (vencem a detecção automática).

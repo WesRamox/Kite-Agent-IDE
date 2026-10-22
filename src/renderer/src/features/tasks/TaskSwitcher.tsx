@@ -4,7 +4,7 @@ import { useWorkspaceStore } from '../../stores/workspace.store'
 import { tildePath } from '../../lib/session-format'
 import { TaskDot } from './TaskDot'
 import { openDiscover, openTask, showWorkspace } from './tasks.actions'
-import { useTasksStore } from './tasks.store'
+import { isShownTask, useTasksStore } from './tasks.store'
 import { useTaskSwitcherStore } from './task-switcher.store'
 import { useT } from '../../lib/i18n'
 
@@ -38,13 +38,11 @@ function SwitcherDialog() {
   const entries: Entry[] = useMemo(
     () => [
       { id: null, label: tr('switcher.workspace'), detail: root ? tildePath(root) : '' },
-      ...(ws?.tasks ?? [])
-        .filter((t) => !t.hidden)
-        .map((t) => ({
-          id: t.id,
-          label: `${t.key} · ${t.name}`,
-          detail: t.worktrees.map((w) => w.repoName).join(', '),
-        })),
+      ...(ws?.tasks ?? []).filter(isShownTask).map((t) => ({
+        id: t.id,
+        label: `${t.key} · ${t.name}`,
+        detail: t.worktrees.map((w) => w.repoName).join(', '),
+      })),
       { id: DISCOVER, label: tr('switcher.discover'), detail: tr('switcher.discoverDetail') },
     ],
     [ws, root, tr],
