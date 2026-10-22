@@ -43,7 +43,8 @@ describe('FsService', () => {
     })
 
     it('omite symlinks quebrados', async () => {
-      await symlink(p('nao-existe'), p('quebrado'))
+      // 'junction' dispensa o modo desenvolvedor no Windows; nos outros SOs é ignorado.
+      await symlink(p('nao-existe'), p('quebrado'), 'junction')
       expect((await fs.readDir(root)).map((e) => e.name)).not.toContain('quebrado')
     })
   })

@@ -1,11 +1,15 @@
+import path from 'node:path'
 import type { AgentSession } from '@shared/types'
 import { describe, expect, it, vi } from 'vitest'
 import { SessionReviewService, type ReviewState } from './session-review.service'
 
+// Caminho absoluto no formato do SO (no Windows ganha a letra do disco).
+const abs = (p: string): string => path.resolve(p)
+
 const session: AgentSession = {
   id: 's1',
   cli: 'claude',
-  cwd: '/nao-existe/loja',
+  cwd: abs('/nao-existe/loja'),
   status: 'ended',
   waitReason: null,
   waitingSince: null,
@@ -14,7 +18,11 @@ const session: AgentSession = {
   runningSince: null,
   lastMessage: null,
   firstPrompt: 'Tem algum arquivo faltando commit?',
-  touchedPaths: ['/nao-existe/loja/src/a.ts', '/nao-existe/lib/b.ts', '/nao-existe/loja/c.ts'],
+  touchedPaths: [
+    abs('/nao-existe/loja/src/a.ts'),
+    abs('/nao-existe/lib/b.ts'),
+    abs('/nao-existe/loja/c.ts'),
+  ],
   touchedCount: 3,
   createdWorktrees: [],
   agentTaskId: null,
@@ -30,8 +38,8 @@ function setup() {
   const git = {
     // c.ts já foi commitado: não aparece.
     pendingFiles: vi.fn(async () => [
-      { toplevel: '/nao-existe/lib', rel: 'b.ts', status: 'untracked' as const },
-      { toplevel: '/nao-existe/loja', rel: 'src/a.ts', status: 'modified' as const },
+      { toplevel: abs('/nao-existe/lib'), rel: 'b.ts', status: 'untracked' as const },
+      { toplevel: abs('/nao-existe/loja'), rel: 'src/a.ts', status: 'modified' as const },
     ]),
     diffSince: vi.fn(async () => ({ original: 'a', modified: 'b', binary: false })),
   }
@@ -57,7 +65,7 @@ describe('SessionReviewService', () => {
       base: 'HEAD',
       mergeBase: 'HEAD',
       files: [
-        { path: '/nao-existe/lib/b.ts', status: 'untracked' },
+        { path: abs('/nao-existe/lib/b.ts'), status: 'untracked' },
         { path: 'src/a.ts', status: 'modified' },
       ],
     })
@@ -68,9 +76,9 @@ describe('SessionReviewService', () => {
   it('diff só de arquivos pendentes que a sessão editou', async () => {
     const { svc, git } = setup()
     await expect(svc.diff('s1', 'src/a.ts')).resolves.toMatchObject({ modified: 'b' })
-    expect(git.diffSince).toHaveBeenCalledWith('/nao-existe/loja', 'HEAD', 'src/a.ts')
-    await svc.diff('s1', '/nao-existe/lib/b.ts')
-    expect(git.diffSince).toHaveBeenLastCalledWith('/nao-existe/lib', 'HEAD', 'b.ts')
+    expect(git.diffSince).toHaveBeenCalledWith(abs('/nao-existe/loja'), 'HEAD', 'src/a.ts')
+    await svc.diff('s1', abs('/nao-existe/lib/b.ts'))
+    expect(git.diffSince).toHaveBeenLastCalledWith(abs('/nao-existe/lib'), 'HEAD', 'b.ts')
     for (const p of ['c.ts', '../../etc/passwd', '/etc/passwd']) {
       await expect(svc.diff('s1', p)).rejects.toMatchObject({ code: 'FORBIDDEN_PATH' })
     }

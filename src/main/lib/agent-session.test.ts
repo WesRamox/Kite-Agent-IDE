@@ -1,3 +1,4 @@
+import path from 'node:path'
 import { describe, expect, it } from 'vitest'
 import type { AgentSession } from '@shared/types'
 import { hookRecordSchema, reduceSession } from './agent-session'
@@ -34,7 +35,10 @@ describe('reduceSession', () => {
       }),
       rec('PreToolUse', { tool: 'Bash', toolDetail: 'git status' }),
     )
-    expect(s.createdWorktrees).toEqual(['/w/.worktrees/T/fe', '/w/.worktrees/T/be'])
+    expect(s.createdWorktrees).toEqual([
+      path.resolve('/w/.worktrees/T/fe'),
+      path.resolve('/w/.worktrees/T/be'),
+    ])
   })
 
   it('nova sessão começa ociosa e trabalha ao receber um pedido', () => {

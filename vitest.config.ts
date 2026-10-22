@@ -12,6 +12,9 @@ export default defineConfig({
     include: ['src/**/*.test.ts', 'src/**/*.test.tsx'],
     exclude: ['e2e/**', 'node_modules/**'],
     environment: 'node',
+    // Os testes que rodam git de verdade passam de 5 s no Windows com a suíte em paralelo (cada
+    // processo é bem mais caro lá).
+    testTimeout: process.platform === 'win32' ? 20_000 : 5_000,
     // pnpm test:coverage. A cola com o Electron (bootstrap, janela, menu, registro no ipcMain,
     // kite-hook) fica de fora: é coberta pelo e2e. As metas ficam um pouco abaixo do medido e só
     // sobem (docs/refactor-plan.md, R5).

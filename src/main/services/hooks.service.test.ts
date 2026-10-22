@@ -30,11 +30,12 @@ describe('HooksService', () => {
     expect(installed).toMatchObject({
       installed: true,
       error: null,
-      settingsPath: '~/.claude/settings.json',
+      settingsPath: ['~', '.claude', 'settings.json'].join(path.sep),
     })
     expect(installed.snippet).toContain('"command": "kite-hook.sh"')
     const wrapper = await stat(path.join(s.t.dir, 'data', 'kite-hook.sh'))
-    expect(wrapper.mode & 0o777).toBe(0o700)
+    // O Windows não tem permissões POSIX: o modo é sempre 0o666.
+    if (process.platform !== 'win32') expect(wrapper.mode & 0o777).toBe(0o700)
     expect((await s.service.uninstall()).installed).toBe(false)
     expect(await s.read()).toEqual({})
     await s.t.cleanup()
