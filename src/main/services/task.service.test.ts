@@ -297,7 +297,7 @@ describe('TaskService', () => {
     const ws = await svc.discover(root)
     const pay = ws.tasks.find((t) => t.key === 'PAY-412')
     const web = pay?.worktrees.find((w) => w.repoName === 'web')?.path ?? ''
-    const split = await svc.move(root, web, 'new')
+    const split = await svc.move(root, [web], 'new')
     const manual = split.tasks.find((t) => t.source === 'manual')
     expect(manual?.worktrees.map((w) => w.path)).toEqual([web])
     expect(split.tasks.find((t) => t.key === 'PAY-412')?.worktrees.map((w) => w.repoName)).toEqual([
@@ -315,11 +315,32 @@ describe('TaskService', () => {
     })
 
     // Tarefa manual cuja worktree foi removida por fora não fica vazia na lista.
-    const again = await svc.move(root, web, 'new')
+    const again = await svc.move(root, [web], 'new')
     expect(again.tasks.some((t) => t.source === 'manual')).toBe(true)
     git(path.join(root, 'web'), 'worktree', 'remove', '--force', web)
     const gone = await svc.discover(root)
     expect(gone.tasks.some((t) => t.source === 'manual')).toBe(false)
+  })
+
+  it('junta várias worktrees numa tarefa nova e ignora um grupo de uma vez', async () => {
+    await svc.setGrouping(root, { mode: 'manual', pattern: '' })
+    const ws = await svc.discover(root)
+    const ops = ws.unassigned.filter((w) => w.branch === 'feat/OPS-19').map((w) => w.path)
+    expect(ops).toHaveLength(2)
+    const grouped = await svc.move(root, ops, 'new')
+    const manual = grouped.tasks.filter((t) => t.source === 'manual')
+    expect(manual.map((t) => t.worktrees.map((w) => w.repoName))).toEqual([['api', 'infra']])
+    expect(grouped.unassigned.some((w) => ops.includes(w.path))).toBe(false)
+
+    // Uma worktree desconhecida no grupo: nenhuma muda.
+    const rest = grouped.unassigned.map((w) => w.path)
+    await expect(
+      svc.move(root, [...rest, path.join(root, 'nao-existe')], 'new'),
+    ).rejects.toMatchObject({ code: 'NOT_FOUND' })
+    expect((await svc.discover(root)).unassigned.map((w) => w.path)).toEqual(rest)
+
+    const ignored = await svc.ignore(root, rest)
+    expect(ignored.unassigned).toEqual([])
   })
 
   it('remove repo de outra pasta e tira do workspace (com volta) o achado na varredura', async () => {

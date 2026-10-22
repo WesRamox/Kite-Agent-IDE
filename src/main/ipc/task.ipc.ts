@@ -6,6 +6,8 @@ import { registerHandler } from './register'
 import { absPath } from './schemas'
 
 const taskId = z.string().min(1).max(4200)
+// Uma worktree ou o grupo sugerido na descoberta (as de uma mesma branch).
+const worktrees = z.array(absPath).min(1).max(100)
 const grouping = z.object({
   mode: z.enum(['auto', 'pattern', 'manual']),
   pattern: z.string().max(200),
@@ -34,11 +36,16 @@ export function registerTaskIpc(tasks: TaskService, log: Logger): void {
   )
   registerHandler(
     'task:move',
-    z.tuple([absPath, absPath, taskId]),
-    (r, wt, target) => tasks.move(r, wt, target),
+    z.tuple([absPath, worktrees, taskId]),
+    (r, wts, target) => tasks.move(r, wts, target),
     log,
   )
-  registerHandler('task:ignore', z.tuple([absPath, absPath]), (r, wt) => tasks.ignore(r, wt), log)
+  registerHandler(
+    'task:ignore',
+    z.tuple([absPath, worktrees]),
+    (r, wts) => tasks.ignore(r, wts),
+    log,
+  )
   registerHandler(
     'task:import',
     z.tuple([absPath, z.array(taskId).max(500), z.array(taskId).max(500)]),
