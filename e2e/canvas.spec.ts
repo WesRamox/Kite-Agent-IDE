@@ -114,6 +114,14 @@ const guestUrls = (app: import('@playwright/test').ElectronApplication) =>
       .map((w) => w.getURL()),
   )
 
+// Algum navegador do quadro existe e nenhum está carregando. A página padrão é externa: com
+// internet ela termina de carregar depois e atropelaria o endereço digitado no teste.
+const guestsIdle = (app: import('@playwright/test').ElectronApplication) =>
+  app.evaluate(({ webContents }) => {
+    const guests = webContents.getAllWebContents().filter((w) => w.getType() === 'webview')
+    return guests.length > 0 && guests.every((w) => !w.isLoading())
+  })
+
 test('quadro: blocos de nota, navegador local e agente, ligados e salvos', async () => {
   test.skip(process.platform === 'win32', 'agente falso usa shell POSIX; Windows verificar depois')
   test.setTimeout(120_000)
@@ -173,6 +181,7 @@ test('quadro: blocos de nota, navegador local e agente, ligados e salvos', async
     await page.getByRole('button', { name: 'Adicionar bloco' }).click()
     await page.getByRole('menuitem', { name: /^Navegador/ }).click()
     const address = page.getByRole('textbox', { name: 'Endereço da tela' })
+    await expect.poll(() => guestsIdle(app), { timeout: 20_000 }).toBe(true)
     await address.fill(url.replace('localhost:', ''))
     await address.press('Enter')
     await expect.poll(() => guestUrls(app)).toContain(`http://${url}/`)
