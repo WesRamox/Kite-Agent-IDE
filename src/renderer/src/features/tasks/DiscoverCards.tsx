@@ -2,14 +2,58 @@ import type { Task, TaskWorktree } from '@shared/types'
 import { MoreHorizontal } from 'lucide-react'
 import { useState } from 'react'
 import { useT } from '../../lib/i18n'
+import { isInside, relative } from '../../lib/paths'
 import { tildePath } from '../../lib/session-format'
-import { ignoreWorktree, moveWorktree, removeTask, renameTask } from './tasks.actions'
+import { removeTask, renameTask } from './tasks.actions'
 
-const SMALL_BTN =
-  'h-[26px] rounded-md border border-border bg-surface-2 px-2.5 text-xs text-fg hover:bg-surface-3'
+export const SMALL_BTN =
+  'h-[26px] shrink-0 whitespace-nowrap rounded-md border border-border bg-surface-2 px-2.5 text-xs text-fg hover:bg-surface-3'
+// Repositório | branch e caminho | ações: as linhas de todos os cartões alinham pelas mesmas colunas.
+export const ROW =
+  'grid grid-cols-[minmax(0,170px)_minmax(0,1fr)_auto] items-center gap-x-3 text-xs'
 
+// Caminho relativo à pasta aberta (com '/'); fora dela, abreviado com ~.
 function relPath(root: string, p: string): string {
-  return p.startsWith(`${root}/`) ? p.slice(root.length + 1) : tildePath(p)
+  return isInside(root, p) && p !== root ? relative(root, p) : tildePath(p)
+}
+
+export function MenuButton(props: { label: string; onOpen: (x: number, y: number) => void }) {
+  return (
+    <button
+      type="button"
+      aria-label={props.label}
+      onClick={(e) => props.onOpen(e.clientX, e.clientY)}
+      className="flex size-[26px] shrink-0 items-center justify-center rounded-md text-fg-muted hover:bg-surface-3 hover:text-fg"
+    >
+      <MoreHorizontal size={14} />
+    </button>
+  )
+}
+
+export function RepoName({ wt }: { wt: TaskWorktree }) {
+  return (
+    <span className="truncate font-geist-mono font-medium" title={wt.repoName}>
+      {wt.repoName}
+    </span>
+  )
+}
+
+// Branch (ou o commit, se destacada) em cima e o caminho embaixo, cortados com reticências.
+export function Where(props: { wt: TaskWorktree; root: string; showBranch: boolean }) {
+  const { wt } = props
+  const rel = relPath(props.root, wt.path)
+  return (
+    <span className="flex min-w-0 flex-col">
+      {props.showBranch && (
+        <span className="truncate text-fg" title={wt.branch ?? wt.head}>
+          {wt.branch ?? `(${wt.head.slice(0, 7)})`}
+        </span>
+      )}
+      <span className="truncate font-geist-mono text-fg-muted" title={wt.path}>
+        {rel}
+      </span>
+    </span>
+  )
 }
 
 export function TaskCard(props: {
@@ -53,58 +97,18 @@ export function TaskCard(props: {
           </button>
         )}
       </div>
-      {task.worktrees.map((w) => (
-        <div key={w.path} className="flex flex-wrap items-center gap-2.5 pl-[26px] text-xs">
-          <span className="w-14 font-geist-mono font-medium">{w.repoName}</span>
-          <span className="flex-[1_1_260px] truncate font-geist-mono text-fg-muted" title={w.path}>
-            {relPath(props.root, w.path)}
-          </span>
-          <span className="text-fg-muted">{w.branch ?? `(${w.head})`}</span>
-          <button
-            type="button"
-            aria-label={tr('discover.worktreeActions', { name: w.repoName })}
-            onClick={(e) => props.onWorktreeMenu(w, e.clientX, e.clientY)}
-            className="flex size-6 items-center justify-center rounded text-fg-muted hover:bg-surface-3 hover:text-fg"
-          >
-            <MoreHorizontal size={14} />
-          </button>
-        </div>
-      ))}
-    </div>
-  )
-}
-
-export function LooseRow(props: {
-  wt: TaskWorktree
-  root: string
-  onJoin: (x: number, y: number) => void
-}) {
-  const { wt } = props
-  const tr = useT()
-  return (
-    <div className="flex flex-wrap items-center gap-2.5 text-xs">
-      <span className="w-14 font-geist-mono font-medium">{wt.repoName}</span>
-      <span className="flex-[1_1_260px] font-geist-mono text-fg-muted" title={wt.path}>
-        {relPath(props.root, wt.path)}
-      </span>
-      <span className="text-fg-muted">{wt.branch ?? `(${wt.head})`}</span>
-      <button type="button" onClick={() => void moveWorktree(wt.path, 'new')} className={SMALL_BTN}>
-        {tr('discover.createTask')}
-      </button>
-      <button
-        type="button"
-        onClick={(e) => props.onJoin(e.clientX, e.clientY)}
-        className={SMALL_BTN}
-      >
-        {tr('discover.join')}
-      </button>
-      <button
-        type="button"
-        onClick={() => void ignoreWorktree(wt.path)}
-        className="h-[26px] rounded-md bg-transparent px-2.5 text-xs text-fg-muted hover:text-fg"
-      >
-        {tr('discover.ignore')}
-      </button>
+      <div className="flex flex-col gap-2 pl-[26px]">
+        {task.worktrees.map((w) => (
+          <div key={w.path} className={ROW}>
+            <RepoName wt={w} />
+            <Where wt={w} root={props.root} showBranch />
+            <MenuButton
+              label={tr('discover.worktreeActions', { name: w.repoName })}
+              onOpen={(x, y) => props.onWorktreeMenu(w, x, y)}
+            />
+          </div>
+        ))}
+      </div>
     </div>
   )
 }

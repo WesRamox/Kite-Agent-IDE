@@ -54,12 +54,9 @@ export default messages(
       `Ver ${n} ${n === 1 ? 'tarefa já importada ou descartada' : 'tarefas já importadas ou descartadas'}`,
     'discover.decidedCollapse': ({ n }: N) =>
       `Ocultar ${n} ${n === 1 ? 'tarefa já importada ou descartada' : 'tarefas já importadas ou descartadas'}`,
-    'discover.loose': 'Sem tarefa',
     'discover.importTask': ({ name }: Name) => `Importar ${name}`,
     'discover.taskName': 'Nome da tarefa',
     'discover.createTask': 'Criar tarefa',
-    'discover.join': 'Juntar a…',
-    'discover.ignore': 'Ignorar',
     'discover.removeRepo': ({ name }: Name) => `Remover ${name}`,
     'discover.removeExternalHint': 'Tirar da lista (o repositório não é apagado)',
     'discover.ignoreRepoHint': 'Tirar do workspace (o repositório não é apagado)',
@@ -72,6 +69,18 @@ export default messages(
     'discover.ignoreWorktree': 'Ignorar worktree',
     'discover.removeTask': 'Desfazer tarefa',
     'discover.removeTaskLabel': ({ name }: Name) => `Desfazer a tarefa ${name}`,
+    'discover.looseCount': ({ n }: N) => `Sem tarefa · ${n} ${n === 1 ? 'worktree' : 'worktrees'}`,
+    'discover.suggestedHint':
+      'Worktrees da mesma branch em repositórios diferentes. Crie uma tarefa com elas de uma vez.',
+    'discover.sameBranch': ({ n }: N) => `${n} repositórios na mesma branch`,
+    'discover.createGroup': ({ n }: N) => `Criar tarefa com as ${n}`,
+    'discover.groupActions': ({ name }: Name) => `Ações do grupo ${name}`,
+    'discover.looseOthers': 'Outras worktrees',
+    'discover.joinTo': ({ name }: Name) => `Juntar a ${name}`,
+    'discover.ignoreAll': 'Ignorar todas',
+    'discover.patternMiss': ({ pattern }: { pattern: string }) =>
+      `O padrão ${pattern} não encontrou nenhuma worktree. As suas parecem estar em outro lugar: o agrupamento automático junta as da mesma pasta ou branch.`,
+    'discover.useAuto': 'Usar automático',
 
     'grouping.legend': 'Como agrupar',
     'grouping.auto': 'Automático',
@@ -253,12 +262,9 @@ export default messages(
       `Show ${n} ${n === 1 ? 'task already imported or dismissed' : 'tasks already imported or dismissed'}`,
     'discover.decidedCollapse': ({ n }: N) =>
       `Hide ${n} ${n === 1 ? 'task already imported or dismissed' : 'tasks already imported or dismissed'}`,
-    'discover.loose': 'No task',
     'discover.importTask': ({ name }: Name) => `Import ${name}`,
     'discover.taskName': 'Task name',
     'discover.createTask': 'Create task',
-    'discover.join': 'Join…',
-    'discover.ignore': 'Ignore',
     'discover.removeRepo': ({ name }: Name) => `Remove ${name}`,
     'discover.removeExternalHint': 'Remove from the list (the repository is not deleted)',
     'discover.ignoreRepoHint': 'Leave out of the workspace (the repository is not deleted)',
@@ -271,6 +277,18 @@ export default messages(
     'discover.ignoreWorktree': 'Ignore worktree',
     'discover.removeTask': 'Remove task',
     'discover.removeTaskLabel': ({ name }: Name) => `Remove the task ${name}`,
+    'discover.looseCount': ({ n }: N) => `No task · ${n} ${n === 1 ? 'worktree' : 'worktrees'}`,
+    'discover.suggestedHint':
+      'Worktrees on the same branch in different repositories. Create one task with them at once.',
+    'discover.sameBranch': ({ n }: N) => `${n} repositories on the same branch`,
+    'discover.createGroup': ({ n }: N) => `Create task with all ${n}`,
+    'discover.groupActions': ({ name }: Name) => `Group actions ${name}`,
+    'discover.looseOthers': 'Other worktrees',
+    'discover.joinTo': ({ name }: Name) => `Join ${name}`,
+    'discover.ignoreAll': 'Ignore all',
+    'discover.patternMiss': ({ pattern }: { pattern: string }) =>
+      `The pattern ${pattern} found no worktrees. Yours seem to live elsewhere: automatic grouping joins the ones in the same folder or branch.`,
+    'discover.useAuto': 'Use automatic',
 
     'grouping.legend': 'How to group',
     'grouping.auto': 'Automatic',
