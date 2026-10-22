@@ -1,7 +1,7 @@
 {
   "name": "kite",
   "productName": "Kite",
-  "version": "0.1.6",
+  "version": "0.1.7",
   "description": "Kite: IDE desktop para trabalhar com agentes de IA",
   "license": "MIT",
   "repository": {
