@@ -11,7 +11,7 @@ const task = (id: string, folder: string | null, paths: string[]): Task => ({
   folder,
   worktrees: paths.map((p) => ({
     repo: p,
-    repoName: p.split('/').pop() ?? '',
+    repoName: p.split(/[\\/]/).pop() ?? '',
     path: p,
     branch: id,
     head: '',
@@ -54,6 +54,33 @@ const pay = task('PAY', '/w/.worktrees/PAY', ['/w/.worktrees/PAY/api', '/w/.work
 const ops = task('OPS', null, ['/x/api-worktrees/OPS', '/x/infra-worktrees/OPS'])
 
 describe('linkSessions', () => {
+  it('no Windows, liga por subpasta da worktree e por arquivo editado dentro dela', () => {
+    const win = task('TECH-1', 'C:\\ws\\.worktrees\\TECH-1', [
+      'C:\\ws\\.worktrees\\TECH-1\\api',
+      'C:\\ws\\.worktrees\\TECH-1\\web',
+    ])
+    const links = linkSessions(
+      [
+        session('cwd', 'C:\\ws\\.worktrees\\TECH-1\\api\\src'),
+        // Caixa da letra do disco e barras do Git Bash não importam.
+        session('caixa', 'c:/ws/.worktrees/TECH-1/web'),
+        session('arquivos', 'C:\\ws', ['C:\\ws\\.worktrees\\TECH-1\\web\\page.tsx']),
+        // Pasta irmã com o mesmo prefixo não é a tarefa.
+        session('irmao', 'C:\\ws\\.worktrees\\TECH-10'),
+      ],
+      [win],
+      {},
+    )
+    expect(Object.fromEntries(links)).toEqual({
+      cwd: 'TECH-1',
+      caixa: 'TECH-1',
+      arquivos: 'TECH-1',
+    })
+    expect(
+      touchedByRepo(win, [session('s', 'C:\\ws', ['C:\\ws\\.worktrees\\TECH-1\\api\\a.ts'])]),
+    ).toEqual({ api: 1, web: 0 })
+  })
+
   it('liga pelo cwd, pelos arquivos editados ou pelo vínculo manual', () => {
     const links = linkSessions(
       [
