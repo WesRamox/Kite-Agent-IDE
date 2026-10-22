@@ -245,7 +245,8 @@ export class GitService {
       '--git-common-dir',
     ])
     const [gitDir = '', common = ''] = out.trim().split('\n')
-    const dirs = [gitDir, path.resolve(repo.toplevel, common)]
+    // No Windows o git devolve 'C:/...'; o resolve deixa no formato do SO, como os eventos do watcher.
+    const dirs = [gitDir && path.resolve(gitDir), path.resolve(repo.toplevel, common)]
     return [...new Set(dirs.filter(Boolean))]
   }
 

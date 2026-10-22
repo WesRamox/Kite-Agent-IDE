@@ -17,5 +17,6 @@ export async function makeTree(spec: Record<string, string>): Promise<{
       await writeFile(full, content)
     }
   }
-  return { dir, cleanup: () => rm(dir, { recursive: true, force: true }) }
+  // No Windows, o git e o antivírus seguram arquivos por um instante depois de sair (EBUSY).
+  return { dir, cleanup: () => rm(dir, { recursive: true, force: true, maxRetries: 5 }) }
 }

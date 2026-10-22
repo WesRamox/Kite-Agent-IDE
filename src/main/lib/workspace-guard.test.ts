@@ -2,6 +2,9 @@ import { symlink } from 'node:fs/promises'
 import path from 'node:path'
 import { afterEach, beforeEach, describe, expect, it } from 'vitest'
 import { makeTree } from '../test/tmp'
+
+// Os links apontam para pastas: 'junction' dispensa o modo desenvolvedor no Windows e é ignorado
+// nos outros SOs.
 import { isInside, WorkspaceGuard } from './workspace-guard'
 
 describe('isInside', () => {
@@ -52,7 +55,7 @@ describe('WorkspaceGuard', () => {
 
   it('recusa symlinks que apontam para fora', async () => {
     const link = path.join(root, 'link')
-    await symlink(outside, link)
+    await symlink(outside, link, 'junction')
     await expect(guard.resolveExisting(path.join(link, 'key.txt'))).rejects.toMatchObject({
       code: 'FORBIDDEN_PATH',
     })
@@ -63,7 +66,7 @@ describe('WorkspaceGuard', () => {
 
   it('permite operar no próprio symlink (entrada) dentro da raiz', async () => {
     const link = path.join(root, 'link')
-    await symlink(outside, link)
+    await symlink(outside, link, 'junction')
     await expect(guard.resolveEntry(link)).resolves.toBe(link)
   })
 

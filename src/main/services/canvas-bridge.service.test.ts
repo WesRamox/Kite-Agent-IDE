@@ -31,10 +31,10 @@ describe('CanvasBridgeService', () => {
   let calls: CanvasToolCall[]
   let bridge: CanvasBridgeService
   beforeEach(async () => {
-    ;({ dir, cleanup } = await makeTree({}))
+    ;({ dir, cleanup } = await makeTree({ 'quiet/': '' }))
     calls = []
     bridge = new CanvasBridgeService({
-      socketPath: canvasSocketPath(dir, 'linux'),
+      socketPath: canvasSocketPath(dir, process.platform),
       configDir: path.join(dir, 'mcp'),
       server: { exec: '/opt/Kite/kite', script: '/opt/kite-mcp.js' },
       platform: 'linux',
@@ -66,7 +66,7 @@ describe('CanvasBridgeService', () => {
 
   it('leva o pedido do agente ao renderer e devolve a resposta', async () => {
     const res = await ask(
-      canvasSocketPath(dir, 'linux'),
+      canvasSocketPath(dir, process.platform),
       JSON.stringify({ tool: 'read', args: { block: 'n1' }, caller: 'node:t1' }),
     )
     expect(res).toEqual({ ok: true, content: [{ type: 'text', text: 'ok read' }] })
@@ -75,18 +75,20 @@ describe('CanvasBridgeService', () => {
 
   it('recusa pedido malformado sem incomodar o renderer', async () => {
     const res = await ask(
-      canvasSocketPath(dir, 'linux'),
+      canvasSocketPath(dir, process.platform),
       JSON.stringify({ tool: 'rm -rf', args: {}, caller: 'node:t1' }),
     )
     expect(res).toMatchObject({ ok: false })
-    expect(await ask(canvasSocketPath(dir, 'linux'), 'não é json')).toMatchObject({ ok: false })
+    expect(await ask(canvasSocketPath(dir, process.platform), 'não é json')).toMatchObject({
+      ok: false,
+    })
     expect(calls).toHaveLength(0)
   })
 
   it('sem resposta do renderer, avisa o agente em vez de travar', async () => {
     bridge.reply = () => {}
     const quiet = new CanvasBridgeService({
-      socketPath: path.join(dir, 'quiet.sock'),
+      socketPath: canvasSocketPath(path.join(dir, 'quiet'), process.platform),
       configDir: path.join(dir, 'mcp'),
       server: { exec: 'e', script: 's' },
       platform: 'linux',
@@ -98,7 +100,7 @@ describe('CanvasBridgeService', () => {
     await quiet.start()
     try {
       const res = await ask(
-        path.join(dir, 'quiet.sock'),
+        canvasSocketPath(path.join(dir, 'quiet'), process.platform),
         JSON.stringify({ tool: 'list', args: {}, caller: 'agent:a' }),
       )
       expect(res).toMatchObject({ ok: false })
@@ -113,7 +115,9 @@ describe('CanvasBridgeService', () => {
     expect(cmd).toBe(`claude --mcp-config '${file}'`)
     const config = JSON.parse(await readFile(file, 'utf8'))
     expect(config.mcpServers.kite.env.KITE_CANVAS_CALLER).toBe('node:term-1')
-    expect(config.mcpServers.kite.env.KITE_CANVAS_SOCKET).toBe(canvasSocketPath(dir, 'linux'))
+    expect(config.mcpServers.kite.env.KITE_CANVAS_SOCKET).toBe(
+      canvasSocketPath(dir, process.platform),
+    )
     await expect(bridge.launchCommand('codex', 'term-1')).resolves.toBe('codex')
     await expect(bridge.launchCommand('sumiu', 'term-1')).rejects.toMatchObject({
       code: 'NOT_FOUND',
