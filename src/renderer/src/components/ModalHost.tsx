@@ -1,4 +1,4 @@
-import { Inbox, Plug, Settings, X, type LucideIcon } from 'lucide-react'
+import { BellRing, Plug, Settings, X, type LucideIcon } from 'lucide-react'
 import { useEffect, useRef } from 'react'
 import type { MessageKey } from '@shared/i18n'
 import { CentralPanel } from '../features/agents/CentralPanel'
@@ -11,7 +11,7 @@ const MODALS: Record<
   ModalId,
   { title: MessageKey; icon: LucideIcon; body: () => React.ReactNode }
 > = {
-  central: { title: 'modal.central', icon: Inbox, body: () => <CentralPanel /> },
+  central: { title: 'modal.central', icon: BellRing, body: () => <CentralPanel /> },
   connect: { title: 'modal.connect', icon: Plug, body: () => <ConnectAgentsPanel /> },
   settings: { title: 'modal.settings', icon: Settings, body: () => <SettingsPanel /> },
 }
