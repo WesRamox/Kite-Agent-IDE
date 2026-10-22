@@ -404,6 +404,32 @@ describe('TaskService', () => {
     )
   })
 
+  it('worktree nova é avisada mesmo se outra chamada redescobriu antes do watcher', async () => {
+    await svc.discover(root)
+    await svc.watch(root)
+    git(
+      path.join(root, 'infra'),
+      'worktree',
+      'add',
+      '-q',
+      '-b',
+      'PAY-412',
+      path.join(root, '.worktrees/PAY-412/infra'),
+    )
+    // O painel Git libera o repositório (openRepo → discover) antes de o watcher redescobrir:
+    // essa resposta não vai para a lista de tarefas do renderer, então o aviso tem de sair.
+    await svc.openRepo(root, path.join(root, 'api'))
+    await vi.waitFor(
+      () => {
+        const last = emit.mock.calls.at(-1)?.[0] as
+          { tasks: { key: string; worktrees: { repoName: string }[] }[] } | undefined
+        const pay = last?.tasks.find((t) => t.key === 'PAY-412')
+        expect(pay?.worktrees.map((w) => w.repoName)).toContain('infra')
+      },
+      { timeout: 3000 },
+    )
+  })
+
   it('cria uma tarefa com 2 repos no padrão de pasta, com TASK.md, e já importada', async () => {
     const task = await svc.create(root, {
       name: 'Estorno parcial',

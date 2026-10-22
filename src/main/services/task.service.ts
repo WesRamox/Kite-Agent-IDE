@@ -53,6 +53,10 @@ export class TaskService {
   private watched: { root: string; subs: Subscription[] } | null = null
   private timer: ReturnType<typeof setTimeout> | null = null
   private last = new Map<string, string>()
+  // O que o renderer já tem, por pasta: a redescoberta do watcher compara com isto, e não com
+  // `last`. Outras chamadas (ex.: openRepo do painel Git) redescobrem sem mandar o resultado
+  // para a lista de tarefas; comparar com `last` engolia a worktree nova.
+  private sent = new Map<string, string>()
   // Descobertas em fila: a do watcher e a pedida pelo renderer (ex.: TASK.md mudou) podem se
   // cruzar, e a que começou antes, com o disco antigo, não pode chegar por último.
   private discovering: Promise<unknown> = Promise.resolve()
@@ -152,6 +156,9 @@ export class TaskService {
       }
     }
     this.watched = { root, subs }
+    // O renderer descobre antes de pedir para observar: parte do que ele já recebeu.
+    const known = this.last.get(root)
+    if (known) this.sent.set(root, known)
   }
 
   async unwatch(): Promise<void> {
@@ -290,7 +297,7 @@ export class TaskService {
       await this.update(root, (c) => cfgOps.assignWorktree(c, real, task.id))
     }
     const next = await this.discover(root)
-    this.deps.emit(next)
+    this.send(next)
     return next
   }
 
@@ -353,7 +360,7 @@ export class TaskService {
       task = ws2.tasks.find((t) => t.id === id)
     }
     if (!task) throw new AppException('INTERNAL', t('error.createdTaskMissing'))
-    this.deps.emit(ws2)
+    this.send(ws2)
     return task
   }
 
@@ -384,10 +391,9 @@ export class TaskService {
     if (this.timer) clearTimeout(this.timer)
     this.timer = setTimeout(() => {
       this.timer = null
-      const before = this.last.get(root)
       this.discover(root)
         .then((ws) => {
-          if (JSON.stringify(ws) !== before) this.deps.emit(ws)
+          if (JSON.stringify(ws) !== this.sent.get(root)) this.send(ws)
         })
         .catch((err: unknown) =>
           this.deps.log.warn('falha ao redescobrir tarefas', {
@@ -395,6 +401,11 @@ export class TaskService {
           }),
         )
     }, this.deps.debounceMs ?? 300)
+  }
+
+  private send(ws: WorkspaceTasks): void {
+    this.sent.set(ws.root, JSON.stringify(ws))
+    this.deps.emit(ws)
   }
 
   private async config(root: string): Promise<WorkspaceTaskConfig> {
