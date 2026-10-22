@@ -1,4 +1,5 @@
 import path from 'node:path'
+import { branchKey } from '@shared/task-key'
 import type { TaskGrouping, TaskSource, TaskWorktree } from '@shared/types'
 import { t as tr } from './i18n'
 
@@ -42,12 +43,7 @@ export interface GroupedTask {
   worktrees: TaskWorktree[]
 }
 
-// Prefixos comuns de branch que não fazem parte do nome da tarefa.
-const BRANCH_PREFIX = /^(feat|feature|fix|bugfix|hotfix|chore|refactor|agent|task|wip)\//i
-
-export function branchKey(branch: string): string {
-  return branch.replace(BRANCH_PREFIX, '')
-}
+export { branchKey }
 
 function escapeRegex(s: string): string {
   return s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')

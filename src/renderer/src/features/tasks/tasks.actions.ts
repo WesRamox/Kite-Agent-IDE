@@ -190,10 +190,12 @@ export const setScanDepth = (depth: number) =>
   change((d) => window.api.task.setScanDepth(d, depth), t('tasks.groupingError'))
 export const renameTask = (id: string, name: string) =>
   change((d) => window.api.task.rename(d, id, name), t('tasks.renameError'))
-export const moveWorktree = (path: string, target: string) =>
-  change((d) => window.api.task.move(d, path, target), t('tasks.moveError'))
-export const ignoreWorktree = (path: string) =>
-  change((d) => window.api.task.ignore(d, path), t('tasks.ignoreError'))
+export const moveWorktree = (path: string, target: string) => moveWorktrees([path], target)
+export const moveWorktrees = (paths: string[], target: string) =>
+  change((d) => window.api.task.move(d, paths, target), t('tasks.moveError'))
+export const ignoreWorktree = (path: string) => ignoreWorktrees([path])
+export const ignoreWorktrees = (paths: string[]) =>
+  change((d) => window.api.task.ignore(d, paths), t('tasks.ignoreError'))
 export const setTaskHidden = (id: string, hidden: boolean) =>
   change((d) => window.api.task.setHidden(d, id, hidden), t('tasks.updateError'))
 export const setTaskNotes = (id: string, notes: string) =>

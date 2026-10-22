@@ -55,3 +55,71 @@ test('descobrir tarefas: separar worktree, desfazer tarefa, tirar/restaurar repo
     await ctx.cleanup()
   }
 })
+
+// Worktrees em <repo>/.worktrees/<tarefa>: o padrão de pasta não acha nada, e a descoberta
+// sugere juntar as da mesma branch.
+test('descobrir tarefas: avisa o padrão que não acha nada e sugere o grupo das soltas', async () => {
+  test.setTimeout(60_000)
+  const base = await makeWorkspace({
+    'loja/api/server.ts': 'export const api = 1\n',
+    'loja/web/page.tsx': 'export const web = 1\n',
+    'loja/db/schema.sql': 'select 1;\n',
+  })
+  const root = path.join(base, 'loja')
+  for (const r of ['api', 'web', 'db']) {
+    const dir = path.join(root, r)
+    git(dir, 'init', '-q', '-b', 'main')
+    git(dir, 'add', '.')
+    git(dir, 'commit', '-q', '-m', 'inicial')
+  }
+  for (const r of ['api', 'web']) {
+    git(
+      path.join(root, r),
+      'worktree',
+      'add',
+      '-q',
+      '-b',
+      'feat/PAY-2',
+      path.join(root, r, '.worktrees/PAY-2'),
+    )
+  }
+  git(
+    path.join(root, 'db'),
+    'worktree',
+    'add',
+    '-q',
+    '-b',
+    'OPS-3',
+    path.join(root, 'db', '.worktrees/OPS-3'),
+  )
+  const ctx = await launch(root)
+  try {
+    const { page } = ctx
+    await page.getByRole('button', { name: 'Abrir pasta' }).first().click()
+    const found = page.getByRole('region', { name: 'Tarefas encontradas' })
+
+    // O rádio é controlado: só marca quando o main devolve o agrupamento novo.
+    await page.getByRole('radio', { name: /Por padrão de pasta/ }).click()
+    await expect(found).toContainText('não encontrou nenhuma worktree')
+    await expect(found).toContainText('Sem tarefa · 3 worktrees')
+    await expect(found).toContainText('Outras worktrees')
+
+    // O grupo sugerido vira uma tarefa só, com as duas worktrees.
+    await found.getByRole('button', { name: 'Criar tarefa com as 2' }).click()
+    const names = found.getByRole('textbox', { name: 'Nome da tarefa' })
+    await expect(names).toHaveCount(1)
+    await expect(names).toHaveValue('feat/PAY-2')
+    await expect(found).toContainText('Sem tarefa · 1 worktree')
+
+    // A que sobrou sozinha sai pelo menu.
+    await found.getByRole('button', { name: 'Ações da worktree db' }).click()
+    await page.getByRole('menuitem', { name: 'Ignorar worktree' }).click()
+    await expect(found).not.toContainText('Sem tarefa')
+
+    // O aviso some com o automático.
+    await page.getByRole('radio', { name: /Automático/ }).click()
+    await expect(found).not.toContainText('não encontrou nenhuma worktree')
+  } finally {
+    await ctx.cleanup()
+  }
+})

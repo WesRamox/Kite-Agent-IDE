@@ -823,3 +823,25 @@ add` nele (acompanhando `cd`, `git -C`, aspas e o `/c/` do Git Bash) e guarda as
   monta uma tarefa nova não ficar presa na anterior). Limite: skill que cria as worktrees por um
   script (o comando não traz o caminho) não é detectada; aí vale o vínculo pelos arquivos
   editados ou o manual. `PowerShell` entrou na lista de ferramentas de shell.
+
+## "Descobrir tarefas" reorganizada (2026-10-22)
+
+Desvio do canvas (tela 4), combinado com o usuário: com muitas worktrees soltas a tela virava uma
+parede de caminhos e botões quebrando linha.
+
+- **Linhas em grade.** Repositório (até 170 px, cortado com reticências), branch em cima do caminho
+  e ações à direita, nas mesmas colunas em todos os cartões. Antes a coluna do repo tinha 56 px e
+  nomes longos invadiam o caminho; com `flex-wrap`, os botões caíam para a linha de baixo.
+- **Caminho relativo também no Windows.** O caminho só era encurtado quando começava com
+  `${root}/`, o que nunca acontece com `\`; agora usa `isInside`/`relative` de `lib/paths`.
+- **Grupos sugeridos nas soltas.** Worktrees soltas da mesma branch (sem prefixos como `feat/`)
+  em repositórios diferentes aparecem juntas, com "Criar tarefa com as N". É a regra do
+  agrupamento automático (`branchKey`, agora em `shared/task-key.ts`), oferecida a quem usa o
+  padrão de pasta ou o manual. As demais ficam em "Outras worktrees".
+- **Uma ação visível por worktree solta.** "Criar tarefa" fica à vista; "Juntar a…" e "Ignorar"
+  vão para o menu "⋯", como nos cartões de tarefa.
+- **Aviso de padrão que não acha nada.** No modo padrão de pasta, se nenhuma worktree casa com o
+  padrão e há soltas, um aviso oferece "Usar automático" (ex.: padrão `.worktrees/{tarefa}/{repo}`
+  com worktrees em `<repo>/.worktrees/<tarefa>`).
+- `task:move` e `task:ignore` recebem uma lista de worktrees, aplicada numa escrita só: criar a
+  tarefa de um grupo não deixa metade dela feita se uma worktree sumir no meio.

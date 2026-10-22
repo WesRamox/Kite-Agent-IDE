@@ -178,25 +178,36 @@ export class TaskService {
     return this.update(root, (c) => cfgOps.renameTask(c, taskId, name))
   }
 
-  // Coloca a worktree numa tarefa existente ou numa nova (target 'new').
-  async move(root: string, worktree: string, target: string): Promise<WorkspaceTasks> {
+  // Coloca as worktrees numa tarefa existente ou, juntas, numa nova (target 'new'), de uma vez:
+  // ou todas mudam, ou nenhuma.
+  async move(root: string, worktrees: string[], target: string): Promise<WorkspaceTasks> {
     const ws = await this.discover(root)
     const known = [...ws.tasks.flatMap((t) => t.worktrees), ...ws.unassigned]
-    const wt = known.find((w) => w.path === worktree)
-    if (!wt) throw new AppException('NOT_FOUND', t('error.worktreeNotFound'))
+    const [first] = worktrees
+    const wt = known.find((w) => w.path === first)
+    if (!wt || !worktrees.every((p) => known.some((w) => w.path === p))) {
+      throw new AppException('NOT_FOUND', t('error.worktreeNotFound'))
+    }
     if (target === 'new') {
       const id = `manual:${randomUUID()}`
       const name = wt.branch ?? path.basename(wt.path)
-      return this.update(root, (c) => cfgOps.assignWorktree(c, worktree, id, { id, name }))
+      return this.update(root, (c) =>
+        worktrees.reduce(
+          (acc, p, i) => cfgOps.assignWorktree(acc, p, id, i === 0 ? { id, name } : undefined),
+          c,
+        ),
+      )
     }
     if (!ws.tasks.some((t) => t.id === target)) {
       throw new AppException('NOT_FOUND', t('error.taskNotFound'))
     }
-    return this.update(root, (c) => cfgOps.assignWorktree(c, worktree, target))
+    return this.update(root, (c) =>
+      worktrees.reduce((acc, p) => cfgOps.assignWorktree(acc, p, target), c),
+    )
   }
 
-  ignore(root: string, worktree: string): Promise<WorkspaceTasks> {
-    return this.update(root, (c) => cfgOps.ignoreWorktree(c, worktree))
+  ignore(root: string, worktrees: string[]): Promise<WorkspaceTasks> {
+    return this.update(root, (c) => worktrees.reduce((acc, p) => cfgOps.ignoreWorktree(acc, p), c))
   }
 
   // `imported` vão para a Central; `dismissed` ficam escondidas. As demais tarefas novas

@@ -3,13 +3,14 @@ import { useState } from 'react'
 import { ContextMenu, type MenuItem } from '../../components/ContextMenu'
 import { useT } from '../../lib/i18n'
 import { tildePath } from '../../lib/session-format'
-import { worktreeMenu } from './discover-menu'
-import { LooseRow, TaskCard } from './DiscoverCards'
+import { looseMenu, worktreeMenu } from './discover-menu'
+import { TaskCard } from './DiscoverCards'
 import { GroupingFieldset } from './GroupingFieldset'
+import { patternMisses } from './loose-groups'
+import { LooseWorktrees, PatternMiss } from './LooseWorktrees'
 import {
   addExternalRepo,
   importTasks,
-  moveWorktree,
   removeRepo,
   restoreRepo,
   setScanDepth,
@@ -97,8 +98,8 @@ function DiscoverBody() {
                   const n = countByRepo(r.path)
                   return (
                     <div key={r.path} className="group flex items-center gap-2" title={r.path}>
-                      <span className="font-geist-mono">{r.name}</span>
-                      <span className="ml-auto text-xs text-fg-muted">
+                      <span className="min-w-0 truncate font-geist-mono">{r.name}</span>
+                      <span className="ml-auto shrink-0 whitespace-nowrap text-xs text-fg-muted">
                         {tr('discover.worktrees', { n })}
                       </span>
                       <button
@@ -121,13 +122,15 @@ function DiscoverBody() {
                     className="flex items-center gap-2 text-fg-muted"
                     title={r.path}
                   >
-                    <span className="font-geist-mono line-through">{r.name}</span>
-                    <span className="ml-auto text-xs">{tr('discover.ignoredRepo')}</span>
+                    <span className="min-w-0 truncate font-geist-mono line-through">{r.name}</span>
+                    <span className="ml-auto shrink-0 whitespace-nowrap text-xs">
+                      {tr('discover.ignoredRepo')}
+                    </span>
                     <button
                       type="button"
                       aria-label={tr('discover.restoreRepoLabel', { name: r.name })}
                       onClick={() => void restoreRepo(r.path)}
-                      className="text-xs hover:text-fg"
+                      className="shrink-0 text-xs hover:text-fg"
                     >
                       {tr('discover.restoreRepo')}
                     </button>
@@ -162,7 +165,10 @@ function DiscoverBody() {
               aria-label={tr('discover.found.label')}
               className="flex min-w-0 flex-[999_1_520px] flex-col gap-3"
             >
-              {ws.tasks.length === 0 && <p className="text-fg-muted">{tr('discover.none')}</p>}
+              <PatternMiss ws={ws} />
+              {ws.tasks.length === 0 && !patternMisses(ws) && (
+                <p className="text-fg-muted">{tr('discover.none')}</p>
+              )}
               {ws.tasks.length > 0 && pending.length === 0 && (
                 <p className="text-fg-muted">{tr('discover.noneNew')}</p>
               )}
@@ -203,28 +209,10 @@ function DiscoverBody() {
                     }
                   />
                 ))}
-              {ws.unassigned.length > 0 && (
-                <div className="flex flex-col gap-2.5 rounded-[10px] border border-dashed border-fg-muted/30 px-4 py-3.5">
-                  <span className={LABEL}>{tr('discover.loose')}</span>
-                  {ws.unassigned.map((w) => (
-                    <LooseRow
-                      key={w.path}
-                      wt={w}
-                      root={ws.root}
-                      onJoin={(x, y) =>
-                        setMenu({
-                          x,
-                          y,
-                          items: ws.tasks.map((t) => ({
-                            label: `${t.key} · ${t.name}`,
-                            onSelect: () => void moveWorktree(w.path, t.id),
-                          })),
-                        })
-                      }
-                    />
-                  ))}
-                </div>
-              )}
+              <LooseWorktrees
+                ws={ws}
+                onMenu={(paths, x, y) => setMenu({ x, y, items: looseMenu(paths, ws.tasks, tr) })}
+              />
             </section>
           </div>
         </div>
