@@ -27,6 +27,7 @@ export default messages(
 
     'view.attention': 'Central de atenção',
     'view.explorer': 'Explorer',
+    'view.search': 'Buscar',
     'view.git': 'Git',
     'view.github': 'GitHub',
     'activity.label': 'Atividades',
@@ -153,6 +154,7 @@ export default messages(
 
     'view.attention': 'Attention center',
     'view.explorer': 'Explorer',
+    'view.search': 'Search',
     'view.git': 'Git',
     'view.github': 'GitHub',
     'activity.label': 'Activities',

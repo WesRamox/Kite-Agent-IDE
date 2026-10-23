@@ -48,6 +48,8 @@ export default messages(
     'error.worktreeNotInTask': 'A worktree não é desta tarefa',
     'error.taskNotFound': 'Tarefa não encontrada',
     'error.taskNotDone': 'Marque a tarefa como concluída antes de excluir as worktrees',
+    'error.searchFailed': ({ repo, reason }: { repo: string; reason: string }) =>
+      `Não foi possível buscar em ${repo}: ${reason}`,
     'error.taskOrRepoNotFound': 'Tarefa ou repositório não encontrado',
     'error.repoAlreadyInTask': ({ repo }: { repo: string }) => `${repo} já está nesta tarefa`,
     'error.nameAndBranchRequired': 'Informe o nome e a branch',
@@ -151,6 +153,8 @@ export default messages(
     'error.worktreeNotInTask': 'The worktree is not part of this task',
     'error.taskNotFound': 'Task not found',
     'error.taskNotDone': 'Mark the task as done before deleting its worktrees',
+    'error.searchFailed': ({ repo, reason }: { repo: string; reason: string }) =>
+      `Could not search ${repo}: ${reason}`,
     'error.taskOrRepoNotFound': 'Task or repository not found',
     'error.repoAlreadyInTask': ({ repo }: { repo: string }) => `${repo} is already in this task`,
     'error.nameAndBranchRequired': 'Enter the name and the branch',

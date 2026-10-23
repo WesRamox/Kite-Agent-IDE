@@ -69,6 +69,12 @@ cada repo, as sessões de agente e notas. Uma sessão do Claude Code é ligada �
 pelos arquivos que edita (mesmo aberta na raiz do workspace); em Conectar agentes dá para
 vincular à mão.
 
+A lupa da barra de atividades (`Ctrl/Cmd+Shift+F`) busca no conteúdo dos arquivos da tarefa aberta,
+em todas as worktrees dela (sem os arquivos do `.gitignore` e sem binários). Tem as opções de
+maiúsculas, palavra inteira e regex, e os filtros de arquivos a incluir e a excluir (ex.: `*.ts,
+src/**`). Clicar num resultado abre o arquivo com a ocorrência selecionada. Sem tarefa aberta, ela
+pede para escolher uma.
+
 Tarefa aprovada: "Marcar como concluída" (botão direito na Central, menu Tarefa ou os detalhes da
 tarefa) a tira da Central e do `Ctrl/Cmd+K` e a guarda em "Concluídas", no fim da Central, onde
 dá para desmarcar. Concluída, "Excluir worktrees…" apaga as worktrees de todos os repos dela (as

@@ -37,6 +37,8 @@ import type {
   DeliverInput,
   DeliverResult,
   RemoveWorktreesResult,
+  SearchQuery,
+  SearchResult,
   WorkspaceTasks,
   StartAgentInput,
   DeviceFlowPoll,
@@ -213,6 +215,8 @@ export interface InvokeChannels {
     args: [root: string, taskId: string, input: DeliverInput]
     result: DeliverResult[]
   }
+  // Busca no conteúdo dos arquivos da tarefa aberta.
+  'search:task': { args: [root: string, taskId: string, query: SearchQuery]; result: SearchResult }
 
   // Resposta ao evento `app:closeRequested`: o renderer terminou de salvar e o app pode fechar.
   'app:confirmClose': { args: []; result: void }
@@ -337,6 +341,9 @@ export interface Api {
     diff: Fn<'review:diff'>
     prs: Fn<'review:prs'>
     deliver: Fn<'review:deliver'>
+  }
+  search: {
+    task: Fn<'search:task'>
   }
   hooks: {
     status: Fn<'hooks:status'>

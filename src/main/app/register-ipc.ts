@@ -8,6 +8,7 @@ import { registerFsIpc } from '../ipc/fs.ipc'
 import { registerGitIpc } from '../ipc/git.ipc'
 import { registerGitHubIpc } from '../ipc/github.ipc'
 import { registerReviewIpc } from '../ipc/review.ipc'
+import { registerSearchIpc } from '../ipc/search.ipc'
 import { registerSettingsIpc } from '../ipc/settings.ipc'
 import { registerSystemIpc } from '../ipc/system.ipc'
 import { registerTaskIpc } from '../ipc/task.ipc'
@@ -53,6 +54,7 @@ export function registerAllIpc({ services, window, confirmClose, log }: IpcDeps)
   registerAgentSessionIpc(services.agentEvents, services.sessionReview, services.hooksServices, log)
   registerTaskIpc(services.taskService, services.taskCompletion, log)
   registerReviewIpc(services.reviewService, log)
+  registerSearchIpc(services.searchService, log)
   registerCanvasIpc(
     services.canvasService,
     services.canvasBridge,

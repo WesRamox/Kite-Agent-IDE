@@ -22,13 +22,18 @@ import { t } from '../../lib/i18n'
 
 export const EDITOR_COMPONENT = 'editor'
 
-export async function openFile(path: string): Promise<void> {
+// `at`: posiciona o cursor e seleciona a ocorrência (resultado da busca).
+export async function openFile(
+  path: string,
+  at?: { line: number; column: number; length: number },
+): Promise<void> {
   closeModal()
   const dock = getDockApi()
   if (!dock) return
   const existing = dock.getPanel(path)
   if (existing) {
     existing.api.setActive()
+    if (at) useEditorStore.getState().requestReveal({ path, ...at })
     return
   }
 
@@ -54,6 +59,7 @@ export async function openFile(path: string): Promise<void> {
     title: basename(path),
     params: { path },
   })
+  if (at) useEditorStore.getState().requestReveal({ path, ...at })
 }
 
 export async function saveFile(path: string): Promise<boolean> {

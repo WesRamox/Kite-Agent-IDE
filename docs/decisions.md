@@ -876,3 +876,32 @@ para a conta usada); as telas novas seguem o estilo das existentes.
   Kite não são parados: o erro do git aparece por repo.
 - Abas de editor da tarefa com alterações não salvas são fechadas sem perguntar: os arquivos
   estão sendo apagados junto com a worktree.
+
+## Busca nos arquivos da tarefa (2026-10-23)
+
+Pedido: a "lupa" do VS Code, mas só na tarefa aberta. Desvio do canvas combinado com o usuário
+(ícone novo na barra de atividades, logo abaixo do Explorer; o canvas não pôde ser lido).
+
+- **`git grep` em cada worktree da tarefa**, sem dependência nova: já respeita o `.gitignore`,
+  pula binários (`-I`) e, com `--untracked`, inclui arquivos novos ainda não commitados. O
+  renderer passa só o id da tarefa (`search:task`); os caminhos saem da descoberta no main.
+- **Entrada hostil:** o texto vai sempre depois de `-e` e os filtros depois de `--`, como
+  pathspecs com a mágica `:(glob)`/`:(exclude,glob)` posta pelo Kite (a do usuário vira texto). O
+  git recusa pathspec fora da worktree. Limites no zod (texto até 1000, filtros até 2000).
+- **Opções como no VS Code:** maiúsculas, palavra inteira e regex; filtros "incluir/excluir"
+  separados por vírgula, em que padrão sem `/` vale em qualquer pasta (`*.ts` → `**/*.ts`) e nome de
+  pasta inclui o conteúdo. A regex é a ERE do git (`-E`), não a do JavaScript; as ocorrências são
+  marcadas no trecho com a regex do JavaScript equivalente e, se ela não compilar, a linha aparece
+  sem marcação. Colunas em caracteres (a do git conta bytes).
+- **Limite de 2000 ocorrências** por busca, com aviso. A saída do git é lida inteira antes de
+  cortar (o `--max-count` só existe a partir do git 2.38): uma busca muito comum num repo enorme
+  usa memória; se virar problema, trocar por um processo em streaming.
+- **Sem tarefa aberta**, a view pede para escolher uma (`Ctrl/Cmd+K`). Sem substituir por
+  enquanto: é destrutivo e os agentes podem estar editando os mesmos arquivos.
+- **`Ctrl/Cmd+Shift+F`** abre a view e foca o campo (livre no Kite, no Monaco e no terminal). A
+  busca refaz 250 ms depois da última tecla; Enter busca na hora. Clicar num resultado abre o
+  arquivo com a ocorrência selecionada (`openFile(path, at)` + `requestReveal` no store do
+  editor).
+- **Testes de componente** usam `installApiInDom` (`renderer/src/test/fake-api.ts`), que põe o
+  `window.api` falso no window do happy-dom; o `installApi` troca o window inteiro e não serve
+  para o `render`.

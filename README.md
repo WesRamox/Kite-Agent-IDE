@@ -64,6 +64,8 @@ or by hand: your adjustments always win over the heuristics.
   against its base branch. "All" switches back to the full tree.
 - **One window per task.** Quick open searches every repo in the task, tabs show which repo a
   file belongs to, and terminals open in the task folder.
+- **Search the task with `Ctrl/Cmd+Shift+F`.** Like VS Code's search, but only in the task's
+  worktrees: match case, whole word, regex and include/exclude globs; click a result to open it.
 - **Switch with `Ctrl/Cmd+K`.** Each task keeps its own tabs and terminals.
 - **Title and notes.** A `TASK.md` or `.kite-task.json` in the task folder gives the task its
   title. The details panel also has private notes.
