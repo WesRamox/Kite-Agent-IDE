@@ -90,6 +90,7 @@ describe('aviso de tarefa nova', () => {
     ],
     hidden: false,
     pending: true,
+    done: false,
     notes: '',
     summary: [],
     rule: [],

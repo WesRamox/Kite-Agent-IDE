@@ -7,6 +7,7 @@ import { openConnectAgents } from '../../features/agents/sessions.actions'
 import { closeActive, saveActive } from '../../features/editor/editor.actions'
 import { useQuickOpenStore } from '../../features/quick-open/quick-open.store'
 import { openTaskReview } from '../../features/tasks/review.actions'
+import { removeTaskWorktrees, setTaskDone } from '../../features/tasks/task-completion.actions'
 import { useTaskSwitcherStore } from '../../features/tasks/task-switcher.store'
 import { openDiscover, showWorkspace, startAgentInTask } from '../../features/tasks/tasks.actions'
 import { useTasksStore } from '../../features/tasks/tasks.store'
@@ -87,6 +88,7 @@ export function buildMenus(t: TFunction = currentT): MenuDef[] {
   const theme = useThemeStore.getState().theme
   const tasks = useTasksStore.getState()
   const activeTask = tasks.activeTaskId
+  const activeDone = tasks.workspace?.tasks.find((x) => x.id === activeTask)?.done ?? false
   const presets = useAgentsStore.getState().presets.filter((p) => p.command.trim())
 
   return [
@@ -158,6 +160,14 @@ export function buildMenus(t: TFunction = currentT): MenuDef[] {
         sep,
         item(t('menu.reviewTask'), () => activeTask && void openTaskReview(activeTask), {
           disabled: !activeTask,
+        }),
+        item(
+          t(activeDone ? 'menu.unmarkDone' : 'menu.markDone'),
+          () => activeTask && void setTaskDone(activeTask, !activeDone),
+          { disabled: !activeTask },
+        ),
+        item(t('menu.removeWorktrees'), () => activeTask && void removeTaskWorktrees(activeTask), {
+          disabled: !activeTask || !activeDone,
         }),
         item(t('menu.backToWorkspace'), showWorkspace, { disabled: !activeTask }),
         sep,

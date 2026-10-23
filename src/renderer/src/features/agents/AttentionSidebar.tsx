@@ -25,7 +25,9 @@ import { useAttentionStore } from './attention.store'
 import { NewTaskForm } from './NewTaskForm'
 import { PresetEditor } from './PresetEditor'
 import { tildePath } from '../../lib/session-format'
+import { DoneTasks } from '../tasks/DoneTasks'
 import { openTaskReview } from '../tasks/review.actions'
+import { setTaskDone } from '../tasks/task-completion.actions'
 import { openDiscover, openTask, setTaskHidden } from '../tasks/tasks.actions'
 import { useTasksStore } from '../tasks/tasks.store'
 import { useAttentionItems } from './use-attention'
@@ -84,6 +86,7 @@ function taskMenu(item: AttentionItem): MenuItem[] {
             },
           ]
         : []),
+      { label: t('sidebar.menu.markDone'), onSelect: () => void setTaskDone(ws.id, true) },
       { label: t('sidebar.menu.hide'), onSelect: () => void setTaskHidden(ws.id, true) },
     ]
   }
@@ -230,6 +233,7 @@ export function AttentionSidebar() {
             ))}
           </div>
         ))}
+        <DoneTasks />
         <HiddenTasks />
       </div>
       {menu && (

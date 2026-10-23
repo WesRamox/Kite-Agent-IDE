@@ -1,6 +1,6 @@
 import type { GitStatus, Task, TaskWorktree } from '@shared/types'
 import { beforeEach, describe, expect, it } from 'vitest'
-import { taskBaseDir, useTasksStore, worktreeOf } from './tasks.store'
+import { isDoneTask, isShownTask, taskBaseDir, useTasksStore, worktreeOf } from './tasks.store'
 
 const wt = (path: string): TaskWorktree => ({
   repo: `${path}-main`,
@@ -19,6 +19,7 @@ const task = (folder: string | null, paths: string[]): Task => ({
   worktrees: paths.map(wt),
   hidden: false,
   pending: false,
+  done: false,
   notes: '',
   summary: [],
   rule: [],
@@ -65,5 +66,20 @@ describe('tasks.store', () => {
     expect(worktreeOf(t, '/w/api2/x.ts')?.path).toBe('/w/api2')
     expect(worktreeOf(t, '/w/api/x.ts')?.path).toBe('/w/api')
     expect(worktreeOf(t, '/w/outro/x.ts')).toBeNull()
+  })
+})
+
+describe('tarefa concluída', () => {
+  it('sai da Central e do Ctrl+K e vai para "Concluídas"', () => {
+    const done = { ...task(null, ['/ws/a']), done: true }
+    expect(isShownTask(done)).toBe(false)
+    expect(isDoneTask(done)).toBe(true)
+  })
+
+  it('escondida ou pendente não aparece em "Concluídas"', () => {
+    const done = { ...task(null, ['/ws/a']), done: true }
+    expect(isDoneTask({ ...done, hidden: true })).toBe(false)
+    expect(isDoneTask({ ...done, pending: true })).toBe(false)
+    expect(isDoneTask(task(null, ['/ws/a']))).toBe(false)
   })
 })
