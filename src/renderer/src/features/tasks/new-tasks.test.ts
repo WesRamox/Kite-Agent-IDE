@@ -12,6 +12,7 @@ const task = (id: string, paths: string[], pending: boolean): Task => ({
   worktrees: paths.map((path) => ({ repo: '/r', repoName: 'r', path, branch: id, head: 'abc' })),
   hidden: false,
   pending,
+  done: false,
   notes: '',
   summary: [],
   rule: [],

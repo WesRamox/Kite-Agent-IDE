@@ -32,6 +32,33 @@ export default messages(
     'tasks.createError': 'Erro ao criar a tarefa',
     'tasks.refreshError': 'Erro ao atualizar as tarefas',
     'tasks.startAgentError': 'Erro ao iniciar o agente',
+    'tasks.doneError': 'Erro ao marcar a tarefa',
+    'tasks.markedDone': ({ name }: Name) =>
+      `${name} concluída. Ela fica em “Concluídas” na Central.`,
+    'tasks.removeWorktreesNow': 'Excluir worktrees',
+    'tasks.removeWorktreesConfirm': ({ name, n }: Name & N) =>
+      `Excluir ${n === 1 ? 'a worktree' : `as ${n} worktrees`} de ${name}?`,
+    'tasks.removeWorktreesDetail': ({ paths }: { paths: string }) =>
+      `Estas pastas serão apagadas:
+${paths}
+
+As branches continuam nos repositórios. As abas e os terminais da tarefa serão fechados.`,
+    'tasks.removeWorktreesFolder': ({ folder }: { folder: string }) =>
+      `Se a pasta ${folder} ficar só com o TASK.md, ela vai para a lixeira.`,
+    'tasks.removeWorktreesAgents': ({ n }: N) =>
+      n === 1 ? 'O agente da tarefa será parado.' : `Os ${n} agentes da tarefa serão parados.`,
+    'tasks.removeWorktrees': 'Excluir',
+    'tasks.dirtyWorktrees': ({ repos }: { repos: string }) =>
+      `Há alterações não commitadas em ${repos}. Excluir mesmo assim?`,
+    'tasks.dirtyDetail': 'Essas alterações serão perdidas. Os commits continuam nas branches.',
+    'tasks.removeAnyway': 'Excluir mesmo assim',
+    'tasks.removeWorktreesError': 'Erro ao excluir as worktrees',
+    'tasks.worktreesRemoved': ({ n }: N) =>
+      `${n} ${n === 1 ? 'worktree excluída' : 'worktrees excluídas'}.`,
+    'tasks.worktreesRemovedFolder': ({ n }: N) =>
+      `${n} ${n === 1 ? 'worktree excluída' : 'worktrees excluídas'} e a pasta da tarefa foi para a lixeira.`,
+    'tasks.worktreesPartial': ({ repos }: { repos: string }) =>
+      `Não foi possível excluir: ${repos}. A tarefa continua em “Concluídas”.`,
 
     'discover.tab': 'Descobrir tarefas',
     'discover.closeTab': 'Fechar Descobrir tarefas',
@@ -114,6 +141,10 @@ export default messages(
 
     'details.label': 'Detalhes da tarefa',
     'details.task': 'Tarefa',
+    'details.markDone': 'Marcar como concluída',
+    'details.done': 'Concluída',
+    'details.unmarkDone': 'Desmarcar',
+    'details.removeWorktrees': 'Excluir worktrees…',
     'details.repos': 'Repositórios',
     'details.noBranch': ({ head }: { head: string }) => `sem branch (${head})`,
     'details.changed': ({ n }: N) => `${n} ${n === 1 ? 'alterado' : 'alterados'}`,
@@ -241,6 +272,32 @@ export default messages(
     'tasks.createError': 'Could not create the task',
     'tasks.refreshError': 'Could not refresh the tasks',
     'tasks.startAgentError': 'Could not start the agent',
+    'tasks.doneError': 'Could not update the task',
+    'tasks.markedDone': ({ name }: Name) =>
+      `${name} is done. It now sits under “Done” in the attention center.`,
+    'tasks.removeWorktreesNow': 'Delete worktrees',
+    'tasks.removeWorktreesConfirm': ({ name, n }: Name & N) =>
+      `Delete ${n === 1 ? 'the worktree' : `the ${n} worktrees`} of ${name}?`,
+    'tasks.removeWorktreesDetail': ({ paths }: { paths: string }) =>
+      `These folders will be deleted:
+${paths}
+
+The branches stay in the repositories. The task's tabs and terminals will be closed.`,
+    'tasks.removeWorktreesFolder': ({ folder }: { folder: string }) =>
+      `If ${folder} is left with only TASK.md, it goes to the trash.`,
+    'tasks.removeWorktreesAgents': ({ n }: N) =>
+      n === 1 ? "The task's agent will be stopped." : `The task's ${n} agents will be stopped.`,
+    'tasks.removeWorktrees': 'Delete',
+    'tasks.dirtyWorktrees': ({ repos }: { repos: string }) =>
+      `There are uncommitted changes in ${repos}. Delete anyway?`,
+    'tasks.dirtyDetail': 'Those changes will be lost. Commits stay on the branches.',
+    'tasks.removeAnyway': 'Delete anyway',
+    'tasks.removeWorktreesError': 'Could not delete the worktrees',
+    'tasks.worktreesRemoved': ({ n }: N) => `${n} ${n === 1 ? 'worktree' : 'worktrees'} deleted.`,
+    'tasks.worktreesRemovedFolder': ({ n }: N) =>
+      `${n} ${n === 1 ? 'worktree' : 'worktrees'} deleted and the task folder went to the trash.`,
+    'tasks.worktreesPartial': ({ repos }: { repos: string }) =>
+      `Could not delete: ${repos}. The task stays under “Done”.`,
 
     'discover.tab': 'Discover tasks',
     'discover.closeTab': 'Close Discover tasks',
@@ -321,6 +378,10 @@ export default messages(
 
     'details.label': 'Task details',
     'details.task': 'Task',
+    'details.markDone': 'Mark as done',
+    'details.done': 'Done',
+    'details.unmarkDone': 'Unmark',
+    'details.removeWorktrees': 'Delete worktrees…',
     'details.repos': 'Repositories',
     'details.noBranch': ({ head }: { head: string }) => `no branch (${head})`,
     'details.changed': ({ n }: N) => `${n} changed`,

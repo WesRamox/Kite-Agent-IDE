@@ -31,6 +31,7 @@ const task = (patch: Partial<Task>): Task => ({
   worktrees: [],
   hidden: false,
   pending: false,
+  done: false,
   notes: '',
   summary: [],
   rule: [],

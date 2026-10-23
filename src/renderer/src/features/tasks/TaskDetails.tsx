@@ -6,6 +6,7 @@ import { useSessionsStore } from '../agents/sessions.store'
 import { linkSessions } from '../../lib/task-links'
 import { setTaskNotes } from './tasks.actions'
 import { useActiveTask, useTasksStore, NO_LINKS } from './tasks.store'
+import { TaskDoneActions } from './TaskDoneActions'
 import { TaskRule, TaskSummary } from './TaskSummary'
 import { t as tr, currentLang, useT } from '../../lib/i18n'
 
@@ -50,6 +51,7 @@ export function TaskDetails() {
       <div className="flex flex-col gap-1.5">
         <span className={LABEL}>{t('details.task')}</span>
         <span className="text-[15px] font-semibold">{task.name}</span>
+        <TaskDoneActions task={task} />
       </div>
 
       {(task.summary.length > 0 || task.folder) && (

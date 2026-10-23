@@ -37,6 +37,8 @@ export interface Task {
   hidden: boolean
   // Apareceu depois da última importação: espera na descoberta e ainda não vai para a Central.
   pending: boolean
+  // Marcada como concluída: sai da Central e do Ctrl+K e pode ter as worktrees excluídas.
+  done: boolean
   notes: string
   // Resumo: o texto logo abaixo do título no TASK.md (escrito pelo agente ou à mão), já sem
   // marcação; itens de lista começam com "• ". Vazio quando não há.
@@ -62,6 +64,25 @@ export interface WorkspaceTasks {
   // Vínculos manuais sessão → tarefa (vencem a detecção automática).
   sessionLinks: Record<string, string>
 }
+
+// Exclusão das worktrees de uma tarefa concluída. `dirty`: há alterações não commitadas nesses
+// repos e nada foi apagado (o renderer confirma de novo antes de forçar).
+export interface RemovedWorktree {
+  repoName: string
+  path: string
+  // Mensagem do git quando a remoção falhou; null quando a worktree saiu.
+  error: string | null
+}
+
+export type RemoveWorktreesResult =
+  | { kind: 'dirty'; repos: string[] }
+  | {
+      kind: 'removed'
+      worktrees: RemovedWorktree[]
+      // A pasta da tarefa ficou só com TASK.md/.kite-task.json e foi para a lixeira.
+      folderTrashed: boolean
+      workspace: WorkspaceTasks
+    }
 
 // Revisão e entrega de uma tarefa multi-repo (Fase 9).
 export interface ReviewFile {

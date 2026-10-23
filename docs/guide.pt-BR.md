@@ -69,6 +69,12 @@ cada repo, as sessões de agente e notas. Uma sessão do Claude Code é ligada �
 pelos arquivos que edita (mesmo aberta na raiz do workspace); em Conectar agentes dá para
 vincular à mão.
 
+Tarefa aprovada: "Marcar como concluída" (botão direito na Central, menu Tarefa ou os detalhes da
+tarefa) a tira da Central e do `Ctrl/Cmd+K` e a guarda em "Concluídas", no fim da Central, onde
+dá para desmarcar. Concluída, "Excluir worktrees…" apaga as worktrees de todos os repos dela (as
+branches ficam) e manda a pasta da tarefa para a lixeira se sobrar só o `TASK.md`. Com alterações
+não commitadas, o Kite pergunta de novo antes de apagar.
+
 ### Revisar e entregar uma tarefa
 
 "Revisar" (na Central, ou botão direito na tarefa → "Revisar mudanças") abre a revisão da tarefa:

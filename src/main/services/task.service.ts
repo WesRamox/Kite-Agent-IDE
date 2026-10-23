@@ -102,6 +102,7 @@ export class TaskService {
           worktrees: t.worktrees,
           hidden: cfg.overrides.hidden.includes(t.id),
           pending: cfgOps.isPending(cfg, t),
+          done: cfgOps.isDone(cfg, t.id),
           notes: cfg.notes[t.id] ?? '',
           summary: meta.summary,
           rule: meta.rule,
@@ -424,7 +425,9 @@ export class TaskService {
     return state.workspaces[root] ?? DEFAULT_CONFIG
   }
 
-  private async update(
+  // Aplica um ajuste à configuração do workspace e redescobre (usado também pelo
+  // TaskCompletionService).
+  async update(
     root: string,
     fn: (c: WorkspaceTaskConfig) => WorkspaceTaskConfig,
   ): Promise<WorkspaceTasks> {

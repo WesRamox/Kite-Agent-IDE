@@ -18,6 +18,7 @@ const task = (id: string, folder: string | null, paths: string[]): Task => ({
   })),
   hidden: false,
   pending: false,
+  done: false,
   notes: '',
   summary: [],
   rule: [],

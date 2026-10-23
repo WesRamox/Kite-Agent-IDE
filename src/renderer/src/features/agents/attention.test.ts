@@ -96,6 +96,7 @@ describe('attention', () => {
       ],
       hidden: false,
       pending: false,
+      done: false,
       notes: '',
       summary: [],
       rule: [],

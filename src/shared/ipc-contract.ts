@@ -36,6 +36,7 @@ import type {
   TaskReview,
   DeliverInput,
   DeliverResult,
+  RemoveWorktreesResult,
   WorkspaceTasks,
   StartAgentInput,
   DeviceFlowPoll,
@@ -175,6 +176,11 @@ export interface InvokeChannels {
   'task:removeRepo': { args: [root: string, repo: string]; result: WorkspaceTasks }
   'task:restoreRepo': { args: [root: string, repo: string]; result: WorkspaceTasks }
   'task:remove': { args: [root: string, taskId: string]; result: WorkspaceTasks }
+  'task:setDone': { args: [root: string, taskId: string, done: boolean]; result: WorkspaceTasks }
+  'task:removeWorktrees': {
+    args: [root: string, taskId: string, force: boolean]
+    result: RemoveWorktreesResult
+  }
   'task:openRepo': { args: [root: string, repo: string]; result: string }
   'task:open': { args: [root: string, taskId: string]; result: Task }
   'task:addRepo': { args: [root: string, taskId: string, repo: string]; result: WorkspaceTasks }
@@ -309,6 +315,8 @@ export interface Api {
     removeRepo: Fn<'task:removeRepo'>
     restoreRepo: Fn<'task:restoreRepo'>
     remove: Fn<'task:remove'>
+    setDone: Fn<'task:setDone'>
+    removeWorktrees: Fn<'task:removeWorktrees'>
     openRepo: Fn<'task:openRepo'>
     open: Fn<'task:open'>
     addRepo: Fn<'task:addRepo'>

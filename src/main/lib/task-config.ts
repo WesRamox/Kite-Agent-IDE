@@ -30,6 +30,8 @@ const configSchema = z.object({
   seenWorktrees: z.array(z.string()).optional(),
   // Até quantos níveis abaixo da pasta aberta procurar repositórios (ausente: o padrão).
   scanDepth: z.number().int().min(MIN_SCAN_DEPTH).max(MAX_SCAN_DEPTH).optional(),
+  // Tarefas marcadas como concluídas: saem da Central e do Ctrl+K (ausente em perfis antigos).
+  done: z.array(z.string()).optional(),
   notes: z.record(z.string(), z.string().max(20_000)),
   sessionLinks: z.record(z.string(), z.string()),
 })
@@ -153,6 +155,17 @@ export function setHidden(c: Config, taskId: string, hidden: boolean): Config {
   return { ...c, overrides: { ...c.overrides, hidden: [...set] } }
 }
 
+export function setDone(c: Config, taskId: string, done: boolean): Config {
+  const set = new Set(c.done ?? [])
+  if (done) set.add(taskId)
+  else set.delete(taskId)
+  return { ...c, done: [...set] }
+}
+
+export function isDone(c: Config, taskId: string): boolean {
+  return c.done?.includes(taskId) ?? false
+}
+
 export function setNotes(c: Config, taskId: string, notes: string): Config {
   return { ...c, notes: { ...c.notes, [taskId]: notes } }
 }
@@ -187,6 +200,12 @@ export function removeManualTask(c: Config, taskId: string): Config {
   if (!c.overrides.manual.some((m) => m.id === taskId)) {
     throw new AppException('INVALID_ARGS', t('error.onlyManualTasks'))
   }
+  return forgetTask(c, taskId)
+}
+
+// Apaga tudo o que a configuração guarda sobre a tarefa. Os ids são estáveis: sem isto, uma
+// worktree nova que caísse no mesmo id (ex.: a mesma branch) herdaria nome, notas e conclusão.
+export function forgetTask(c: Config, taskId: string): Config {
   const without = <T>(rec: Record<string, T>) =>
     Object.fromEntries(Object.entries(rec).filter(([id]) => id !== taskId))
   const notPointingTo = (rec: Record<string, string>) =>
@@ -202,5 +221,21 @@ export function removeManualTask(c: Config, taskId: string): Config {
     },
     notes: without(c.notes),
     sessionLinks: notPointingTo(c.sessionLinks),
+    ...(c.done ? { done: c.done.filter((id) => id !== taskId) } : {}),
+  }
+}
+
+// Worktrees apagadas do disco: saem dos ajustes por caminho, para uma worktree nova no mesmo
+// lugar passar pela descoberta como qualquer outra.
+export function forgetWorktrees(c: Config, paths: string[]): Config {
+  const gone = new Set(paths)
+  return {
+    ...c,
+    overrides: {
+      ...c.overrides,
+      moves: Object.fromEntries(Object.entries(c.overrides.moves).filter(([p]) => !gone.has(p))),
+      ignored: c.overrides.ignored.filter((p) => !gone.has(p)),
+    },
+    ...(c.seenWorktrees ? { seenWorktrees: c.seenWorktrees.filter((p) => !gone.has(p)) } : {}),
   }
 }

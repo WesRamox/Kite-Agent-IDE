@@ -51,7 +51,7 @@ export function registerAllIpc({ services, window, confirmClose, log }: IpcDeps)
   registerGitHubIpc(services.githubAuth, services.githubService, log)
   registerAgentIpc(services.agentService, services.taskService, log)
   registerAgentSessionIpc(services.agentEvents, services.sessionReview, services.hooksServices, log)
-  registerTaskIpc(services.taskService, log)
+  registerTaskIpc(services.taskService, services.taskCompletion, log)
   registerReviewIpc(services.reviewService, log)
   registerCanvasIpc(
     services.canvasService,

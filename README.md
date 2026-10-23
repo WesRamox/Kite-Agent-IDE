@@ -67,6 +67,8 @@ or by hand: your adjustments always win over the heuristics.
 - **Switch with `Ctrl/Cmd+K`.** Each task keeps its own tabs and terminals.
 - **Title and notes.** A `TASK.md` or `.kite-task.json` in the task folder gives the task its
   title. The details panel also has private notes.
+- **Done means gone.** Mark an approved task as done and it leaves the attention center for a
+  "Done" list, where you can unmark it or delete its worktrees in every repo (branches stay).
 - **No script? Use Kite.** "+ New" creates a worktree per repository following your folder
   pattern, then starts an agent in the task folder with an optional first prompt.
 

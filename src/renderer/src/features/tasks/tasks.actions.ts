@@ -43,7 +43,7 @@ export async function loadTasks(dir: string, opts: { fromOpen?: boolean } = {}):
   }
 }
 
-async function applyWorkspace(ws: WorkspaceTasks): Promise<void> {
+export async function applyWorkspace(ws: WorkspaceTasks): Promise<void> {
   const before = store().workspace
   store().set({ workspace: ws })
   scheduleAnnounce()

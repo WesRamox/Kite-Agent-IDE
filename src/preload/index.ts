@@ -90,6 +90,8 @@ const api: Api = {
     removeRepo: invoke('task:removeRepo'),
     restoreRepo: invoke('task:restoreRepo'),
     remove: invoke('task:remove'),
+    setDone: invoke('task:setDone'),
+    removeWorktrees: invoke('task:removeWorktrees'),
     openRepo: invoke('task:openRepo'),
     open: invoke('task:open'),
     addRepo: invoke('task:addRepo'),

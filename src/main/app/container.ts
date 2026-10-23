@@ -40,6 +40,7 @@ import {
 } from '../services/session-review.service'
 import { SettingsService } from '../services/settings.service'
 import { TaskReviewService } from '../services/task-review.service'
+import { TaskCompletionService } from '../services/task-completion.service'
 import { TaskService, taskStateSchema, type TaskState } from '../services/task.service'
 import { TerminalSessionService } from '../services/terminal-session.service'
 import { WatchService } from '../services/watch.service'
@@ -156,6 +157,13 @@ export function createServices(deps: ContainerDeps) {
     subscribe,
     emit: (tasks) => window.emit('task:changed', tasks),
     pickFolder,
+    log: log.child('tasks'),
+  })
+  const taskCompletion = new TaskCompletionService({
+    tasks: taskService,
+    run: createGitRunner(),
+    trash: (p) => shell.trashItem(p),
+    guard,
     log: log.child('tasks'),
   })
   const canvasService = new CanvasService({
@@ -317,6 +325,7 @@ export function createServices(deps: ContainerDeps) {
     reviewService,
     sessionReview,
     taskService,
+    taskCompletion,
     hooksServices,
     agentEvents,
     settingsService,

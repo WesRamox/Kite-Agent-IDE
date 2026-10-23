@@ -845,3 +845,34 @@ parede de caminhos e botões quebrando linha.
   com worktrees em `<repo>/.worktrees/<tarefa>`).
 - `task:move` e `task:ignore` recebem uma lista de worktrees, aplicada numa escrita só: criar a
   tarefa de um grupo não deixa metade dela feita se uma worktree sumir no meio.
+
+## Tarefa concluída e exclusão das worktrees (2026-10-23)
+
+Pedido da equipe: as pastas de tarefas já aprovadas se acumulam no disco. Desvio do canvas
+combinado com o usuário (o canvas não pôde ser lido nesta sessão: o link do `AGENTS.md` não abriu
+para a conta usada); as telas novas seguem o estilo das existentes.
+
+- **Concluída é um ajuste do usuário**, como esconder: `done` em `userData/tasks.json`, pelo id da
+  tarefa (opcional, perfis antigos continuam válidos). Desmarcar devolve a tarefa ao grupo de
+  antes. Como os ids da heurística podem mudar quando ela reagrupa (ex.: worktree nova muda a
+  tarefa de "branch" para "pasta"), uma tarefa reagrupada perde a marca; para tarefas encerradas
+  isso é raro.
+- **Onde aparece:** concluída sai da Central, do Ctrl+K, do quadro e da lista de vínculos
+  (`isShownTask`) e fica recolhida em "Concluídas · n", no fim da Central, antes das escondidas.
+  Escondida vence concluída. Marcar e desmarcar: menu de contexto da Central, menu "Tarefa" e os
+  detalhes da tarefa (abaixo do título). "Excluir worktrees…" só aparece em tarefa concluída.
+- **Excluir as worktrees** (`task:removeWorktrees`, `TaskCompletionService`, separado do
+  `TaskService`, que já passou de 400 linhas): só de tarefa concluída. Antes, `git status` em
+  cada worktree; havendo alterações não commitadas (ou status que falha), nada é apagado e o
+  renderer pergunta de novo antes do `--force`, como no painel Git. As branches nunca são
+  apagadas, então nada commitado se perde. Falha num repo não interrompe os outros; a tarefa só é
+  esquecida (nome, notas, vínculos, conclusão) quando todas saem. Recusa worktree que contém a
+  pasta aberta.
+- **Pasta da tarefa** (ex.: `.worktrees/PAY-412`) vai para a lixeira só se sobrarem nela
+  `TASK.md`/`.kite-task.json`; com qualquer outro arquivo, fica.
+- **Windows:** processo com a pasta aberta impede apagá-la. Antes de excluir, o renderer para os
+  agentes do Kite abertos na tarefa, fecha as abas e terminais dela e solta os watchers das
+  worktrees; o main ainda tenta cada remoção três vezes. Agentes abertos em terminais de fora do
+  Kite não são parados: o erro do git aparece por repo.
+- Abas de editor da tarefa com alterações não salvas são fechadas sem perguntar: os arquivos
+  estão sendo apagados junto com a worktree.

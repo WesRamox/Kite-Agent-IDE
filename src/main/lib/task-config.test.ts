@@ -4,7 +4,11 @@ import {
   addExtraRepo,
   assignWorktree,
   DEFAULT_CONFIG,
+  forgetTask,
+  forgetWorktrees,
+  ignoreWorktree,
   importTasks,
+  isDone,
   isPending,
   markSeen,
   linkSession,
@@ -12,6 +16,7 @@ import {
   removeRepo,
   renameTask,
   restoreRepo,
+  setDone,
   setHidden,
   setScanDepth,
   worktreePattern,
@@ -145,5 +150,40 @@ describe('removeManualTask', () => {
 
   it('recusa tarefa descoberta pela heurística', () => {
     expect(() => removeManualTask(base, 'folder:x')).toThrow(AppException)
+  })
+})
+
+describe('tarefa concluída', () => {
+  it('marca e desmarca sem repetir o id', () => {
+    const done = setDone(setDone(base, 'folder:x', true), 'folder:x', true)
+    expect(done.done).toEqual(['folder:x'])
+    expect(isDone(done, 'folder:x')).toBe(true)
+    expect(isDone(setDone(done, 'folder:x', false), 'folder:x')).toBe(false)
+  })
+
+  it('perfil antigo (sem a lista) não tem tarefa concluída', () => {
+    expect(isDone(base, 'folder:x')).toBe(false)
+  })
+
+  it('esquecer a tarefa limpa a conclusão, o nome e as notas, inclusive da heurística', () => {
+    let c = setDone(base, 'branch:pay', true)
+    c = renameTask(c, 'branch:pay', 'Pix')
+    c = linkSession(c, 's1', 'branch:pay')
+    c = { ...c, notes: { 'branch:pay': 'nota' } }
+    const next = forgetTask(c, 'branch:pay')
+    expect(next.done).toEqual([])
+    expect(next.overrides.names).toEqual({})
+    expect(next.notes).toEqual({})
+    expect(next.sessionLinks).toEqual({})
+  })
+
+  it('worktrees apagadas saem dos ajustes por caminho', () => {
+    let c = markSeen(base, ['/wt/a', '/wt/b'])
+    c = assignWorktree(c, '/wt/a', 'manual:1', { id: 'manual:1', name: 'A' })
+    c = ignoreWorktree(c, '/wt/a')
+    const next = forgetWorktrees(c, ['/wt/a'])
+    expect(next.seenWorktrees).toEqual(['/wt/b'])
+    expect(next.overrides.moves).toEqual({})
+    expect(next.overrides.ignored).toEqual([])
   })
 })

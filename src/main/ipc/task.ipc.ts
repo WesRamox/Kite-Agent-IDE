@@ -1,6 +1,7 @@
 import { z } from 'zod'
 import type { Logger } from '../lib/logger'
 import { MAX_SCAN_DEPTH, MIN_SCAN_DEPTH } from '../lib/task-config'
+import type { TaskCompletionService } from '../services/task-completion.service'
 import type { TaskService } from '../services/task.service'
 import { registerHandler } from './register'
 import { absPath } from './schemas'
@@ -13,7 +14,11 @@ const grouping = z.object({
   pattern: z.string().max(200),
 })
 
-export function registerTaskIpc(tasks: TaskService, log: Logger): void {
+export function registerTaskIpc(
+  tasks: TaskService,
+  completion: TaskCompletionService,
+  log: Logger,
+): void {
   registerHandler('task:discover', z.tuple([absPath]), (r) => tasks.discover(r), log)
   registerHandler('task:watch', z.tuple([absPath]), (r) => tasks.watch(r), log)
   registerHandler(
@@ -87,6 +92,18 @@ export function registerTaskIpc(tasks: TaskService, log: Logger): void {
     'task:remove',
     z.tuple([absPath, taskId]),
     (r, id) => tasks.removeTask(r, id),
+    log,
+  )
+  registerHandler(
+    'task:setDone',
+    z.tuple([absPath, taskId, z.boolean()]),
+    (r, id, done) => completion.setDone(r, id, done),
+    log,
+  )
+  registerHandler(
+    'task:removeWorktrees',
+    z.tuple([absPath, taskId, z.boolean()]),
+    (r, id, force) => completion.removeWorktrees(r, id, force),
     log,
   )
   registerHandler(

@@ -63,9 +63,14 @@ export function activeTask(): Task | null {
   return workspace?.tasks.find((t) => t.id === activeTaskId) ?? null
 }
 
-// Tarefa que aparece na Central, no Ctrl+K e no quadro: importada e não escondida.
+// Tarefa que aparece na Central, no Ctrl+K e no quadro: importada, não escondida e não concluída.
 export function isShownTask(task: Task): boolean {
-  return !task.hidden && !task.pending
+  return !task.hidden && !task.pending && !task.done
+}
+
+// Concluída e ainda no disco: fica recolhida em "Concluídas", no fim da Central.
+export function isDoneTask(task: Task): boolean {
+  return task.done && !task.hidden && !task.pending
 }
 
 export function useActiveTask(): Task | null {
