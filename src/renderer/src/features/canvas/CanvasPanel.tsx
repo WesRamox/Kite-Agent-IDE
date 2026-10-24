@@ -116,7 +116,7 @@ function Board() {
 
   return (
     <div
-      className={`kite-canvas relative h-full w-full bg-surface-0 ${connecting ? 'kite-connecting' : ''}`}
+      className={`kite-canvas relative h-full w-full bg-surface-0 [container-type:size] ${connecting ? 'kite-connecting' : ''}`}
     >
       <ReactFlow<FlowNode>
         nodes={nodes}
@@ -158,11 +158,18 @@ function Board() {
         <Background variant={BackgroundVariant.Dots} gap={20} size={1.6} />
         <Controls position="bottom-left" showInteractive={false} />
         <MiniMap position="bottom-right" pannable zoomable nodeBorderRadius={6} />
-        <Panel position="top-left">
-          <WorkflowBar />
-        </Panel>
-        <Panel position="top-right">
-          <AddNodeMenu open={menu} onOpenChange={setMenu} />
+        {/* Uma faixa só no topo: com o quadro estreito, a barra de workflows encolhe em vez de
+            ficar por baixo do "+". A faixa não pega cliques; só as duas pontas. */}
+        <Panel
+          position="top-left"
+          className="pointer-events-none right-0 flex items-start justify-between gap-2"
+        >
+          <div className="pointer-events-auto min-w-0">
+            <WorkflowBar />
+          </div>
+          <div className="pointer-events-auto shrink-0">
+            <AddNodeMenu open={menu} onOpenChange={setMenu} />
+          </div>
         </Panel>
       </ReactFlow>
       {nodes.length === 0 && <EmptyCanvas onAdd={() => setMenu(true)} />}

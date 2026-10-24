@@ -905,3 +905,23 @@ Pedido: a "lupa" do VS Code, mas só na tarefa aberta. Desvio do canvas combinad
 - **Testes de componente** usam `installApiInDom` (`renderer/src/test/fake-api.ts`), que põe o
   `window.api` falso no window do happy-dom; o `installApi` troca o window inteiro e não serve
   para o `render`.
+
+## Quadro sobrepondo o resto do app (2026-10-24)
+
+- **Sem painéis flutuantes no dock** (`disableFloatingGroups`). Shift+clique numa aba soltava o
+  painel numa janela flutuante do dockview, fácil de abrir sem querer. Com z-index 998/999, ela
+  ficava por cima dos menus, modais e toasts do app (`z-50`, no `body`). Nenhuma tela usa painel
+  flutuante; se um dia usar, a camada de cada dock já está isolada (abaixo).
+- **Cada dock é um contexto de empilhamento** (`isolate` no wrapper do `DockContext`). Os z-index
+  do dockview (camadas de arraste, 1000 e acima) ficam presos dentro do dock e nunca disputam com
+  os menus e modais do app.
+- **Topo do quadro numa faixa só**: a barra de workflows e o "+" ficam num único `Panel` com
+  `justify-between`. Com o quadro estreito, a barra encolhe (o nome trunca) em vez de ficar por
+  baixo do "+". Os menus dos dois usam `100cqw`/`100cqh` (o `.kite-canvas` é um container de
+  tamanho) para caber no quadro, já que o dockview recorta o painel (`contain: paint`).
+- **`ContextMenu` mede o próprio tamanho** antes de pintar (`fitMenu`, em
+  `renderer/src/lib/menu-position.ts`). A estimativa de 28 px por item não contava a faixa de
+  cores do menu de um bloco do quadro, e o fim do menu saía da tela perto da borda de baixo.
+  Maior que a janela, ele rola.
+- Teste: `e2e/canvas-overlap.spec.ts` (troca de aba, bloco arrastado para fora, Shift+clique,
+  camada do dock contra o menu do app e quadro estreito), com pixels da janela para o `<webview>`.

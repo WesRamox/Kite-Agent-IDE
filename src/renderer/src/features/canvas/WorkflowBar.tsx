@@ -51,7 +51,7 @@ export function WorkflowBar() {
 
   return (
     <div ref={ref} className="relative font-geist text-fg">
-      <div className="flex h-10 items-center rounded-lg border border-border bg-surface-2 shadow-lg">
+      <div className="flex h-10 min-w-0 items-center overflow-hidden rounded-lg border border-border bg-surface-2 shadow-lg">
         {editing === active && current ? (
           <NameInput
             initial={current.name}
@@ -73,7 +73,7 @@ export function WorkflowBar() {
               setOpen(false)
               setEditing(active)
             }}
-            className="flex h-full items-center gap-2 rounded-l-lg pr-2 pl-3 text-[13px] font-medium hover:bg-surface-3"
+            className="flex h-full min-w-0 items-center gap-2 rounded-l-lg pr-2 pl-3 text-[13px] font-medium hover:bg-surface-3"
           >
             <span className="max-w-56 truncate">{current?.name}</span>
             <ChevronDown
@@ -111,7 +111,7 @@ export function WorkflowBar() {
         </button>
         <span
           title={t('canvas.autoSaveHint')}
-          className="flex h-full items-center gap-1.5 pr-3 pl-1.5 text-xs text-fg-muted"
+          className="flex h-full min-w-0 items-center gap-1.5 overflow-hidden pr-3 pl-1.5 text-xs whitespace-nowrap text-fg-muted"
         >
           {status === 'saving' && <LoaderCircle size={13} className="animate-spin" />}
           {status === 'saved' && <Check size={13} className="text-success" />}
@@ -143,7 +143,7 @@ export function WorkflowBar() {
         <div
           role="menu"
           aria-label={t('canvas.workflows')}
-          className="absolute top-12 left-0 w-[300px] rounded-xl border border-border bg-surface-2 p-1.5 shadow-2xl"
+          className="absolute top-12 left-0 max-h-[calc(100cqh-80px)] w-[min(300px,calc(100cqw-30px))] overflow-y-auto rounded-xl border border-border bg-surface-2 p-1.5 shadow-2xl"
         >
           <p className="px-2.5 pt-1.5 pb-2 text-[11px] font-semibold tracking-[0.08em] text-fg-muted uppercase">
             {t('canvas.workflows')}
@@ -273,7 +273,7 @@ function SaveForm({
         e.preventDefault()
         if (valid) onSave(name)
       }}
-      className="absolute top-12 left-0 flex w-[340px] flex-col gap-3 rounded-xl border border-border bg-surface-2 p-3.5 shadow-2xl"
+      className="absolute top-12 left-0 flex max-h-[calc(100cqh-80px)] w-[min(340px,calc(100cqw-30px))] flex-col overflow-y-auto gap-3 rounded-xl border border-border bg-surface-2 p-3.5 shadow-2xl"
     >
       <label className="flex flex-col gap-1.5">
         <span className="text-[11px] font-semibold tracking-[0.08em] text-fg-muted uppercase">
