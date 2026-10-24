@@ -674,8 +674,13 @@ Decisões fáceis de desfazer, não cobertas pelo `AGENTS.md`. Mais recente no f
   no build não empacotado e não é afetado. `GrantFileProtocolExtraPrivileges` e a validação de
   integridade do asar ficaram como estão: mudam o carregamento por `file://` e precisam de teste
   em macOS/Windows.
-- **`dompurify` 3.4.15** (auditoria, 2 baixas, modo `IN_PLACE`): o Monaco embute a própria cópia
-  e ninguém usa `IN_PLACE`; sem override. Rever ao atualizar o Monaco.
+- **`dompurify` 3.4.15** (auditoria): o Monaco embute e usa a própria cópia
+  (`esm/vs/base/browser/dompurify/`); o pacote do npm não entra no app, então um override não
+  mudaria o código entregue. As falhas pedem `IN_PLACE`, `SAFE_FOR_TEMPLATES` ou
+  `PARSER_MEDIA_TYPE` xhtml, que o Monaco não usa. Em 2026-10-24 apareceram uma crítica
+  (GHSA-cg2g-xh64-v4q7) e uma alta (GHSA-mrv2-3pqr-j5jr), corrigidas no 3.4.17 mas ainda sem
+  Monaco novo (0.57.0 é o último): ficam em `auditConfig.ignoreGhsas` (`pnpm-workspace.yaml`),
+  só essas duas. Rever e tirar a exceção ao atualizar o Monaco.
 
 ## Refatoração R3: serviços e tipos
 
