@@ -1,6 +1,7 @@
 import agents from './agents'
 import canvas from './canvas'
 import main from './main'
+import search from './search'
 import settings from './settings'
 import shell from './shell'
 import tasks from './tasks'
@@ -16,6 +17,7 @@ export const all = {
     ...tasks.pt,
     ...workbench.pt,
     ...canvas.pt,
+    ...search.pt,
   },
   en: {
     ...main.en,
@@ -25,5 +27,6 @@ export const all = {
     ...tasks.en,
     ...workbench.en,
     ...canvas.en,
+    ...search.en,
   },
 }

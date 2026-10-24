@@ -40,6 +40,7 @@ import {
 } from '../services/session-review.service'
 import { SettingsService } from '../services/settings.service'
 import { TaskReviewService } from '../services/task-review.service'
+import { SearchService } from '../services/search.service'
 import { TaskCompletionService } from '../services/task-completion.service'
 import { TaskService, taskStateSchema, type TaskState } from '../services/task.service'
 import { TerminalSessionService } from '../services/terminal-session.service'
@@ -165,6 +166,11 @@ export function createServices(deps: ContainerDeps) {
     trash: (p) => shell.trashItem(p),
     guard,
     log: log.child('tasks'),
+  })
+  const searchService = new SearchService({
+    tasks: taskService,
+    run: createGitRunner(),
+    log: log.child('search'),
   })
   const canvasService = new CanvasService({
     guard,
@@ -326,6 +332,7 @@ export function createServices(deps: ContainerDeps) {
     sessionReview,
     taskService,
     taskCompletion,
+    searchService,
     hooksServices,
     agentEvents,
     settingsService,

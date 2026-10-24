@@ -1,6 +1,6 @@
 import { create } from 'zustand'
 
-export type SidebarView = 'attention' | 'explorer' | 'git' | 'github'
+export type SidebarView = 'attention' | 'explorer' | 'search' | 'git' | 'github'
 
 // Largura da sidebar: 288 px como no canvas, ajustável arrastando a borda.
 export const SIDEBAR_DEFAULT = 288

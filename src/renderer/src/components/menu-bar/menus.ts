@@ -6,6 +6,7 @@ import { useAttentionStore } from '../../features/agents/attention.store'
 import { openConnectAgents } from '../../features/agents/sessions.actions'
 import { closeActive, saveActive } from '../../features/editor/editor.actions'
 import { useQuickOpenStore } from '../../features/quick-open/quick-open.store'
+import { openSearch } from '../../features/search/search.actions'
 import { openTaskReview } from '../../features/tasks/review.actions'
 import { removeTaskWorktrees, setTaskDone } from '../../features/tasks/task-completion.actions'
 import { useTaskSwitcherStore } from '../../features/tasks/task-switcher.store'
@@ -124,8 +125,9 @@ export function buildMenus(t: TFunction = currentT): MenuDef[] {
       label: t('menu.view'),
       items: [
         ...VIEWS.map((v) =>
-          item(t(v.label), () => showView(v.id), {
+          item(t(v.label), () => (v.id === 'search' ? openSearch() : showView(v.id)), {
             checked: layout.sidebarVisible && layout.activeView === v.id,
+            shortcut: v.id === 'search' ? `${mod}${shift}F` : undefined,
           }),
         ),
         sep,

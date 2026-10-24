@@ -1,7 +1,7 @@
 import Editor from '@monaco-editor/react'
 import type { IDockviewPanelProps } from 'dockview-react'
 import { useEffect, useRef } from 'react'
-import { useEditorStore } from './editor.store'
+import { type EditorReveal, useEditorStore } from './editor.store'
 import { uriFor } from './models'
 import { type monaco, useMonacoTheme } from './use-monaco'
 import { CODE_FONT } from '../../lib/code-font'
@@ -18,11 +18,30 @@ const OPTIONS: monaco.editor.IStandaloneEditorConstructionOptions = {
   fixedOverflowWidgets: true,
 }
 
+// Seleciona a ocorrência pedida e a traz para o meio da tela.
+function applyReveal(editor: monaco.editor.IStandaloneCodeEditor, r: EditorReveal): void {
+  editor.setSelection({
+    startLineNumber: r.line,
+    startColumn: r.column,
+    endLineNumber: r.line,
+    endColumn: r.column + r.length,
+  })
+  editor.revealLineInCenter(r.line)
+  editor.focus()
+  useEditorStore.getState().clearReveal(r.seq)
+}
+
 export function EditorPanel({ params, api }: IDockviewPanelProps<{ path: string }>) {
   const monacoTheme = useMonacoTheme()
   const fontSize = useSettingsStore((s) => s.settings.editorFontSize)
   const editorRef = useRef<monaco.editor.IStandaloneCodeEditor | null>(null)
   const { path } = params
+  const reveal = useEditorStore((s) => (s.reveal?.path === path ? s.reveal : null))
+
+  // Pedido para um editor já montado; o recém-aberto aplica no onMount.
+  useEffect(() => {
+    if (reveal && editorRef.current) applyReveal(editorRef.current, reveal)
+  }, [reveal])
 
   // Cursor da aba ativa vai para a status bar.
   useEffect(() => {
@@ -48,6 +67,8 @@ export function EditorPanel({ params, api }: IDockviewPanelProps<{ path: string 
         options={{ ...OPTIONS, fontSize }}
         onMount={(editor) => {
           editorRef.current = editor
+          const pending = useEditorStore.getState().reveal
+          if (pending?.path === path) applyReveal(editor, pending)
           if (api.isActive) {
             editor.focus()
             const pos = editor.getPosition()

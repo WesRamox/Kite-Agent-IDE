@@ -113,6 +113,9 @@ const api: Api = {
     prs: invoke('review:prs'),
     deliver: invoke('review:deliver'),
   },
+  search: {
+    task: invoke('search:task'),
+  },
   hooks: {
     status: invoke('hooks:status'),
     install: invoke('hooks:install'),

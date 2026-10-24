@@ -2,6 +2,7 @@ import { AttentionSidebar } from '../features/agents/AttentionSidebar'
 import { ExplorerPanel } from '../features/explorer/ExplorerPanel'
 import { GitPanel } from '../features/git/GitPanel'
 import { GitHubPanel } from '../features/github/GitHubPanel'
+import { SearchPanel } from '../features/search/SearchPanel'
 import { VIEWS } from '../lib/views'
 import { useTasksStore } from '../features/tasks/tasks.store'
 import { useLayoutStore } from '../stores/layout.store'
@@ -37,6 +38,9 @@ export function Sidebar() {
       </div>
       <div className={pane('explorer')}>
         <ExplorerPanel />
+      </div>
+      <div className={pane('search')}>
+        <SearchPanel />
       </div>
       <div className={pane('git')}>
         <GitPanel />
