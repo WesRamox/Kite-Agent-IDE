@@ -106,6 +106,20 @@ async function emptySpot(page: Page): Promise<{ x: number; y: number }> {
   return spot
 }
 
+// Ponto de um elemento que não está coberto por outro (o clique de verdade cai nele).
+async function visiblePoint(target: Locator): Promise<{ x: number; y: number }> {
+  const point = await target.evaluate((el) => {
+    const r = el.getBoundingClientRect()
+    const y = r.top + r.height / 2
+    for (let x = r.left + 8; x < r.right - 8; x += 8) {
+      if (el.contains(document.elementFromPoint(x, y))) return { x, y }
+    }
+    return null
+  })
+  if (!point) throw new Error('elemento todo coberto')
+  return point
+}
+
 const guestUrls = (app: import('@playwright/test').ElectronApplication) =>
   app.evaluate(({ webContents }) =>
     webContents
@@ -346,7 +360,10 @@ test('quadro: blocos de nota, navegador local e agente, ligados e salvos', async
       })
       .toBe('const pix = 1')
 
-    await shell.locator('header').click({ button: 'right' })
+    // Num ponto do cabeçalho que ficou à vista: os blocos criados acima podem cobrir parte dele,
+    // conforme o tamanho da tela.
+    const head = await visiblePoint(shell.locator('header'))
+    await page.mouse.click(head.x, head.y, { button: 'right' })
     await page.getByRole('menuitem', { name: 'Iniciar Agente falso aqui' }).click()
     await expect
       .poll(() => readFile(path.join(cwd, 'saida-sem-nome.txt'), 'utf8').catch(() => ''))
