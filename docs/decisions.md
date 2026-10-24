@@ -674,8 +674,13 @@ Decisões fáceis de desfazer, não cobertas pelo `AGENTS.md`. Mais recente no f
   no build não empacotado e não é afetado. `GrantFileProtocolExtraPrivileges` e a validação de
   integridade do asar ficaram como estão: mudam o carregamento por `file://` e precisam de teste
   em macOS/Windows.
-- **`dompurify` 3.4.15** (auditoria, 2 baixas, modo `IN_PLACE`): o Monaco embute a própria cópia
-  e ninguém usa `IN_PLACE`; sem override. Rever ao atualizar o Monaco.
+- **`dompurify` 3.4.15** (auditoria): o Monaco embute e usa a própria cópia
+  (`esm/vs/base/browser/dompurify/`); o pacote do npm não entra no app, então um override não
+  mudaria o código entregue. As falhas pedem `IN_PLACE`, `SAFE_FOR_TEMPLATES` ou
+  `PARSER_MEDIA_TYPE` xhtml, que o Monaco não usa. Em 2026-10-24 apareceram uma crítica
+  (GHSA-cg2g-xh64-v4q7) e uma alta (GHSA-mrv2-3pqr-j5jr), corrigidas no 3.4.17 mas ainda sem
+  Monaco novo (0.57.0 é o último): ficam em `auditConfig.ignoreGhsas` (`pnpm-workspace.yaml`),
+  só essas duas. Rever e tirar a exceção ao atualizar o Monaco.
 
 ## Refatoração R3: serviços e tipos
 
@@ -905,3 +910,23 @@ Pedido: a "lupa" do VS Code, mas só na tarefa aberta. Desvio do canvas combinad
 - **Testes de componente** usam `installApiInDom` (`renderer/src/test/fake-api.ts`), que põe o
   `window.api` falso no window do happy-dom; o `installApi` troca o window inteiro e não serve
   para o `render`.
+
+## Quadro sobrepondo o resto do app (2026-10-24)
+
+- **Sem painéis flutuantes no dock** (`disableFloatingGroups`). Shift+clique numa aba soltava o
+  painel numa janela flutuante do dockview, fácil de abrir sem querer. Com z-index 998/999, ela
+  ficava por cima dos menus, modais e toasts do app (`z-50`, no `body`). Nenhuma tela usa painel
+  flutuante; se um dia usar, a camada de cada dock já está isolada (abaixo).
+- **Cada dock é um contexto de empilhamento** (`isolate` no wrapper do `DockContext`). Os z-index
+  do dockview (camadas de arraste, 1000 e acima) ficam presos dentro do dock e nunca disputam com
+  os menus e modais do app.
+- **Topo do quadro numa faixa só**: a barra de workflows e o "+" ficam num único `Panel` com
+  `justify-between`. Com o quadro estreito, a barra encolhe (o nome trunca) em vez de ficar por
+  baixo do "+". Os menus dos dois usam `100cqw`/`100cqh` (o `.kite-canvas` é um container de
+  tamanho) para caber no quadro, já que o dockview recorta o painel (`contain: paint`).
+- **`ContextMenu` mede o próprio tamanho** antes de pintar (`fitMenu`, em
+  `renderer/src/lib/menu-position.ts`). A estimativa de 28 px por item não contava a faixa de
+  cores do menu de um bloco do quadro, e o fim do menu saía da tela perto da borda de baixo.
+  Maior que a janela, ele rola.
+- Teste: `e2e/canvas-overlap.spec.ts` (troca de aba, bloco arrastado para fora, Shift+clique,
+  camada do dock contra o menu do app e quadro estreito), com pixels da janela para o `<webview>`.

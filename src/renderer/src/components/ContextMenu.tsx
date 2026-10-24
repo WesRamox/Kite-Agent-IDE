@@ -1,5 +1,6 @@
 import { createPortal } from 'react-dom'
-import { useEffect, useRef, type ReactNode } from 'react'
+import { useEffect, useLayoutEffect, useRef, type ReactNode } from 'react'
+import { fitMenu } from '../lib/menu-position'
 
 export interface MenuItem {
   label: string
@@ -34,17 +35,27 @@ export function ContextMenu({ x, y, items, onClose, header }: Props) {
     }
   }, [onClose])
 
-  // Mantém o menu dentro da janela.
-  const left = Math.min(x, window.innerWidth - 200)
-  const top = Math.min(y, window.innerHeight - items.length * 28 - 16)
+  // Mantém o menu dentro da janela pelo tamanho medido: uma estimativa por item não contava a
+  // faixa do topo (as cores de um bloco do quadro) e o fim do menu saía da tela.
+  useLayoutEffect(() => {
+    const el = ref.current
+    if (!el) return
+    const { left, top } = fitMenu(
+      { x, y },
+      { width: el.offsetWidth, height: el.offsetHeight },
+      { width: window.innerWidth, height: window.innerHeight },
+    )
+    el.style.left = `${left}px`
+    el.style.top = `${top}px`
+  }, [x, y, items.length, header])
 
   // No body: dentro de um painel do dockview, `fixed` seria relativo ao painel (transform).
   return createPortal(
     <div
       ref={ref}
       role="menu"
-      style={{ left, top }}
-      className="fixed z-50 min-w-48 rounded-md border border-border bg-surface-2 py-1 shadow-xl"
+      style={{ left: x, top: y }}
+      className="fixed z-50 max-h-[calc(100vh-16px)] min-w-48 overflow-y-auto rounded-md border border-border bg-surface-2 py-1 shadow-xl"
     >
       {header}
       {items.map((item) => (

@@ -11,3 +11,11 @@ allowBuilds:
 
 minimumReleaseAgeExclude:
   - electron@44.7.1
+
+# dompurify 3.4.15 vem do monaco-editor 0.57.0 (o mais novo), que embute e usa a própria cópia;
+# o pacote do npm não entra no app. As duas falhas pedem SAFE_FOR_TEMPLATES ou IN_PLACE, que o
+# Monaco não usa. Tirar daqui ao atualizar o Monaco (ver docs/decisions.md).
+auditConfig:
+  ignoreGhsas:
+    - GHSA-cg2g-xh64-v4q7
+    - GHSA-mrv2-3pqr-j5jr

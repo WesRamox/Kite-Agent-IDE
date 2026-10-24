@@ -121,7 +121,7 @@ export function AddNodeMenu({
         <div
           role="menu"
           aria-label={t('canvas.addTitle')}
-          className="absolute top-12 right-0 w-[320px] rounded-xl border border-border bg-surface-2 p-1.5 shadow-2xl"
+          className="absolute top-12 right-0 max-h-[calc(100cqh-80px)] w-[min(320px,calc(100cqw-30px))] overflow-y-auto rounded-xl border border-border bg-surface-2 p-1.5 shadow-2xl"
         >
           {step === 'kinds' ? (
             <>

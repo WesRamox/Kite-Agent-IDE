@@ -164,8 +164,10 @@ function DockContext({ id, visible }: { id: string; visible: boolean }) {
     if (visible) syncActive(apiRef.current?.activePanel?.id ?? null)
   }, [visible])
 
+  // `isolate`: os z-index do dockview (sobreposições de arraste, 999 e acima) ficam presos
+  // aqui dentro e não passam por cima dos menus, modais e toasts do app.
   return (
-    <div className="absolute inset-0" data-hidden-context={visible ? undefined : ''}>
+    <div className="absolute inset-0 isolate" data-hidden-context={visible ? undefined : ''}>
       <DockviewReact
         className="kite-dock"
         theme={themeAbyss}
@@ -175,6 +177,9 @@ function DockContext({ id, visible }: { id: string; visible: boolean }) {
         rightHeaderActionsComponent={TerminalGroupActions}
         onReady={onReady}
         defaultRenderer="always"
+        // Shift+clique numa aba soltava o painel numa janela flutuante, fácil de abrir sem
+        // querer e que ficava por cima do resto do app. Nenhuma tela usa painel flutuante.
+        disableFloatingGroups
       />
     </div>
   )
