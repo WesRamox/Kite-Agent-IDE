@@ -1,8 +1,6 @@
 import { expect, test, type ElectronApplication, type Locator, type Page } from '@playwright/test'
 import { launch, makeWorkspace } from './app'
 
-const mod = process.platform === 'darwin' ? 'Meta' : 'Control'
-
 type Box = { x: number; y: number; width: number; height: number }
 const intersects = (a: Box, b: Box) =>
   a.x < b.x + b.width && b.x < a.x + a.width && a.y < b.y + b.height && b.y < a.y + a.height
@@ -74,9 +72,10 @@ test('o quadro não passa por cima do resto do app', async () => {
     const center = { x: wv.x + wv.width / 2, y: wv.y + wv.height / 2 }
     await expect.poll(() => isWhiteAt(app, center.x, center.y)).toBe(true)
 
-    // Outra aba na frente: o navegador do quadro some junto.
-    await page.keyboard.press(`${mod}+Backquote`)
-    await expect(page.locator('.xterm:visible')).toHaveCount(1)
+    // Outra aba na frente, no mesmo grupo (um arquivo aberto no editor): o navegador do quadro
+    // some junto.
+    await page.locator('[data-node-id$="README.md"]').click()
+    await expect(page.locator('.dv-tab.dv-active-tab', { hasText: 'README.md' })).toBeVisible()
     await expect.poll(() => isWhiteAt(app, center.x, center.y)).toBe(false)
 
     // Bloco arrastado para cima da sidebar: é cortado na borda do quadro.
